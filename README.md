@@ -1,6 +1,13 @@
+<div align="right">
+
+[![English](https://img.shields.io/badge/English-007ACC?style=for-the-badge)](./README.md)
+[![中文](https://img.shields.io/badge/中文-FF5555?style=for-the-badge)](./README.zh-CN.md)
+
+</div>
+
 # StageLog JP
 
-A personal live event archive app for anime, idol, and live concert fans in Japan.
+A personal live event archive web app for anime, idol, and live concert fans in Japan.
 
 StageLog JP helps users record their live event experiences with ticket-style cards, venue information, seat details, automatic weather matching, and attendance statistics.
 
@@ -26,7 +33,7 @@ Users can create and manage live event records with:
 
 ### Ticket-Style UI
 
-Each event is displayed as a ticket-like card, inspired by real live concert ticket stubs.
+Each event is displayed as a ticket-like card inspired by real live concert ticket stubs.
 
 The card includes:
 
@@ -47,7 +54,7 @@ Users can filter events by:
 - Venue
 - Event type
 
-This makes it easier to browse past live experiences.
+This makes it easier to browse and organize past live event experiences.
 
 ### Automatic Weather Matching
 
@@ -57,23 +64,23 @@ StageLog JP can automatically match weather data based on:
 - Venue location
 - Event time
 
-The app stores weather information such as:
+The web app stores weather information such as:
 
 - Temperature
 - Rainfall
 - Wind speed
 - Weather condition
 
-This allows users to see what the weather was like on the day of each live event.
+This allows users to remember what the weather was like on the day of each live event.
 
 ### Weather Ranking
 
 The app can generate personal live event weather rankings, such as:
 
 - Hottest live event
+- Coldest live event
 - Rainiest live event
 - Windiest live event
-- Coldest live event
 
 ### Venue Seat Visualization
 
@@ -94,7 +101,6 @@ Planned supported venues include:
 - Vite
 - TypeScript
 - Tailwind CSS
-- Supabase / SQLite
 - Open-Meteo API
 - SVG-based venue maps
 
@@ -102,7 +108,7 @@ Planned supported venues include:
 
 This project is designed as both a personal tool and a portfolio project.
 
-The goal is to build a practical app for Japanese live event fans while demonstrating frontend development, data modeling, API integration, UI design, and visualization skills.
+The goal is to build a practical web app for Japanese live event fans while demonstrating frontend development, data modeling, API integration, UI design, and data visualization skills.
 
 ## Roadmap
 
@@ -141,11 +147,11 @@ The goal is to build a practical app for Japanese live event fans while demonstr
 
 ## Why I Built This
 
-As a fan of Japanese anime and idol live events, I wanted to create a tool that could preserve not only the basic event information, but also the small details that make each live experience memorable.
+As a fan of Japanese anime and idol live events, I wanted to create a tool that could preserve not only basic event information, but also the small details that make each live experience memorable.
 
 Existing note-taking apps are too general, while ticketing apps do not focus on personal memories and long-term statistics.
 
-StageLog JP is my attempt to combine live event records, ticket-style design, weather data, and venue visualization into one personal archive.
+StageLog JP combines live event records, ticket-style design, weather data, and venue visualization into one personal archive.
 
 ## License
 
