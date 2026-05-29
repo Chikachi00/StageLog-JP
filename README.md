@@ -3,153 +3,48 @@
 <details open>
 <summary><strong>English</strong></summary>
 
-<br>
+StageLog JP is a personal live event archive for anime, idol, and live concert fans in Japan. It records attendance memories as ticket-style cards with venue, seat, notes, filters, local statistics, and historical weather matching.
 
-A personal live event archive web app for anime, idol, and live concert fans in Japan.
+## MVP Features
 
-StageLog JP helps users record their live event experiences with ticket-style cards, venue information, seat details, automatic weather matching, and attendance statistics.
-
-## Preview
-
-> Screenshots will be added here.
-
-## Features
-
-### Event Archive
-
-Users can create and manage live event records with:
-
-- Event title
-- Artist / performer
-- Date and time
-- Venue
-- City / country
-- Ticket type
-- Seat information
-- Notes and memories
-- Event images
-
-### Ticket-Style UI
-
-Each event is displayed as a ticket-like card inspired by real live concert ticket stubs.
-
-The card includes:
-
-- Event name
-- Artist name
-- Venue
-- Seat information
-- Date
-- Category tag
-- Decorative barcode style
-
-### Year and Artist Filters
-
-Users can filter events by:
-
-- Year
-- Artist
-- Venue
-- Event type
-
-This makes it easier to browse and organize past live event experiences.
-
-### Automatic Weather Matching
-
-StageLog JP can automatically match weather data based on:
-
-- Event date
-- Venue location
-- Event time
-
-The web app stores weather information such as:
-
-- Temperature
-- Rainfall
-- Wind speed
-- Weather condition
-
-This allows users to remember what the weather was like on the day of each live event.
-
-### Weather Ranking
-
-The app can generate personal live event weather rankings, such as:
-
-- Hottest live event
-- Coldest live event
-- Rainiest live event
-- Windiest live event
-
-### Venue Seat Visualization
-
-For supported venues, StageLog JP can display a simplified venue map and mark the user's seat position.
-
-Planned supported venues include:
-
-- Tokyo Dome
-- Belluna Dome
-- K-Arena Yokohama
-- Pia Arena MM
-- Yokohama Arena
-- Zepp Haneda
+- Create, edit, and delete event records
+- Persist records in `localStorage` with the key `stagelog-events`
+- Ticket-stub inspired event cards with accent bars, dotted stub edge, and barcode decoration
+- Year, artist, venue, and keyword filters
+- Seeded Japanese venue list with approximate coordinates
+- Historical weather lookup through the Open-Meteo Archive API
+- Statistics for total events, artists, venues, most watched artist, most visited venue, and weather rankings
+- Mobile-first responsive layout
 
 ## Tech Stack
 
 - React
 - Vite
 - TypeScript
-- Tailwind CSS
-- Open-Meteo API
-- SVG-based venue maps
+- Tailwind CSS via `@tailwindcss/vite`
+- Open-Meteo Archive API
+- Browser `localStorage`
 
-## Project Goals
+## Getting Started
 
-This project is designed as both a personal tool and a portfolio project.
+```bash
+npm install
+npm run dev
+```
 
-The goal is to build a practical web app for Japanese live event fans while demonstrating frontend development, data modeling, API integration, UI design, and data visualization skills.
+Build for production:
 
-## Roadmap
+```bash
+npm run build
+```
 
-### Version 1
+## Data Model
 
-- Add, edit, and delete event records
-- Ticket-style event card UI
-- Year filter
-- Artist filter
-- Venue filter
-- Manual seat information input
-- Automatic weather matching
+The first MVP stores `EventRecord` objects in the browser. Each record includes event details, venue metadata, ticket type, structured seat fields, notes, timestamps, and optional weather information.
 
-### Version 2
+## Weather
 
-- Weather ranking page
-- Artist statistics
-- Venue statistics
-- Event image upload
-- Improved mobile UI
-
-### Version 3
-
-- SVG venue maps
-- Seat position visualization
-- Multiple attendance records on the same venue map
-- Support for major Japanese venues
-
-### Version 4
-
-- Ticket lottery management
-- Winning / losing result tracking
-- Payment status
-- Ticket issuing status
-- Companion management
-
-## Why I Built This
-
-As a fan of Japanese anime and idol live events, I wanted to create a tool that could preserve not only basic event information, but also the small details that make each live experience memorable.
-
-Existing note-taking apps are too general, while ticketing apps do not focus on personal memories and long-term statistics.
-
-StageLog JP combines live event records, ticket-style design, weather data, and venue visualization into one personal archive.
+Use the `Fetch Weather` button on an event card. StageLog JP reads the event date, start time, and venue coordinates, then saves the closest hourly historical weather record back to the event. Future dates show a friendly unavailable message.
 
 ## License
 
@@ -162,153 +57,49 @@ MIT License
 <details>
 <summary><strong>中文</strong></summary>
 
-<br>
+StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参战记录 Web App。它用票根风格卡片保存 Live 参战经历，包括活动、艺人、会场、座位、备注、筛选、统计和自动天气匹配。
 
-一个面向日本动漫 Live、偶像活动、声优演唱会和音乐现场的个人参战记录 Web App。
+## MVP 功能
 
-StageLog JP 可以帮助用户用票根风格的卡片记录自己的 Live 参战经历，包括活动信息、会场、座位、天气、统计数据和个人回忆。
-
-## 预览
-
-> 项目截图之后会添加在这里。
-
-## 功能
-
-### 参战记录归档
-
-用户可以创建和管理自己的 Live 参战记录，包括：
-
-- 活动名称
-- 艺人 / 出演者
-- 日期和时间
-- 会场
-- 城市 / 国家
-- 票种
-- 座位信息
-- 备注和回忆
-- 活动图片
-
-### 票根风格 UI
-
-每一条参战记录都会以票根卡片的形式展示，设计灵感来自真实演唱会门票。
-
-卡片内容包括：
-
-- 活动名称
-- 艺人名称
-- 会场
-- 座位信息
-- 日期
-- 分类标签
-- 条形码风格装饰
-
-### 年份和艺人筛选
-
-用户可以按照以下条件筛选参战记录：
-
-- 年份
-- 艺人
-- 会场
-- 活动类型
-
-这样可以更方便地浏览和整理过去参加过的 Live 与活动。
-
-### 自动天气匹配
-
-StageLog JP 可以根据以下信息自动匹配天气数据：
-
-- 活动日期
-- 会场位置
-- 活动时间
-
-Web App 会保存以下天气信息：
-
-- 温度
-- 降水量
-- 风速
-- 天气状况
-
-这样用户可以回顾每一场 Live 当天的天气情况。
-
-### 天气排行
-
-应用可以生成个人参战天气排行，例如：
-
-- 最热的 Live
-- 最冷的 Live
-- 雨量最大的 Live
-- 风最大的 Live
-
-### 会场座位可视化
-
-对于支持的会场，StageLog JP 可以显示简化版会场座位图，并标记用户当时的座位位置。
-
-计划支持的会场包括：
-
-- 东京巨蛋
-- Belluna Dome
-- K-Arena Yokohama
-- Pia Arena MM
-- 横滨 Arena
-- Zepp Haneda
+- 新增、编辑、删除参战记录
+- 使用 `localStorage` 持久化保存，key 为 `stagelog-events`
+- 票根风格卡片 UI，包含彩色侧边、虚线票根边缘和条形码装饰
+- 按年份、艺人、会场和关键词筛选
+- 内置日本常见 Live 会场及近似坐标
+- 接入 Open-Meteo Archive API 获取历史小时级天气
+- 统计总参战数、今年参战数、唯一艺人数、唯一会场数、最多观看艺人、最常去会场
+- 天气排行：最热、最冷、雨量最大、风最大的一场 Live
+- 移动端优先的响应式布局
 
 ## 技术栈
 
 - React
 - Vite
 - TypeScript
-- Tailwind CSS
-- Open-Meteo API
-- SVG 会场座位图
+- Tailwind CSS，通过 `@tailwindcss/vite` 配置
+- Open-Meteo Archive API
+- 浏览器 `localStorage`
 
-## 项目目标
+## 本地运行
 
-这个项目既是一个个人工具，也是一个作品集项目。
+```bash
+npm install
+npm run dev
+```
 
-目标是为日本 Live 粉丝构建一个实用的参战记录 Web App，同时展示前端开发、数据建模、API 集成、UI 设计和数据可视化能力。
+生产构建：
 
-## 开发路线
+```bash
+npm run build
+```
 
-### Version 1
+## 数据说明
 
-- 新增、编辑、删除参战记录
-- 票根风格卡片 UI
-- 年份筛选
-- 艺人筛选
-- 会场筛选
-- 手动输入座位信息
-- 自动天气匹配
+第一版 MVP 不使用后端，也不使用 Supabase。所有 `EventRecord` 都保存在浏览器本地，包含活动信息、会场信息、票种、结构化座位、备注、创建和更新时间，以及可选天气数据。
 
-### Version 2
+## 天气匹配
 
-- 天气排行页面
-- 艺人统计
-- 会场统计
-- 活动图片上传
-- 移动端 UI 优化
-
-### Version 3
-
-- SVG 会场座位图
-- 座位位置标记
-- 同一会场多次参战位置叠加
-- 支持更多日本主要会场
-
-### Version 4
-
-- 票务抽选管理
-- 当选 / 落选结果记录
-- 入金状态
-- 发券状态
-- 同行者管理
-
-## 为什么做这个项目
-
-作为日本动漫 Live 和偶像活动的爱好者，我希望做一个工具，不只是记录活动名称和日期，而是能保存每一场现场体验中的细节。
-
-普通笔记应用太泛用，票务应用又不关注个人回忆和长期统计。
-
-StageLog JP 希望把参战记录、票根风格设计、天气数据和会场座位可视化结合起来，做成一个真正适合日本 Live 粉丝使用的个人归档工具。
+在每张参战卡片上点击 `Fetch Weather`。应用会根据活动日期、开演时间和会场坐标，请求 Open-Meteo 历史天气接口，并保存最接近开演时间的小时级天气数据。未来日期会显示友好提示。
 
 ## License
 

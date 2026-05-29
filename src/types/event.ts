@@ -1,38 +1,60 @@
-export type TicketStatus = "wishlist" | "entered" | "won" | "lost" | "attended";
-
-export type WeatherCondition = "sunny" | "cloudy" | "rainy" | "snowy" | "windy";
-
 export interface Venue {
   id: string;
   name: string;
   city: string;
-  prefecture: string;
-  capacity: number;
-  mapPath: string;
-  access: string;
+  country: string;
+  latitude: number;
+  longitude: number;
 }
 
-export interface StageEvent {
+export interface SeatInfo {
+  gate: string;
+  level: string;
+  block: string;
+  row: string;
+  number: string;
+}
+
+export interface WeatherInfo {
+  temperature: number;
+  precipitation: number;
+  windSpeed: number;
+  weatherCode: number;
+  fetchedAt: string;
+}
+
+export interface EventRecord {
   id: string;
   title: string;
   artist: string;
-  venueId: string;
   date: string;
-  seat?: string;
-  ticketPrice?: number;
-  ticketStatus: TicketStatus;
-  notes?: string;
-  weather?: WeatherCondition;
-  temperatureC?: number;
+  startTime: string;
+  venueId: string;
+  venueName: string;
+  city: string;
+  country: string;
+  ticketType: string;
+  seat: SeatInfo;
+  weather?: WeatherInfo;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface EventFormValues {
   title: string;
   artist: string;
-  venueId: string;
   date: string;
-  seat: string;
-  ticketPrice: string;
-  ticketStatus: TicketStatus;
+  startTime: string;
+  venueId: string;
+  ticketType: string;
+  seat: SeatInfo;
   notes: string;
+}
+
+export interface EventFilters {
+  year: string;
+  artist: string;
+  venue: string;
+  search: string;
 }

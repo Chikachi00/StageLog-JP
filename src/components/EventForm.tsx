@@ -1,118 +1,220 @@
-import { useState } from "react";
+import { Save, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { venues } from "../data/venues";
-import type { EventFormValues, StageEvent, TicketStatus } from "../types/event";
+import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
 
 interface EventFormProps {
-  onSubmit: (event: StageEvent) => void;
+  venues: Venue[];
+  editingEvent?: EventRecord | null;
+  onSave: (values: EventFormValues) => void;
+  onCancelEditing: () => void;
 }
 
-const ticketStatuses: TicketStatus[] = ["wishlist", "entered", "won", "lost", "attended"];
-
-const initialValues: EventFormValues = {
-  title: "",
-  artist: "",
-  venueId: venues[0]?.id ?? "",
-  date: "",
-  seat: "",
-  ticketPrice: "",
-  ticketStatus: "wishlist",
-  notes: "",
+const emptySeat: SeatInfo = {
+  gate: "",
+  level: "",
+  block: "",
+  row: "",
+  number: "",
 };
 
-export function EventForm({ onSubmit }: EventFormProps) {
-  const [values, setValues] = useState<EventFormValues>(initialValues);
+const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null): EventFormValues => {
+  if (editingEvent) {
+    return {
+      title: editingEvent.title,
+      artist: editingEvent.artist,
+      date: editingEvent.date,
+      startTime: editingEvent.startTime,
+      venueId: editingEvent.venueId,
+      ticketType: editingEvent.ticketType,
+      seat: editingEvent.seat,
+      notes: editingEvent.notes,
+    };
+  }
 
-  const updateValue = (field: keyof EventFormValues, value: string) => {
+  return {
+    title: "",
+    artist: "",
+    date: "",
+    startTime: "",
+    venueId: venues[0]?.id ?? "",
+    ticketType: "",
+    seat: emptySeat,
+    notes: "",
+  };
+};
+
+export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: EventFormProps) {
+  const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
+
+  useEffect(() => {
+    setValues(createInitialValues(venues, editingEvent));
+  }, [editingEvent, venues]);
+
+  const selectedVenue = useMemo(
+    () => venues.find((venue) => venue.id === values.venueId),
+    [venues, values.venueId],
+  );
+
+  const updateValue = (field: keyof Omit<EventFormValues, "seat">, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateSeat = (field: keyof SeatInfo, value: string) => {
+    setValues((current) => ({
+      ...current,
+      seat: {
+        ...current.seat,
+        [field]: value,
+      },
+    }));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    onSubmit({
-      id: crypto.randomUUID(),
-      title: values.title,
-      artist: values.artist,
-      venueId: values.venueId,
-      date: values.date,
-      seat: values.seat || undefined,
-      ticketPrice: values.ticketPrice ? Number(values.ticketPrice) : undefined,
-      ticketStatus: values.ticketStatus,
-      notes: values.notes || undefined,
+    onSave({
+      ...values,
+      title: values.title.trim(),
+      artist: values.artist.trim(),
+      ticketType: values.ticketType.trim(),
+      notes: values.notes.trim(),
+      seat: {
+        gate: values.seat.gate.trim(),
+        level: values.seat.level.trim(),
+        block: values.seat.block.trim(),
+        row: values.seat.row.trim(),
+        number: values.seat.number.trim(),
+      },
     });
 
-    setValues(initialValues);
+    if (!editingEvent) {
+      setValues(createInitialValues(venues));
+    }
   };
 
   return (
-    <form className="event-form" onSubmit={handleSubmit}>
-      <label>
-        Title
-        <input
-          required
-          value={values.title}
-          onChange={(event) => updateValue("title", event.target.value)}
-        />
-      </label>
-      <label>
-        Artist
-        <input
-          required
-          value={values.artist}
-          onChange={(event) => updateValue("artist", event.target.value)}
-        />
-      </label>
-      <label>
-        Venue
-        <select value={values.venueId} onChange={(event) => updateValue("venueId", event.target.value)}>
-          {venues.map((venue) => (
-            <option key={venue.id} value={venue.id}>
-              {venue.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Date
-        <input
-          required
-          type="date"
-          value={values.date}
-          onChange={(event) => updateValue("date", event.target.value)}
-        />
-      </label>
-      <label>
-        Seat
-        <input value={values.seat} onChange={(event) => updateValue("seat", event.target.value)} />
-      </label>
-      <label>
-        Ticket price
-        <input
-          min="0"
-          type="number"
-          value={values.ticketPrice}
-          onChange={(event) => updateValue("ticketPrice", event.target.value)}
-        />
-      </label>
-      <label>
-        Status
-        <select
-          value={values.ticketStatus}
-          onChange={(event) => updateValue("ticketStatus", event.target.value)}
-        >
-          {ticketStatuses.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="event-form__wide">
-        Notes
-        <textarea value={values.notes} onChange={(event) => updateValue("notes", event.target.value)} />
-      </label>
-      <button type="submit">Add event</button>
-    </form>
+    <section className="form-panel" aria-labelledby="event-form-title">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">{editingEvent ? "Editing" : "New record"}</span>
+          <h2 id="event-form-title">{editingEvent ? "Edit Event" : "Add Event"}</h2>
+        </div>
+        {editingEvent ? (
+          <button className="ghost-button" type="button" onClick={onCancelEditing}>
+            <X size={16} aria-hidden="true" />
+            Cancel editing
+          </button>
+        ) : null}
+      </div>
+
+      <form className="event-form" onSubmit={handleSubmit}>
+        <label>
+          Event title
+          <input
+            required
+            value={values.title}
+            onChange={(event) => updateValue("title", event.target.value)}
+            placeholder="Final live, anniversary tour, fan meeting..."
+          />
+        </label>
+
+        <label>
+          Artist / performer
+          <input
+            required
+            value={values.artist}
+            onChange={(event) => updateValue("artist", event.target.value)}
+            placeholder="Artist, unit, orchestra, cast..."
+          />
+        </label>
+
+        <label>
+          Date
+          <input
+            required
+            type="date"
+            value={values.date}
+            onChange={(event) => updateValue("date", event.target.value)}
+          />
+        </label>
+
+        <label>
+          Start time
+          <input
+            type="time"
+            value={values.startTime}
+            onChange={(event) => updateValue("startTime", event.target.value)}
+          />
+        </label>
+
+        <label>
+          Venue
+          <select
+            required
+            value={values.venueId}
+            onChange={(event) => updateValue("venueId", event.target.value)}
+          >
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Ticket type
+          <input
+            value={values.ticketType}
+            onChange={(event) => updateValue("ticketType", event.target.value)}
+            placeholder="FC advance, reserved seat, general..."
+          />
+        </label>
+
+        <div className="venue-readout">
+          <span>Venue details</span>
+          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : "Select a venue"}</strong>
+        </div>
+
+        <fieldset className="seat-fieldset">
+          <legend>Seat information</legend>
+          <label>
+            Gate
+            <input value={values.seat.gate} onChange={(event) => updateSeat("gate", event.target.value)} />
+          </label>
+          <label>
+            Level
+            <input value={values.seat.level} onChange={(event) => updateSeat("level", event.target.value)} />
+          </label>
+          <label>
+            Block
+            <input value={values.seat.block} onChange={(event) => updateSeat("block", event.target.value)} />
+          </label>
+          <label>
+            Row
+            <input value={values.seat.row} onChange={(event) => updateSeat("row", event.target.value)} />
+          </label>
+          <label>
+            Seat number
+            <input value={values.seat.number} onChange={(event) => updateSeat("number", event.target.value)} />
+          </label>
+        </fieldset>
+
+        <label className="event-form__wide">
+          Notes
+          <textarea
+            rows={5}
+            value={values.notes}
+            onChange={(event) => updateValue("notes", event.target.value)}
+            placeholder="Memories, setlist notes, merch, travel, friends..."
+          />
+        </label>
+
+        <button className="primary-button event-form__submit" type="submit">
+          <Save size={18} aria-hidden="true" />
+          Save event
+        </button>
+      </form>
+    </section>
   );
 }
