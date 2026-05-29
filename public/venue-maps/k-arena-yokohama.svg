@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">K Arena Yokohama venue map</title>
+  <desc id="desc">Simplified concert seating map for K Arena Yokohama.</desc>
+  <rect width="720" height="480" fill="#f6f7fb"/>
+  <path d="M106 86h508v300c0 34-28 62-62 62H168c-34 0-62-28-62-62V86Z" fill="#dde7f5" stroke="#26384d" stroke-width="8"/>
+  <path d="M166 138h388v220c0 22-18 40-40 40H206c-22 0-40-18-40-40V138Z" fill="#ffffff" stroke="#5b7597" stroke-width="4"/>
+  <path d="M196 160h328v56H196z" fill="#aac1df"/>
+  <path d="M196 238h328v52H196z" fill="#c8d7ea"/>
+  <path d="M196 312h328v48H196z" fill="#e2eaf5"/>
+  <rect x="270" y="70" width="180" height="72" rx="6" fill="#252f3c"/>
+  <rect x="294" y="88" width="132" height="36" rx="4" fill="#f4c45f"/>
+  <text x="360" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#252f3c">STAGE</text>
+  <g fill="#26384d" font-family="Arial, sans-serif" font-size="18" text-anchor="middle">
+    <text x="360" y="205">Level 1</text>
+    <text x="360" y="274">Level 3</text>
+    <text x="360" y="348">Level 7</text>
+  </g>
+</svg>

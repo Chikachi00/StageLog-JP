@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Belluna Dome venue map</title>
+  <desc id="desc">Simplified concert seating map for Belluna Dome.</desc>
+  <rect width="720" height="480" fill="#f4f6f1"/>
+  <path d="M92 244c0-116 96-188 268-188s268 72 268 188-96 180-268 180S92 360 92 244Z" fill="#e2ebd7" stroke="#33412d" stroke-width="8"/>
+  <path d="M164 242c0-76 70-122 196-122s196 46 196 122-70 116-196 116-196-40-196-116Z" fill="#ffffff" stroke="#6f8a5b" stroke-width="4"/>
+  <path d="M174 242c0-78 74-130 186-130s186 52 186 130" fill="none" stroke="#9eba7e" stroke-width="32" stroke-linecap="round"/>
+  <path d="M174 242c0 76 74 126 186 126s186-50 186-126" fill="none" stroke="#d6e3c8" stroke-width="32" stroke-linecap="round"/>
+  <rect x="285" y="196" width="150" height="92" rx="8" fill="#29302a"/>
+  <rect x="305" y="214" width="110" height="56" rx="4" fill="#f0b84a"/>
+  <text x="360" y="249" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#29302a">STAGE</text>
+  <g fill="#33412d" font-family="Arial, sans-serif" font-size="18" text-anchor="middle">
+    <text x="360" y="88">Field</text>
+    <text x="152" y="250">A Side</text>
+    <text x="568" y="250">B Side</text>
+    <text x="360" y="404">Stand</text>
+  </g>
+</svg>

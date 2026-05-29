@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Tokyo Dome venue map</title>
+  <desc id="desc">Simplified concert seating map for Tokyo Dome.</desc>
+  <rect width="720" height="480" fill="#f7f4ee"/>
+  <ellipse cx="360" cy="240" rx="312" ry="190" fill="#d8e7de" stroke="#243b35" stroke-width="8"/>
+  <ellipse cx="360" cy="240" rx="236" ry="136" fill="#ffffff" stroke="#3d6258" stroke-width="4"/>
+  <path d="M130 240a230 140 0 0 1 460 0" fill="none" stroke="#8bb6a5" stroke-width="34" stroke-linecap="round"/>
+  <path d="M130 240a230 140 0 0 0 460 0" fill="none" stroke="#c7d8d0" stroke-width="34" stroke-linecap="round"/>
+  <rect x="292" y="200" width="136" height="86" rx="6" fill="#282f3a"/>
+  <rect x="310" y="216" width="100" height="54" rx="4" fill="#f5c451"/>
+  <text x="360" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#282f3a">STAGE</text>
+  <g fill="#243b35" font-family="Arial, sans-serif" font-size="18" text-anchor="middle">
+    <text x="360" y="88">1F / Arena</text>
+    <text x="154" y="250">1B</text>
+    <text x="566" y="250">3B</text>
+    <text x="360" y="406">2F Stand</text>
+  </g>
+</svg>
