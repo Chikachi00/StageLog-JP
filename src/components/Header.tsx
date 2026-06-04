@@ -2,6 +2,7 @@ import { BarChart3, CalendarDays, MapPinned, Plus, ReceiptText, Ticket } from "l
 import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AppTheme } from "../types/theme";
+import { AuthPanel } from "./AuthPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
@@ -60,6 +61,7 @@ export function Header({
         })}
       </nav>
       <div className="header-controls">
+        <AuthPanel />
         <ThemeSwitcher theme={theme} onThemeChange={onThemeChange} />
         <LanguageSwitcher />
       </div>

@@ -53,6 +53,14 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Ticket statistics for applications, win rate, planned spending, paid amount, ticket price average, platform distribution, and status distribution
 - Create an EventRecord from a won, paid, issued, or attended ticket application
 
+### Optional Supabase Cloud Sync
+
+- Guest mode continues to use browser `localStorage`
+- Supabase Auth with email Magic Link sign-in
+- Logged-in users can sync EventRecord data with a Supabase `events` table protected by Row Level Security
+- Import local `stagelog-events` data to the cloud without deleting local data
+- Tickets and uploaded images remain local in this version
+
 ## Tech Stack
 
 - React
@@ -61,6 +69,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Tailwind CSS via `@tailwindcss/vite`
 - Open-Meteo Archive API
 - Browser `localStorage`
+- Optional Supabase Auth and Events cloud sync
 
 ## Getting Started
 
@@ -75,6 +84,13 @@ Build for production:
 npm run build
 ```
 
+Optional Supabase environment variables:
+
+```bash
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
 ## Local Storage Keys
 
 - `stagelog-events`
@@ -84,8 +100,9 @@ npm run build
 
 ## Notes
 
-- No backend is used.
-- No Supabase is used.
+- Supabase is optional. If environment variables are missing, the app falls back to localStorage mode.
+- Supabase cloud sync currently covers Events only.
+- Tickets are still stored locally.
 - Uploaded images are stored locally as base64 data URLs.
 - Venue maps are simplified project-owned SVG drawings, not copied from external seating charts.
 
@@ -150,6 +167,14 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - Statistics 页面包含票务统计、胜率、计划支出、已支付金额和分布统计
 - 当选 / 入金 / 发券 / 已参战的申请可以创建 EventRecord，并避免重复创建
 
+### 可选 Supabase 云端同步
+
+- 未登录访客模式继续使用浏览器 `localStorage`
+- 支持 Supabase Auth 邮箱 Magic Link 登录
+- 登录用户可以把 EventRecord 同步到启用 Row Level Security 的 Supabase `events` 表
+- 支持将本地 `stagelog-events` 导入云端，且不会自动删除本地数据
+- 本版本暂不云端同步 Tickets，也暂不上传图片到 Supabase Storage
+
 ## 技术栈
 
 - React
@@ -158,6 +183,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - Tailwind CSS，通过 `@tailwindcss/vite` 配置
 - Open-Meteo Archive API
 - 浏览器 `localStorage`
+- 可选 Supabase Auth 和 Events 云端同步
 
 ## 本地运行
 
@@ -172,6 +198,13 @@ npm run dev
 npm run build
 ```
 
+可选 Supabase 环境变量：
+
+```bash
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
 ## 本地存储 Key
 
 - `stagelog-events`
@@ -181,8 +214,9 @@ npm run build
 
 ## 说明
 
-- 不使用后端。
-- 不使用 Supabase。
+- Supabase 是可选功能；如果没有配置环境变量，应用会回退到 localStorage 模式。
+- Supabase 云端同步目前只覆盖 Events。
+- Tickets 仍然保存在本地。
 - 上传图片以 base64 data URL 保存在本地。
 - 会场图是项目内自绘简化 SVG，不使用外部版权座席图。
 

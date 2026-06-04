@@ -199,6 +199,51 @@ button:disabled {
   font-weight: 700;
 }
 
+.sync-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 24px rgba(37, 48, 73, 0.06);
+}
+
+.sync-panel div,
+.auth-panel div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.sync-panel span,
+.auth-panel span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.sync-panel strong,
+.auth-panel strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.sync-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.sync-panel__error,
+.auth-panel__error {
+  color: #b42318 !important;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -667,7 +712,9 @@ textarea:focus {
 .app-shell[data-theme="night"] .ticket-application-card,
 .app-shell[data-theme="night"] .venue-map-panel,
 .app-shell[data-theme="night"] .venue-history,
-.app-shell[data-theme="night"] .timeline-page {
+.app-shell[data-theme="night"] .timeline-page,
+.app-shell[data-theme="night"] .sync-panel,
+.app-shell[data-theme="night"] .auth-panel {
   background: rgba(16, 24, 39, 0.94);
 }
 
@@ -688,6 +735,67 @@ textarea:focus {
   display: grid;
   gap: 0.45rem;
   justify-items: end;
+}
+
+.auth-panel {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+  max-width: 22rem;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.auth-panel--compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.auth-panel form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.auth-panel label {
+  min-width: min(100%, 14rem);
+}
+
+.auth-panel label > span {
+  position: relative;
+  display: block;
+}
+
+.auth-panel label svg {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  color: var(--muted);
+  transform: translateY(-50%);
+}
+
+.auth-panel input {
+  min-height: 2.35rem;
+  padding-left: 2rem;
+}
+
+.auth-panel__message,
+.auth-panel__error {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.auth-panel__message {
+  color: #0f766e;
 }
 
 .theme-switcher,
@@ -1472,6 +1580,21 @@ textarea:focus {
   .theme-switcher,
   .language-switcher {
     justify-content: stretch;
+  }
+
+  .auth-panel {
+    justify-items: stretch;
+    max-width: none;
+    width: 100%;
+  }
+
+  .auth-panel form {
+    justify-content: stretch;
+  }
+
+  .auth-panel label,
+  .auth-panel .ghost-button {
+    flex: 1 1 12rem;
   }
 
   .theme-switcher button,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EventForm } from "./components/EventForm";
 import { EventList } from "./components/EventList";
@@ -9,9 +9,22 @@ import { Statistics } from "./components/Statistics";
 import { TicketManager } from "./components/TicketManager";
 import { Timeline } from "./components/Timeline";
 import { VenuesPage } from "./components/VenuesPage";
+import { useAuth } from "./context/AuthContext";
 import { createSampleEvents } from "./data/sampleEvents";
 import { getVenueById, getVenueSearchText, venues } from "./data/venues";
-import { addEvent, deleteEvent, getEvents, saveEvents, updateEvent } from "./services/eventStorage";
+import {
+  addCloudEvent,
+  deleteCloudEvent,
+  getCloudEvents,
+  updateCloudEvent,
+} from "./services/cloudEventService";
+import {
+  addEvent as addLocalEvent,
+  deleteEvent as deleteLocalEvent,
+  getEvents as getLocalEvents,
+  saveEvents as saveLocalEvents,
+  updateEvent as updateLocalEvent,
+} from "./services/eventStorage";
 import {
   addTicketApplication,
   deleteTicketApplication,
@@ -107,12 +120,21 @@ const createTicketApplication = (
 const getUniqueSorted = (values: string[]) =>
   Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
+const getEventImportKey = (event: EventRecord) =>
+  [event.title, event.artist, event.date, event.venueId].join("::").toLocaleLowerCase();
+
 function App() {
   const { t } = useTranslation();
-  const [events, setEvents] = useState<EventRecord[]>(() => sortByDateDesc(getEvents()));
+  const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
+  const isCloudMode = Boolean(user && isSupabaseConfigured);
+  const [events, setEvents] = useState<EventRecord[]>(() => sortByDateDesc(getLocalEvents()));
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
     getTicketApplications(),
   );
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [cloudError, setCloudError] = useState("");
+  const [localEventCount, setLocalEventCount] = useState(() => getLocalEvents().length);
+  const [isImportingLocalEvents, setIsImportingLocalEvents] = useState(false);
   const [activeView, setActiveView] = useState<AppView>("events");
   const [theme, setTheme] = useState<AppTheme>(() => getInitialTheme());
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
@@ -151,9 +173,38 @@ function App() {
     });
   }, [events, filters]);
 
-  const refreshEvents = () => {
-    setEvents(sortByDateDesc(getEvents()));
-  };
+  const refreshEvents = useCallback(async () => {
+    setLocalEventCount(getLocalEvents().length);
+
+    if (authLoading) {
+      return;
+    }
+
+    if (!isCloudMode || !user) {
+      setCloudError("");
+      setEvents(sortByDateDesc(getLocalEvents()));
+      return;
+    }
+
+    setEventsLoading(true);
+    setCloudError("");
+
+    try {
+      const cloudEvents = await getCloudEvents(user.id);
+      setEvents(sortByDateDesc(cloudEvents));
+    } catch {
+      setCloudError(t("auth.failedLoadCloudEvents"));
+      setEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [authLoading, isCloudMode, t, user]);
+
+  useEffect(() => {
+    void refreshEvents();
+    setEditingEvent(null);
+    setFilters(defaultFilters);
+  }, [refreshEvents]);
 
   const refreshTicketApplications = () => {
     setTicketApplications(getTicketApplications());
@@ -176,23 +227,31 @@ function App() {
     }
   };
 
-  const handleSaveEvent = (values: EventFormValues) => {
+  const handleSaveEvent = async (values: EventFormValues) => {
     try {
       const record = createRecord(values, editingEvent);
 
-      if (editingEvent) {
-        updateEvent(record);
+      if (isCloudMode && user) {
+        if (editingEvent) {
+          await updateCloudEvent(record, user.id);
+          setNotice(t("notice.eventUpdated"));
+        } else {
+          await addCloudEvent(record, user.id);
+          setNotice(t("notice.eventSaved"));
+        }
+      } else if (editingEvent) {
+        updateLocalEvent(record);
         setNotice(t("notice.eventUpdated"));
       } else {
-        addEvent(record);
+        addLocalEvent(record);
         setNotice(t("notice.eventSaved"));
       }
 
       setEditingEvent(null);
-      refreshEvents();
+      await refreshEvents();
       setActiveView("events");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("notice.eventSaveFailed"));
+      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
     }
   };
 
@@ -224,7 +283,7 @@ function App() {
     setNotice("");
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const event = events.find((item) => item.id === id);
     const confirmed = window.confirm(
       t("notice.deleteEventConfirm", { title: event?.title ?? t("notice.thisEvent") }),
@@ -234,13 +293,23 @@ function App() {
       return;
     }
 
-    deleteEvent(id);
+    try {
+      if (isCloudMode && user) {
+        await deleteCloudEvent(id, user.id);
+      } else {
+        deleteLocalEvent(id);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      return;
+    }
+
     setWeatherErrors((current) => {
       const next = { ...current };
       delete next[id];
       return next;
     });
-    refreshEvents();
+    await refreshEvents();
     setNotice(t("notice.eventDeleted"));
   };
 
@@ -284,12 +353,19 @@ function App() {
 
     try {
       const weather = await fetchWeatherForEvent(event, venue);
-      updateEvent({
+      const updatedEvent = {
         ...event,
         weather,
         updatedAt: new Date().toISOString(),
-      });
-      refreshEvents();
+      };
+
+      if (isCloudMode && user) {
+        await updateCloudEvent(updatedEvent, user.id);
+      } else {
+        updateLocalEvent(updatedEvent);
+      }
+
+      await refreshEvents();
       setNotice(t("notice.weatherSaved", { title: event.title }));
     } catch (error) {
       const message = translateWeatherError(
@@ -302,18 +378,57 @@ function App() {
     }
   };
 
-  const handleLoadSampleData = () => {
+  const handleLoadSampleData = async () => {
     const sampleEvents = createSampleEvents(venues);
-    saveEvents(sampleEvents);
-    setEvents(sortByDateDesc(sampleEvents));
-    setFilters(defaultFilters);
-    setNotice(t("notice.sampleLoaded"));
+
+    try {
+      if (isCloudMode && user) {
+        await Promise.all(sampleEvents.map((event) => addCloudEvent(event, user.id)));
+        await refreshEvents();
+      } else {
+        saveLocalEvents(sampleEvents);
+        setEvents(sortByDateDesc(sampleEvents));
+        setLocalEventCount(sampleEvents.length);
+      }
+
+      setFilters(defaultFilters);
+      setNotice(t("notice.sampleLoaded"));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+    }
   };
 
   const handleViewVenueMap = (venueId: string) => {
     setSelectedVenueId(venueId);
     setActiveView("venues");
     setNotice("");
+  };
+
+  const handleImportLocalDataToCloud = async () => {
+    if (!isCloudMode || !user) {
+      return;
+    }
+
+    const localEvents = getLocalEvents();
+    const existingKeys = new Set(events.map(getEventImportKey));
+    const eventsToImport = localEvents.filter((event) => !existingKeys.has(getEventImportKey(event)));
+
+    setIsImportingLocalEvents(true);
+    setNotice("");
+
+    try {
+      for (const event of eventsToImport) {
+        await addCloudEvent(event, user.id);
+      }
+
+      await refreshEvents();
+      setLocalEventCount(getLocalEvents().length);
+      setNotice(t("auth.importedEvents", { count: eventsToImport.length }));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+    } finally {
+      setIsImportingLocalEvents(false);
+    }
   };
 
   const handleDeleteTicketApplication = (id: string) => {
@@ -333,7 +448,7 @@ function App() {
     setNotice(t("notice.ticketDeleted"));
   };
 
-  const handleCreateEventFromApplication = (application: TicketApplication) => {
+  const handleCreateEventFromApplication = async (application: TicketApplication) => {
     if (application.linkedEventId) {
       setNotice(t("notice.alreadyCreated"));
       return;
@@ -370,13 +485,23 @@ function App() {
       updatedAt: now,
     };
 
-    addEvent(record);
+    try {
+      if (isCloudMode && user) {
+        await addCloudEvent(record, user.id);
+      } else {
+        addLocalEvent(record);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      return;
+    }
+
     updateTicketApplication({
       ...application,
       linkedEventId: record.id,
       updatedAt: now,
     });
-    refreshEvents();
+    await refreshEvents();
     refreshTicketApplications();
     setNotice(t("notice.eventCreatedFromTicket"));
   };
@@ -398,6 +523,26 @@ function App() {
             <h2>{t("app.heroTitle")}</h2>
           </div>
           <p>{t("app.heroDescription")}</p>
+        </section>
+
+        <section className="sync-panel" aria-label={t("auth.cloudSync")}>
+          <div>
+            <span>{t("auth.cloudSync")}</span>
+            <strong>{isCloudMode ? t("auth.cloudMode") : t("auth.localMode")}</strong>
+          </div>
+          {!isSupabaseConfigured ? <p>{t("auth.notConfigured")}</p> : null}
+          {eventsLoading ? <p>{t("auth.loadingCloudEvents")}</p> : null}
+          {cloudError ? <p className="sync-panel__error">{cloudError}</p> : null}
+          {isCloudMode && localEventCount > 0 ? (
+            <button
+              className="ghost-button"
+              type="button"
+              disabled={isImportingLocalEvents}
+              onClick={handleImportLocalDataToCloud}
+            >
+              {isImportingLocalEvents ? t("auth.importing") : t("auth.importLocalData")}
+            </button>
+          ) : null}
         </section>
 
         {notice ? <p className="notice" role="status">{notice}</p> : null}

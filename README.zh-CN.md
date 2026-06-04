@@ -9,6 +9,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - V2：增强票根 UI、主题切换、English / 中文界面切换、图片上传、Timeline、增强统计
 - V3：数据驱动分区座位图、block / level 自动匹配高亮、座位位置点选、Venues 页面、多次参战位置叠加；当前支持 Tokyo Dome、Belluna Dome、K-Arena Yokohama、Ariake Arena、Makuhari Messe Event Hall、Saitama Super Arena
 - V4：票务抽选管理、当落/入金/发券状态、同行者、票价统计、当选后创建参战记录
+- 可选 Supabase：邮箱 Magic Link 登录、Events 云端同步、Row Level Security、导入本地数据到云端；未登录时继续使用 localStorage，Tickets 和图片暂不云端同步
 
 ## 本地运行
 
@@ -21,6 +22,13 @@ npm run dev
 
 ```bash
 npm run build
+```
+
+可选 Supabase 环境变量：
+
+```bash
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ## 本地存储 Key
