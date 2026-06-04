@@ -264,7 +264,14 @@ function App() {
 
           try {
             return { ...event, imageUrl: await getEventImageSignedUrl(event.imagePath) };
-          } catch {
+          } catch (error) {
+            const message = getErrorMessage(error, t("storage.signedUrlFailed"));
+            console.error("Failed to create signed URL for event image", {
+              eventId: event.id,
+              imagePath: event.imagePath,
+              error,
+            });
+            setNotice(`${t("storage.signedUrlFailed")} ${message}`);
             return event;
           }
         }),
@@ -362,8 +369,17 @@ function App() {
         }
 
         if (values.imageFile) {
+          let uploadedImagePath = "";
+
           try {
             const imagePath = await uploadEventImage(user.id, savedRecord.id, values.imageFile);
+            uploadedImagePath = imagePath;
+            let imageNotice = t("storage.imageUploaded");
+
+            savedRecord = await updateCloudEvent(
+              { ...savedRecord, imagePath, imageUrl: undefined, updatedAt: new Date().toISOString() },
+              user.id,
+            );
 
             if (editingEvent?.imagePath && editingEvent.imagePath !== imagePath) {
               try {
@@ -373,15 +389,30 @@ function App() {
               }
             }
 
-            const signedUrl = await getEventImageSignedUrl(imagePath);
-            savedRecord = await updateCloudEvent(
-              { ...savedRecord, imagePath, imageUrl: undefined, updatedAt: new Date().toISOString() },
-              user.id,
-            );
-            savedRecord = { ...savedRecord, imageUrl: signedUrl };
-            setNotice(t("storage.imageUploaded"));
+            try {
+              const signedUrl = await getEventImageSignedUrl(imagePath);
+              savedRecord = { ...savedRecord, imageUrl: signedUrl };
+            } catch (error) {
+              const message = getErrorMessage(error, t("storage.signedUrlFailed"));
+              console.error("Failed to create signed URL after image upload", {
+                eventId: savedRecord.id,
+                imagePath,
+                error,
+              });
+              imageNotice = `${t("storage.imageUploaded")} ${t("storage.signedUrlFailed")} ${message}`;
+            }
+
+            setNotice(imageNotice);
           } catch (error) {
-            setNotice(error instanceof Error ? error.message : t("storage.uploadFailed"));
+            if (uploadedImagePath && !savedRecord.imagePath) {
+              try {
+                await deleteEventImage(uploadedImagePath);
+              } catch (deleteError) {
+                console.warn("Failed to clean up uploaded image after event update failure", deleteError);
+              }
+            }
+
+            setNotice(`${t("storage.uploadFailed")} ${getErrorMessage(error, t("storage.uploadFailed"))}`);
           }
         }
       } else if (editingEvent) {
