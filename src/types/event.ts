@@ -50,6 +50,7 @@ export interface EventRecord {
   ticketType: string;
   seat: SeatInfo;
   imageUrl?: string;
+  imagePath?: string;
   weather?: WeatherInfo;
   notes: string;
   createdAt: string;
@@ -65,6 +66,9 @@ export interface EventFormValues {
   ticketType: string;
   seat: SeatInfo;
   imageUrl?: string;
+  imagePath?: string;
+  imageFile?: File;
+  removeImage?: boolean;
   notes: string;
 }
 

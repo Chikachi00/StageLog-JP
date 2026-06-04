@@ -3,13 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { groupVenuesByRegion } from "../data/venues";
+import { CLOUD_IMAGE_MAX_SIZE_BYTES, CLOUD_IMAGE_MIME_TYPES } from "../services/storageService";
 import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
 import { SeatPicker } from "./SeatPicker";
 
 interface EventFormProps {
   venues: Venue[];
   editingEvent?: EventRecord | null;
-  onSave: (values: EventFormValues) => void;
+  useCloudImages?: boolean;
+  isSaving?: boolean;
+  onSave: (values: EventFormValues) => void | Promise<void>;
   onCancelEditing: () => void;
 }
 
@@ -34,6 +37,7 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
       ticketType: editingEvent.ticketType,
       seat: { ...emptySeat, ...(editingEvent.seat ?? {}) },
       imageUrl: editingEvent.imageUrl,
+      imagePath: editingEvent.imagePath,
       notes: editingEvent.notes,
     };
   }
@@ -47,11 +51,19 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
     ticketType: "",
     seat: emptySeat,
     imageUrl: undefined,
+    imagePath: undefined,
     notes: "",
   };
 };
 
-export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: EventFormProps) {
+export function EventForm({
+  venues,
+  editingEvent,
+  useCloudImages = false,
+  isSaving = false,
+  onSave,
+  onCancelEditing,
+}: EventFormProps) {
   const { t } = useTranslation();
   const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
   const [imageError, setImageError] = useState("");
@@ -96,9 +108,23 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
       return;
     }
 
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setImageError(t("eventForm.imageTooLarge"));
+    const maxSize = useCloudImages ? CLOUD_IMAGE_MAX_SIZE_BYTES : MAX_IMAGE_SIZE_BYTES;
+
+    if (!file.type.startsWith("image/") || (useCloudImages && !CLOUD_IMAGE_MIME_TYPES.includes(file.type))) {
+      setImageError(t("storage.onlyImages"));
       event.target.value = "";
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setImageError(t("storage.imageTooLarge"));
+      event.target.value = "";
+      return;
+    }
+
+    if (useCloudImages) {
+      updateValue("imageUrl", URL.createObjectURL(file));
+      setValues((current) => ({ ...current, imageFile: file, removeImage: false }));
       return;
     }
 
@@ -107,6 +133,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
     reader.onload = () => {
       if (typeof reader.result === "string") {
         updateValue("imageUrl", reader.result);
+        setValues((current) => ({ ...current, imageFile: undefined, removeImage: false }));
       }
     };
 
@@ -119,7 +146,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSave({
+    void onSave({
       ...values,
       title: values.title.trim(),
       artist: values.artist.trim(),
@@ -277,7 +304,15 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
               <button
                 className="ghost-button"
                 type="button"
-                onClick={() => updateValue("imageUrl", "")}
+                onClick={() =>
+                  setValues((current) => ({
+                    ...current,
+                    imageUrl: "",
+                    imagePath: undefined,
+                    imageFile: undefined,
+                    removeImage: true,
+                  }))
+                }
               >
                 <X size={16} aria-hidden="true" />
                 {t("eventForm.removeImage")}
@@ -296,9 +331,9 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
           />
         </label>
 
-        <button className="primary-button event-form__submit" type="submit">
+        <button className="primary-button event-form__submit" type="submit" disabled={isSaving}>
           <Save size={18} aria-hidden="true" />
-          {editingEvent ? t("eventForm.update") : t("eventForm.save")}
+          {isSaving ? t("common.saving") : editingEvent ? t("eventForm.update") : t("eventForm.save")}
         </button>
       </form>
     </section>

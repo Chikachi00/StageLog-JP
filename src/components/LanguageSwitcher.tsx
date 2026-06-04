@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { LANGUAGE_STORAGE_KEY } from "../i18n";
+import { useUserSettings } from "../context/UserSettingsContext";
 
 const languages = [
   { id: "en", labelKey: "language.english" },
@@ -8,10 +8,10 @@ const languages = [
 
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
+  const { updateLanguageSetting } = useUserSettings();
 
   const changeLanguage = (language: "en" | "zh") => {
-    void i18n.changeLanguage(language);
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    void updateLanguageSetting(language);
   };
 
   return (

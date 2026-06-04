@@ -15,11 +15,11 @@ interface TicketManagerProps {
   applications: TicketApplication[];
   venues: Venue[];
   editingApplication: TicketApplication | null;
-  onSave: (values: TicketApplicationFormValues, editingApplication?: TicketApplication | null) => void;
+  onSave: (values: TicketApplicationFormValues, editingApplication?: TicketApplication | null) => void | Promise<void>;
   onEdit: (application: TicketApplication) => void;
   onCancelEditing: () => void;
-  onDelete: (id: string) => void;
-  onCreateEventRecord: (application: TicketApplication) => void;
+  onDelete: (id: string) => void | Promise<void>;
+  onCreateEventRecord: (application: TicketApplication) => void | Promise<void>;
 }
 
 const defaultFilters: TicketApplicationFilters = {
@@ -65,7 +65,7 @@ export function TicketManager({
         editingApplication={editingApplication}
         venues={venues}
         onCancel={onCancelEditing}
-        onSave={(values) => onSave(values, editingApplication)}
+        onSave={(values) => void onSave(values, editingApplication)}
       />
 
       <div className="section-heading">

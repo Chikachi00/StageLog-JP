@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { AppTheme } from "../types/theme";
 import { AuthPanel } from "./AuthPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ProfilePanel } from "./ProfilePanel";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export type AppView = "events" | "timeline" | "venues" | "statistics" | "tickets" | "add";
@@ -62,6 +63,7 @@ export function Header({
       </nav>
       <div className="header-controls">
         <AuthPanel />
+        <ProfilePanel />
         <ThemeSwitcher theme={theme} onThemeChange={onThemeChange} />
         <LanguageSwitcher />
       </div>

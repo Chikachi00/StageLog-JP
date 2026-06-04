@@ -19,6 +19,7 @@ interface CloudEventRow {
   weather: WeatherInfo | null;
   notes: string | null;
   image_url: string | null;
+  image_path: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -58,7 +59,14 @@ export const toCloudEventRow = (event: EventRecord, userId: string): CloudEventR
   seat: normalizeSeat(event.seat),
   weather: event.weather ?? null,
   notes: event.notes,
-  image_url: event.imageUrl ?? null,
+  image_url:
+    !event.imagePath &&
+    event.imageUrl &&
+    !event.imageUrl.startsWith("data:") &&
+    !event.imageUrl.startsWith("blob:")
+      ? event.imageUrl
+      : null,
+  image_path: event.imagePath ?? null,
   created_at: event.createdAt,
   updated_at: event.updatedAt,
 });
@@ -81,6 +89,7 @@ export const fromCloudEventRow = (row: CloudEventRow): EventRecord => {
     weather: row.weather ?? undefined,
     notes: row.notes ?? "",
     imageUrl: row.image_url ?? undefined,
+    imagePath: row.image_path ?? undefined,
     createdAt: row.created_at ?? now,
     updatedAt: row.updated_at ?? row.created_at ?? now,
   };

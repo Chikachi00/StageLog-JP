@@ -10,8 +10,8 @@ import {
 interface TicketApplicationCardProps {
   application: TicketApplication;
   onEdit: (application: TicketApplication) => void;
-  onDelete: (id: string) => void;
-  onCreateEventRecord: (application: TicketApplication) => void;
+  onDelete: (id: string) => void | Promise<void>;
+  onCreateEventRecord: (application: TicketApplication) => void | Promise<void>;
 }
 
 const dateLine = (label: string, value?: string) => (value ? `${label}: ${formatDate(value)}` : `${label}: -`);
@@ -90,14 +90,14 @@ export function TicketApplicationCard({
           <Pencil size={16} aria-hidden="true" />
           {t("common.edit")}
         </button>
-        <button className="icon-button" type="button" onClick={() => onDelete(application.id)}>
+        <button className="icon-button" type="button" onClick={() => void onDelete(application.id)}>
           <Trash2 size={16} aria-hidden="true" />
           {t("common.delete")}
         </button>
         {application.linkedEventId ? (
           <span className="linked-event-badge">{t("tickets.alreadyCreated")}</span>
         ) : canCreateEventRecord(application) ? (
-          <button className="icon-button icon-button--weather" type="button" onClick={() => onCreateEventRecord(application)}>
+          <button className="icon-button icon-button--weather" type="button" onClick={() => void onCreateEventRecord(application)}>
             <PlusCircle size={16} aria-hidden="true" />
             {t("tickets.createEventRecord")}
           </button>

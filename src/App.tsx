@@ -10,6 +10,7 @@ import { TicketManager } from "./components/TicketManager";
 import { Timeline } from "./components/Timeline";
 import { VenuesPage } from "./components/VenuesPage";
 import { useAuth } from "./context/AuthContext";
+import { useUserSettings } from "./context/UserSettingsContext";
 import { createSampleEvents } from "./data/sampleEvents";
 import { getVenueById, getVenueSearchText, venues } from "./data/venues";
 import {
@@ -18,6 +19,12 @@ import {
   getCloudEvents,
   updateCloudEvent,
 } from "./services/cloudEventService";
+import {
+  addCloudTicketApplication,
+  deleteCloudTicketApplication,
+  getCloudTicketApplications,
+  updateCloudTicketApplication,
+} from "./services/cloudTicketService";
 import {
   addEvent as addLocalEvent,
   deleteEvent as deleteLocalEvent,
@@ -31,10 +38,14 @@ import {
   getTicketApplications,
   updateTicketApplication,
 } from "./services/ticketStorage";
+import {
+  deleteEventImage,
+  getEventImageSignedUrl,
+  uploadEventImage,
+} from "./services/storageService";
 import { fetchWeatherForEvent } from "./services/weatherService";
 import type { EventFilters, EventFormValues, EventRecord } from "./types/event";
 import type { AppTheme } from "./types/theme";
-import { isAppTheme, THEME_STORAGE_KEY } from "./types/theme";
 import type { TicketApplication, TicketApplicationFormValues } from "./types/ticket";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
 
@@ -43,15 +54,6 @@ const defaultFilters: EventFilters = {
   artist: "all",
   venue: "all",
   search: "",
-};
-
-const getInitialTheme = (): AppTheme => {
-  if (typeof window === "undefined") {
-    return "sakura";
-  }
-
-  const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return isAppTheme(savedTheme) ? savedTheme : "sakura";
 };
 
 const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null): EventRecord => {
@@ -75,7 +77,8 @@ const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null
     country: venue.country,
     ticketType: values.ticketType,
     seat: values.seat,
-    imageUrl: values.imageUrl || undefined,
+    imageUrl: values.removeImage ? undefined : values.imageUrl || undefined,
+    imagePath: values.removeImage ? undefined : values.imagePath ?? editingEvent?.imagePath,
     weather: editingEvent?.weather,
     notes: values.notes,
     createdAt: editingEvent?.createdAt ?? now,
@@ -123,20 +126,29 @@ const getUniqueSorted = (values: string[]) =>
 const getEventImportKey = (event: EventRecord) =>
   [event.title, event.artist, event.date, event.venueId].join("::").toLocaleLowerCase();
 
+const getTicketImportKey = (application: TicketApplication) =>
+  [application.eventTitle, application.artist, application.eventDate ?? "", application.platform]
+    .join("::")
+    .toLocaleLowerCase();
+
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
+  const { theme, updateThemeSetting } = useUserSettings();
   const isCloudMode = Boolean(user && isSupabaseConfigured);
   const [events, setEvents] = useState<EventRecord[]>(() => sortByDateDesc(getLocalEvents()));
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
     getTicketApplications(),
   );
   const [eventsLoading, setEventsLoading] = useState(false);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
   const [cloudError, setCloudError] = useState("");
   const [localEventCount, setLocalEventCount] = useState(() => getLocalEvents().length);
+  const [localTicketCount, setLocalTicketCount] = useState(() => getTicketApplications().length);
   const [isImportingLocalEvents, setIsImportingLocalEvents] = useState(false);
+  const [isImportingLocalTickets, setIsImportingLocalTickets] = useState(false);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [activeView, setActiveView] = useState<AppView>("events");
-  const [theme, setTheme] = useState<AppTheme>(() => getInitialTheme());
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
   const [editingApplication, setEditingApplication] = useState<TicketApplication | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>();
@@ -191,7 +203,20 @@ function App() {
 
     try {
       const cloudEvents = await getCloudEvents(user.id);
-      setEvents(sortByDateDesc(cloudEvents));
+      const eventsWithImages = await Promise.all(
+        cloudEvents.map(async (event) => {
+          if (!event.imagePath) {
+            return event;
+          }
+
+          try {
+            return { ...event, imageUrl: await getEventImageSignedUrl(event.imagePath) };
+          } catch {
+            return event;
+          }
+        }),
+      );
+      setEvents(sortByDateDesc(eventsWithImages));
     } catch {
       setCloudError(t("auth.failedLoadCloudEvents"));
       setEvents([]);
@@ -206,16 +231,37 @@ function App() {
     setFilters(defaultFilters);
   }, [refreshEvents]);
 
-  const refreshTicketApplications = () => {
-    setTicketApplications(getTicketApplications());
-  };
+  const refreshTicketApplications = useCallback(async () => {
+    setLocalTicketCount(getTicketApplications().length);
+
+    if (authLoading) {
+      return;
+    }
+
+    if (!isCloudMode || !user) {
+      setTicketApplications(getTicketApplications());
+      return;
+    }
+
+    setTicketsLoading(true);
+
+    try {
+      setTicketApplications(await getCloudTicketApplications(user.id));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("tickets.failedLoadCloudTickets"));
+      setTicketApplications([]);
+    } finally {
+      setTicketsLoading(false);
+    }
+  }, [authLoading, isCloudMode, t, user]);
+
+  useEffect(() => {
+    void refreshTicketApplications();
+    setEditingApplication(null);
+  }, [refreshTicketApplications]);
 
   const handleThemeChange = (nextTheme: AppTheme) => {
-    setTheme(nextTheme);
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-    }
+    void updateThemeSetting(nextTheme);
   };
 
   const handleNavigate = (view: AppView) => {
@@ -228,16 +274,53 @@ function App() {
   };
 
   const handleSaveEvent = async (values: EventFormValues) => {
+    setIsSavingEvent(true);
+
     try {
       const record = createRecord(values, editingEvent);
 
       if (isCloudMode && user) {
+        let savedRecord = record;
+
         if (editingEvent) {
-          await updateCloudEvent(record, user.id);
+          savedRecord = await updateCloudEvent(record, user.id);
           setNotice(t("notice.eventUpdated"));
         } else {
-          await addCloudEvent(record, user.id);
+          savedRecord = await addCloudEvent(record, user.id);
           setNotice(t("notice.eventSaved"));
+        }
+
+        if (values.removeImage && editingEvent?.imagePath) {
+          try {
+            await deleteEventImage(editingEvent.imagePath);
+          } catch (error) {
+            console.warn("Failed to delete event image", error);
+          }
+          savedRecord = await updateCloudEvent({ ...savedRecord, imagePath: undefined, imageUrl: undefined }, user.id);
+        }
+
+        if (values.imageFile) {
+          try {
+            const imagePath = await uploadEventImage(user.id, savedRecord.id, values.imageFile);
+
+            if (editingEvent?.imagePath && editingEvent.imagePath !== imagePath) {
+              try {
+                await deleteEventImage(editingEvent.imagePath);
+              } catch (error) {
+                console.warn("Failed to delete replaced event image", error);
+              }
+            }
+
+            const signedUrl = await getEventImageSignedUrl(imagePath);
+            savedRecord = await updateCloudEvent(
+              { ...savedRecord, imagePath, imageUrl: undefined, updatedAt: new Date().toISOString() },
+              user.id,
+            );
+            savedRecord = { ...savedRecord, imageUrl: signedUrl };
+            setNotice(t("storage.imageUploaded"));
+          } catch (error) {
+            setNotice(error instanceof Error ? error.message : t("storage.uploadFailed"));
+          }
         }
       } else if (editingEvent) {
         updateLocalEvent(record);
@@ -252,17 +335,27 @@ function App() {
       setActiveView("events");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+    } finally {
+      setIsSavingEvent(false);
     }
   };
 
-  const handleSaveTicketApplication = (
+  const handleSaveTicketApplication = async (
     values: TicketApplicationFormValues,
     currentEditingApplication?: TicketApplication | null,
   ) => {
     try {
       const application = createTicketApplication(values, currentEditingApplication);
 
-      if (currentEditingApplication) {
+      if (isCloudMode && user) {
+        if (currentEditingApplication) {
+          await updateCloudTicketApplication(application, user.id);
+          setNotice(t("notice.ticketUpdated"));
+        } else {
+          await addCloudTicketApplication(application, user.id);
+          setNotice(t("notice.ticketSaved"));
+        }
+      } else if (currentEditingApplication) {
         updateTicketApplication(application);
         setNotice(t("notice.ticketUpdated"));
       } else {
@@ -271,7 +364,7 @@ function App() {
       }
 
       setEditingApplication(null);
-      refreshTicketApplications();
+      await refreshTicketApplications();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
     }
@@ -295,6 +388,13 @@ function App() {
 
     try {
       if (isCloudMode && user) {
+        if (event?.imagePath) {
+          try {
+            await deleteEventImage(event.imagePath);
+          } catch (error) {
+            console.warn("Failed to delete event image", error);
+          }
+        }
         await deleteCloudEvent(id, user.id);
       } else {
         deleteLocalEvent(id);
@@ -440,7 +540,7 @@ function App() {
     }
   };
 
-  const handleDeleteTicketApplication = (id: string) => {
+  const handleDeleteTicketApplication = async (id: string) => {
     const application = ticketApplications.find((item) => item.id === id);
     const confirmed = window.confirm(
       t("notice.deleteTicketConfirm", {
@@ -452,9 +552,18 @@ function App() {
       return;
     }
 
-    deleteTicketApplication(id);
-    refreshTicketApplications();
-    setNotice(t("notice.ticketDeleted"));
+    try {
+      if (isCloudMode && user) {
+        await deleteCloudTicketApplication(id, user.id);
+      } else {
+        deleteTicketApplication(id);
+      }
+
+      await refreshTicketApplications();
+      setNotice(t("notice.ticketDeleted"));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+    }
   };
 
   const handleCreateEventFromApplication = async (application: TicketApplication) => {
@@ -505,14 +614,60 @@ function App() {
       return;
     }
 
-    updateTicketApplication({
+    const linkedApplication = {
       ...application,
       linkedEventId: record.id,
       updatedAt: now,
+    };
+
+    try {
+      if (isCloudMode && user) {
+        await updateCloudTicketApplication(linkedApplication, user.id);
+      } else {
+        updateTicketApplication(linkedApplication);
+      }
+      await refreshEvents();
+      await refreshTicketApplications();
+      setNotice(t("notice.eventCreatedFromTicket"));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+    }
+  };
+
+  const handleImportLocalTicketsToCloud = async () => {
+    if (!isCloudMode || !user) {
+      return;
+    }
+
+    const localTickets = getTicketApplications();
+    const seenKeys = new Set(ticketApplications.map(getTicketImportKey));
+    const ticketsToImport = localTickets.filter((application) => {
+      const key = getTicketImportKey(application);
+
+      if (seenKeys.has(key)) {
+        return false;
+      }
+
+      seenKeys.add(key);
+      return true;
     });
-    await refreshEvents();
-    refreshTicketApplications();
-    setNotice(t("notice.eventCreatedFromTicket"));
+
+    setIsImportingLocalTickets(true);
+    setNotice("");
+
+    try {
+      for (const application of ticketsToImport) {
+        await addCloudTicketApplication(application, user.id);
+      }
+
+      await refreshTicketApplications();
+      setLocalTicketCount(getTicketApplications().length);
+      setNotice(t("auth.importedTickets", { count: ticketsToImport.length }));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+    } finally {
+      setIsImportingLocalTickets(false);
+    }
   };
 
   return (
@@ -539,8 +694,10 @@ function App() {
             <span>{t("auth.cloudSync")}</span>
             <strong>{isCloudMode ? t("auth.cloudMode") : t("auth.localMode")}</strong>
           </div>
+          <p>{isCloudMode ? t("auth.cloudModeDescription") : t("auth.localModeDescription")}</p>
           {!isSupabaseConfigured ? <p>{t("auth.notConfigured")}</p> : null}
           {eventsLoading ? <p>{t("auth.loadingCloudEvents")}</p> : null}
+          {ticketsLoading ? <p>{t("tickets.loadingCloudTickets")}</p> : null}
           {cloudError ? <p className="sync-panel__error">{cloudError}</p> : null}
           {isCloudMode && localEventCount > 0 ? (
             <button
@@ -550,6 +707,16 @@ function App() {
               onClick={handleImportLocalDataToCloud}
             >
               {isImportingLocalEvents ? t("auth.importing") : t("auth.importLocalData")}
+            </button>
+          ) : null}
+          {isCloudMode && localTicketCount > 0 ? (
+            <button
+              className="ghost-button"
+              type="button"
+              disabled={isImportingLocalTickets}
+              onClick={handleImportLocalTicketsToCloud}
+            >
+              {isImportingLocalTickets ? t("auth.importing") : t("auth.importLocalTickets")}
             </button>
           ) : null}
         </section>
@@ -612,6 +779,8 @@ function App() {
         {activeView === "add" ? (
           <EventForm
             editingEvent={editingEvent}
+            isSaving={isSavingEvent}
+            useCloudImages={isCloudMode}
             venues={venues}
             onCancelEditing={() => {
               setEditingEvent(null);

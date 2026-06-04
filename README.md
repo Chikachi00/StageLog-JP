@@ -59,7 +59,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Supabase Auth with email Magic Link sign-in
 - Logged-in users can sync EventRecord data with a Supabase `events` table protected by Row Level Security
 - Import local `stagelog-events` data to the cloud without deleting local data
-- Tickets and uploaded images remain local in this version
+- Logged-in users can sync events, ticket applications, profile settings, language/theme preferences, and event images through Supabase.
 
 ## Tech Stack
 
@@ -69,7 +69,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Tailwind CSS via `@tailwindcss/vite`
 - Open-Meteo Archive API
 - Browser `localStorage`
-- Optional Supabase Auth and Events cloud sync
+- Optional Supabase Auth, Events, Tickets, profile, settings, and image cloud sync
 
 ## Getting Started
 
@@ -101,10 +101,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ## Notes
 
 - Supabase is optional. If environment variables are missing, the app falls back to localStorage mode.
-- Supabase cloud sync currently covers Events only.
-- Tickets are still stored locally.
-- Uploaded images are stored locally as base64 data URLs.
+- Supabase cloud sync covers Events, Tickets, profile settings, language/theme preferences, and event images.
+- Guest mode still stores tickets and uploaded images locally.
 - Venue maps are simplified project-owned SVG drawings, not copied from external seating charts.
+
+登录用户可以通过 Supabase 同步参战记录、票务抽选记录、用户资料、语言/主题设置和活动图片。
 
 ## License
 

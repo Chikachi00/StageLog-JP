@@ -31,6 +31,7 @@ const normalizeEvent = (event: Partial<EventRecord>): EventRecord => {
       y: typeof seat.y === "number" ? seat.y : undefined,
     },
     imageUrl: event.imageUrl,
+    imagePath: event.imagePath,
     weather: event.weather,
     notes: event.notes ?? "",
     createdAt: event.createdAt ?? now,

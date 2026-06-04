@@ -214,20 +214,23 @@ button:disabled {
 }
 
 .sync-panel div,
-.auth-panel div {
+.auth-panel div,
+.profile-panel div {
   display: grid;
   gap: 0.18rem;
 }
 
 .sync-panel span,
-.auth-panel span {
+.auth-panel span,
+.profile-panel span {
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 800;
 }
 
 .sync-panel strong,
-.auth-panel strong {
+.auth-panel strong,
+.profile-panel strong {
   color: var(--ink);
   font-size: 0.9rem;
 }
@@ -714,7 +717,8 @@ textarea:focus {
 .app-shell[data-theme="night"] .venue-history,
 .app-shell[data-theme="night"] .timeline-page,
 .app-shell[data-theme="night"] .sync-panel,
-.app-shell[data-theme="night"] .auth-panel {
+.app-shell[data-theme="night"] .auth-panel,
+.app-shell[data-theme="night"] .profile-panel {
   background: rgba(16, 24, 39, 0.94);
 }
 
@@ -746,6 +750,51 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: 0.5rem;
   background: rgba(255, 255, 255, 0.72);
+}
+
+.profile-panel {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: stretch;
+  max-width: 28rem;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.profile-panel--compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.profile-panel__header {
+  display: flex !important;
+  align-items: center;
+  gap: 0.45rem !important;
+}
+
+.profile-panel form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(8rem, 1fr)) auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.profile-panel input {
+  min-height: 2.35rem;
+}
+
+.profile-panel__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-align: right;
 }
 
 .auth-panel--compact {
@@ -1582,18 +1631,23 @@ textarea:focus {
     justify-content: stretch;
   }
 
-  .auth-panel {
+  .auth-panel,
+  .profile-panel {
     justify-items: stretch;
     max-width: none;
     width: 100%;
   }
 
-  .auth-panel form {
+  .auth-panel form,
+  .profile-panel form {
     justify-content: stretch;
+    grid-template-columns: 1fr;
   }
 
   .auth-panel label,
-  .auth-panel .ghost-button {
+  .auth-panel .ghost-button,
+  .profile-panel label,
+  .profile-panel .ghost-button {
     flex: 1 1 12rem;
   }
 
