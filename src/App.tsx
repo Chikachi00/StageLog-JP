@@ -410,8 +410,17 @@ function App() {
     }
 
     const localEvents = getLocalEvents();
-    const existingKeys = new Set(events.map(getEventImportKey));
-    const eventsToImport = localEvents.filter((event) => !existingKeys.has(getEventImportKey(event)));
+    const seenKeys = new Set(events.map(getEventImportKey));
+    const eventsToImport = localEvents.filter((event) => {
+      const key = getEventImportKey(event);
+
+      if (seenKeys.has(key)) {
+        return false;
+      }
+
+      seenKeys.add(key);
+      return true;
+    });
 
     setIsImportingLocalEvents(true);
     setNotice("");
