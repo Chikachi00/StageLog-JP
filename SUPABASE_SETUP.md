@@ -2,6 +2,22 @@
 
 StageLog JP can run fully in localStorage guest mode. Supabase is optional for logged-in cloud sync.
 
+## Authentication
+
+The app supports both:
+
+- Magic Link / Email OTP sign-in
+- Email + Password sign-in and sign-up
+
+If frequent Magic Link testing triggers Supabase email rate limits, use Email + Password during development.
+
+In Supabase Dashboard, configure Authentication -> URL Configuration:
+
+- Site URL: your deployed app URL
+- Redirect URLs: your deployed app URL and any local development URL you intentionally use
+
+The app does not hardcode a local redirect URL; Auth redirects use the current `window.location.origin`.
+
 ## Environment Variables
 
 Configure these variables in `.env.local` for local development and in Vercel project settings for production:

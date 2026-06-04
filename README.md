@@ -57,7 +57,8 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 ### Optional Supabase Cloud Sync
 
 - Guest mode continues to use browser `localStorage`
-- Supabase Auth with email Magic Link sign-in
+- Supabase Auth with email Magic Link sign-in and Email + Password sign-in/sign-up
+- Password authentication is useful for development testing when repeated Magic Link requests hit Supabase email rate limits
 - Logged-in users can sync EventRecord data with a Supabase `events` table protected by Row Level Security
 - Import local `stagelog-events` data to the cloud without deleting local data
 - Logged-in users can sync events, ticket applications, profile settings, language/theme preferences, and event images through Supabase.
@@ -104,6 +105,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - Supabase is optional. If environment variables are missing, the app falls back to localStorage mode.
 - Supabase cloud sync covers Events, Tickets, profile settings, language/theme preferences, and event images.
 - Guest mode still stores tickets and uploaded images locally.
+- Supabase Dashboard still needs Authentication -> URL Configuration with the production Site URL and allowed Redirect URLs.
 - Venue maps are simplified project-owned SVG drawings, not copied from external seating charts.
 
 登录用户可以通过 Supabase 同步参战记录、票务抽选记录、用户资料、语言/主题设置和活动图片。

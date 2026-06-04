@@ -813,6 +813,18 @@ textarea:focus {
   gap: 0.45rem;
 }
 
+.auth-panel__actions {
+  display: flex !important;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem !important;
+}
+
+.auth-panel__actions .ghost-button {
+  flex: 1 1 10rem;
+}
+
 .auth-panel label {
   min-width: min(100%, 14rem);
 }
