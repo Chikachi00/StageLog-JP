@@ -1171,9 +1171,46 @@ textarea:focus {
 .venue-map__empty {
   display: grid;
   min-height: 180px;
+  gap: 0.75rem;
   place-items: center;
   color: var(--muted);
   text-align: center;
+}
+
+.venue-thumbnail {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--soft);
+  aspect-ratio: 16 / 10;
+}
+
+.venue-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.venue-thumbnail--fallback {
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.venue-thumbnail--fallback span {
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.venue-thumbnail--fallback small {
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .timeline-page,
@@ -1270,6 +1307,17 @@ textarea:focus {
   flex-direction: column;
   max-width: 310px;
   text-align: left;
+}
+
+.venue-tabs .venue-thumbnail {
+  width: 100%;
+  margin-bottom: 0.2rem;
+  border-color: rgba(127, 141, 163, 0.22);
+}
+
+.venue-tabs button.is-active .venue-thumbnail {
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 8px 18px rgba(20, 31, 52, 0.18);
 }
 
 .venue-tabs button small {

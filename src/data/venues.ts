@@ -41,6 +41,8 @@ export const venues: Venue[] = [
     mapSvg: "/venue-maps/tokyo-dome.svg",
     mapType: "svg",
     supportedSeatMap: true,
+    thumbnailSvg: "/venue-thumbnails/tokyo-dome.svg",
+    thumbnailType: "dome",
   },
   {
     id: "belluna-dome",
@@ -59,6 +61,8 @@ export const venues: Venue[] = [
     mapSvg: "/venue-maps/belluna-dome.svg",
     mapType: "svg",
     supportedSeatMap: true,
+    thumbnailSvg: "/venue-thumbnails/belluna-dome.svg",
+    thumbnailType: "dome",
   },
   {
     id: "k-arena-yokohama",
@@ -77,6 +81,8 @@ export const venues: Venue[] = [
     mapSvg: "/venue-maps/k-arena-yokohama.svg",
     mapType: "svg",
     supportedSeatMap: true,
+    thumbnailSvg: "/venue-thumbnails/k-arena-yokohama.svg",
+    thumbnailType: "arena",
   },
   {
     id: "pia-arena-mm",
@@ -93,6 +99,8 @@ export const venues: Venue[] = [
     longitude: 139.6302,
     capacity: 12000,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/pia-arena-mm.svg",
+    thumbnailType: "arena",
   },
   {
     id: "yokohama-arena",
@@ -109,6 +117,8 @@ export const venues: Venue[] = [
     longitude: 139.6201,
     capacity: 17000,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/yokohama-arena.svg",
+    thumbnailType: "arena",
   },
   {
     id: "zepp-haneda",
@@ -124,6 +134,8 @@ export const venues: Venue[] = [
     latitude: 35.5483,
     longitude: 139.7546,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/zepp-haneda.svg",
+    thumbnailType: "livehouse",
   },
   {
     id: "numazu-civic-cultural-center",
@@ -140,6 +152,8 @@ export const venues: Venue[] = [
     longitude: 138.8596,
     capacity: 1516,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/numazu-civic-cultural-center.svg",
+    thumbnailType: "hall",
   },
   {
     id: "keio-arena-tokyo",
@@ -161,6 +175,8 @@ export const venues: Venue[] = [
     longitude: 139.5254,
     capacity: 10000,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/keio-arena-tokyo.svg",
+    thumbnailType: "arena",
   },
   {
     id: "ariake-arena",
@@ -178,6 +194,8 @@ export const venues: Venue[] = [
     mapSvg: "/venue-maps/ariake-arena.svg",
     mapType: "svg",
     supportedSeatMap: true,
+    thumbnailSvg: "/venue-thumbnails/ariake-arena.svg",
+    thumbnailType: "arena",
   },
   {
     id: "tokyo-garden-theater",
@@ -193,6 +211,8 @@ export const venues: Venue[] = [
     longitude: 139.7928,
     capacity: 7000,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/tokyo-garden-theater.svg",
+    thumbnailType: "theater",
   },
   {
     id: "makuhari-messe",
@@ -209,6 +229,8 @@ export const venues: Venue[] = [
     mapSvg: "/venue-maps/makuhari-messe-event-hall.svg",
     mapType: "svg",
     supportedSeatMap: true,
+    thumbnailSvg: "/venue-thumbnails/makuhari-messe.svg",
+    thumbnailType: "convention",
   },
   {
     id: "lala-arena-tokyo-bay",
@@ -224,6 +246,8 @@ export const venues: Venue[] = [
     longitude: 139.9907,
     capacity: 11000,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/lala-arena-tokyo-bay.svg",
+    thumbnailType: "arena",
   },
   {
     id: "saitama-super-arena",
@@ -242,6 +266,8 @@ export const venues: Venue[] = [
     mapSvg: "/venue-maps/saitama-super-arena.svg",
     mapType: "svg",
     supportedSeatMap: true,
+    thumbnailSvg: "/venue-thumbnails/saitama-super-arena.svg",
+    thumbnailType: "arena",
   },
   {
     id: "yoyogi-national-gymnasium",
@@ -256,6 +282,8 @@ export const venues: Venue[] = [
     latitude: 35.6677,
     longitude: 139.7003,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/yoyogi-national-gymnasium.svg",
+    thumbnailType: "arena",
   },
   {
     id: "tokyo-big-sight",
@@ -270,6 +298,8 @@ export const venues: Venue[] = [
     latitude: 35.6298,
     longitude: 139.7942,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/tokyo-big-sight.svg",
+    thumbnailType: "convention",
   },
   {
     id: "tokyo-international-forum",
@@ -284,6 +314,8 @@ export const venues: Venue[] = [
     latitude: 35.6764,
     longitude: 139.7643,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/tokyo-international-forum.svg",
+    thumbnailType: "hall",
   },
   {
     id: "nippon-budokan",
@@ -298,6 +330,8 @@ export const venues: Venue[] = [
     latitude: 35.6933,
     longitude: 139.7499,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/nippon-budokan.svg",
+    thumbnailType: "arena",
   },
   {
     id: "zepp-divercity-tokyo",
@@ -312,6 +346,8 @@ export const venues: Venue[] = [
     latitude: 35.6253,
     longitude: 139.7758,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/zepp-divercity-tokyo.svg",
+    thumbnailType: "livehouse",
   },
   {
     id: "zepp-shinjuku-tokyo",
@@ -326,6 +362,8 @@ export const venues: Venue[] = [
     latitude: 35.6956,
     longitude: 139.7023,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/zepp-shinjuku-tokyo.svg",
+    thumbnailType: "livehouse",
   },
   {
     id: "toyosu-pit",
@@ -340,6 +378,8 @@ export const venues: Venue[] = [
     latitude: 35.6468,
     longitude: 139.7897,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/toyosu-pit.svg",
+    thumbnailType: "livehouse",
   },
   {
     id: "line-cube-shibuya",
@@ -354,6 +394,8 @@ export const venues: Venue[] = [
     latitude: 35.664,
     longitude: 139.6993,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/line-cube-shibuya.svg",
+    thumbnailType: "hall",
   },
   {
     id: "ex-theater-roppongi",
@@ -368,6 +410,8 @@ export const venues: Venue[] = [
     latitude: 35.6605,
     longitude: 139.7303,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/ex-theater-roppongi.svg",
+    thumbnailType: "theater",
   },
   {
     id: "tachikawa-stage-garden",
@@ -382,6 +426,8 @@ export const venues: Venue[] = [
     latitude: 35.703,
     longitude: 139.4137,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/tachikawa-stage-garden.svg",
+    thumbnailType: "hall",
   },
   {
     id: "pacifico-yokohama-national-convention-hall",
@@ -396,6 +442,8 @@ export const venues: Venue[] = [
     latitude: 35.4572,
     longitude: 139.6373,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/pacifico-yokohama-national-convention-hall.svg",
+    thumbnailType: "hall",
   },
   {
     id: "kt-zepp-yokohama",
@@ -410,6 +458,8 @@ export const venues: Venue[] = [
     latitude: 35.4629,
     longitude: 139.6269,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/kt-zepp-yokohama.svg",
+    thumbnailType: "livehouse",
   },
   {
     id: "yokohama-buntai",
@@ -424,6 +474,8 @@ export const venues: Venue[] = [
     latitude: 35.4417,
     longitude: 139.6367,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/yokohama-buntai.svg",
+    thumbnailType: "arena",
   },
   {
     id: "culttz-kawasaki",
@@ -438,6 +490,8 @@ export const venues: Venue[] = [
     latitude: 35.5294,
     longitude: 139.7031,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/culttz-kawasaki.svg",
+    thumbnailType: "hall",
   },
   {
     id: "chiba-port-arena",
@@ -452,6 +506,8 @@ export const venues: Venue[] = [
     latitude: 35.6043,
     longitude: 140.1198,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/chiba-port-arena.svg",
+    thumbnailType: "arena",
   },
   {
     id: "zozo-marine-stadium",
@@ -466,6 +522,8 @@ export const venues: Venue[] = [
     latitude: 35.6454,
     longitude: 140.0308,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/zozo-marine-stadium.svg",
+    thumbnailType: "stadium",
   },
   {
     id: "kyocera-dome-osaka",
@@ -480,6 +538,8 @@ export const venues: Venue[] = [
     latitude: 34.6694,
     longitude: 135.476,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/kyocera-dome-osaka.svg",
+    thumbnailType: "dome",
   },
   {
     id: "osaka-jo-hall",
@@ -494,6 +554,8 @@ export const venues: Venue[] = [
     latitude: 34.6896,
     longitude: 135.5301,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/osaka-jo-hall.svg",
+    thumbnailType: "arena",
   },
   {
     id: "kobe-world-memorial-hall",
@@ -508,6 +570,8 @@ export const venues: Venue[] = [
     latitude: 34.6651,
     longitude: 135.2168,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/kobe-world-memorial-hall.svg",
+    thumbnailType: "arena",
   },
   {
     id: "nippon-gaishi-hall",
@@ -522,6 +586,8 @@ export const venues: Venue[] = [
     latitude: 35.095,
     longitude: 136.9231,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/nippon-gaishi-hall.svg",
+    thumbnailType: "arena",
   },
   {
     id: "port-messe-nagoya",
@@ -536,6 +602,8 @@ export const venues: Venue[] = [
     latitude: 35.0485,
     longitude: 136.849,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/port-messe-nagoya.svg",
+    thumbnailType: "convention",
   },
   {
     id: "aichi-sky-expo",
@@ -550,6 +618,8 @@ export const venues: Venue[] = [
     latitude: 34.8581,
     longitude: 136.8175,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/aichi-sky-expo.svg",
+    thumbnailType: "convention",
   },
   {
     id: "marine-messe-fukuoka",
@@ -564,6 +634,8 @@ export const venues: Venue[] = [
     latitude: 33.607,
     longitude: 130.3994,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/marine-messe-fukuoka.svg",
+    thumbnailType: "arena",
   },
   {
     id: "fukuoka-paypay-dome",
@@ -578,6 +650,8 @@ export const venues: Venue[] = [
     latitude: 33.5954,
     longitude: 130.3621,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/fukuoka-paypay-dome.svg",
+    thumbnailType: "dome",
   },
   {
     id: "makomanai-sekisui-heim-ice-arena",
@@ -592,6 +666,8 @@ export const venues: Venue[] = [
     latitude: 42.9992,
     longitude: 141.3469,
     supportedSeatMap: false,
+    thumbnailSvg: "/venue-thumbnails/makomanai-sekisui-heim-ice-arena.svg",
+    thumbnailType: "arena",
   },
 ];
 

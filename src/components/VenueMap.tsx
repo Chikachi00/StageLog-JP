@@ -5,6 +5,7 @@ import {
   getSeatMapByVenueId,
 } from "../utils/seatMapUtils";
 import { SeatMapRenderer } from "./SeatMapRenderer";
+import { VenueThumbnail } from "./VenueThumbnail";
 
 interface VenueMapProps {
   venue: Venue;
@@ -30,7 +31,8 @@ export function VenueMap({ venue, events = [], event, highlightedEventId, compac
   if (!seatMap) {
     return (
       <div className="venue-map venue-map--empty">
-        <p>{t("seatMap.notAvailable")}</p>
+        <VenueThumbnail venue={venue} />
+        <p>{t("venues.detailedSeatMapNotAvailable")}</p>
       </div>
     );
   }

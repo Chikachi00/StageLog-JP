@@ -40,6 +40,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Event seat markers on venue maps
 - Venues page with multi-event marker overlay and venue history
 - Ticket cards indicate when a seat position has been saved
+- Simplified SVG thumbnails for all built-in Japanese live venues. Detailed interactive seat maps are available for selected major venues, while other venues use category-based thumbnails as visual placeholders.
 
 ### V4 Ticket Lottery Management
 

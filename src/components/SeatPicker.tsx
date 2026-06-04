@@ -9,6 +9,7 @@ import {
   getSectionCenter,
 } from "../utils/seatMapUtils";
 import { SeatMapRenderer } from "./SeatMapRenderer";
+import { VenueThumbnail } from "./VenueThumbnail";
 
 interface SeatPickerProps {
   venue: Venue;
@@ -63,7 +64,8 @@ export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
             <strong>{venue.name}</strong>
           </div>
         </div>
-        <p>{t("seatMap.notAvailable")}</p>
+        <VenueThumbnail venue={venue} />
+        <p>{t("venues.detailedSeatMapNotAvailable")}</p>
       </div>
     );
   }

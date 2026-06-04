@@ -17,6 +17,7 @@ import {
   getSeatMapByVenueId,
 } from "../utils/seatMapUtils";
 import { VenueMap } from "./VenueMap";
+import { VenueThumbnail } from "./VenueThumbnail";
 
 interface VenuesPageProps {
   events: EventRecord[];
@@ -174,12 +175,13 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
               type="button"
               onClick={() => setActiveVenueId(venue.id)}
             >
+              <VenueThumbnail venue={venue} />
               <strong>{venue.name}</strong>
               {venue.nameJa ? <small>{venue.nameJa}</small> : null}
               <small>{[venue.city, venue.prefecture].filter(Boolean).join(" / ")}</small>
               <span className="venue-tab-badges">
                 <span className="venue-tag">{venue.category ? t(`venues.categories.${venue.category}`) : t("venues.categories.other")}</span>
-                <span className="venue-tag">{venue.supportedSeatMap ? t("venues.seatMapSupported") : t("venues.seatMapUnsupported")}</span>
+                <span className="venue-tag">{venue.supportedSeatMap ? t("venues.seatMapSupported") : t("venues.thumbnailOnly")}</span>
                 <span className="venue-tab-count">{count}</span>
               </span>
             </button>
@@ -199,6 +201,9 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                 </p>
                 <p>
                   {t("venues.eventRecords", { count: venueEvents.length })} / {t("venues.seatMarkers", { count: markerEntries.length })}
+                </p>
+                <p>
+                  {activeVenue.supportedSeatMap ? t("venues.seatMapSupported") : t("venues.thumbnailOnly")}
                 </p>
               </div>
             </div>

@@ -15,6 +15,8 @@ export interface Venue {
   mapSvg?: string;
   mapType?: "svg" | "simple";
   supportedSeatMap?: boolean;
+  thumbnailSvg?: string;
+  thumbnailType?: "dome" | "arena" | "hall" | "livehouse" | "convention" | "stadium" | "theater" | "other";
 }
 
 export interface SeatInfo {
