@@ -1,9 +1,9 @@
 import { ReceiptText, Thermometer, Trophy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
 import type { TicketApplication } from "../types/ticket";
 import { formatDate, getCurrentYear } from "../utils/dateUtils";
 import { countByValue, getAverageTemperature, getTicketApplicationStats } from "../utils/statisticsUtils";
-import { platformLabels, statusLabels } from "../utils/ticketUtils";
 
 interface StatisticsProps {
   events: EventRecord[];
@@ -16,9 +16,9 @@ interface WeatherRankingItem {
   event: EventRecord;
 }
 
-const topEntry = (counts: Record<string, number>) => {
+const topEntry = (counts: Record<string, number>, noDataLabel: string) => {
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  return entries[0] ? `${entries[0][0]} (${entries[0][1]})` : "No data";
+  return entries[0] ? `${entries[0][0]} (${entries[0][1]})` : noDataLabel;
 };
 
 const maxBy = (
@@ -52,9 +52,11 @@ const minBy = (
 const DistributionList = ({
   title,
   items,
+  noDataLabel,
 }: {
   title: string;
   items: Record<string, number>;
+  noDataLabel: string;
 }) => {
   const entries = Object.entries(items).sort((a, b) => b[1] - a[1]);
 
@@ -71,13 +73,14 @@ const DistributionList = ({
           ))}
         </ul>
       ) : (
-        <p>No data</p>
+        <p>{noDataLabel}</p>
       )}
     </article>
   );
 };
 
 export function Statistics({ events, ticketApplications }: StatisticsProps) {
+  const { t } = useTranslation();
   const currentYear = getCurrentYear();
   const eventsThisYear = events.filter((event) => event.date.startsWith(currentYear)).length;
   const artistCounts = countByValue(events, (event) => event.artist);
@@ -87,71 +90,71 @@ export function Statistics({ events, ticketApplications }: StatisticsProps) {
   const averageTemperature = getAverageTemperature(events);
   const ticketStats = getTicketApplicationStats(ticketApplications);
   const weatherRankings = [
-    maxBy(events, (event) => event.weather?.temperature, "Hottest live event", " deg C"),
-    minBy(events, (event) => event.weather?.temperature, "Coldest live event", " deg C"),
-    maxBy(events, (event) => event.weather?.precipitation, "Rainiest live event", "mm"),
-    maxBy(events, (event) => event.weather?.windSpeed, "Windiest live event", "km/h"),
+    maxBy(events, (event) => event.weather?.temperature, t("stats.hottest"), " deg C"),
+    minBy(events, (event) => event.weather?.temperature, t("stats.coldest"), " deg C"),
+    maxBy(events, (event) => event.weather?.precipitation, t("stats.rainiest"), "mm"),
+    maxBy(events, (event) => event.weather?.windSpeed, t("stats.windiest"), "km/h"),
   ].filter((item): item is WeatherRankingItem => item !== null);
 
   return (
     <section className="statistics-page">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Personal archive</span>
-          <h2>Statistics</h2>
+          <span className="eyebrow">{t("stats.eyebrow")}</span>
+          <h2>{t("stats.title")}</h2>
         </div>
       </div>
 
       <div className="stat-grid">
         <article>
-          <span>Total events</span>
+          <span>{t("stats.totalEvents")}</span>
           <strong>{events.length}</strong>
         </article>
         <article>
-          <span>Events this year</span>
+          <span>{t("stats.eventsThisYear")}</span>
           <strong>{eventsThisYear}</strong>
         </article>
         <article>
-          <span>Unique artists</span>
+          <span>{t("stats.uniqueArtists")}</span>
           <strong>{Object.keys(artistCounts).length}</strong>
         </article>
         <article>
-          <span>Unique venues</span>
+          <span>{t("stats.uniqueVenues")}</span>
           <strong>{Object.keys(venueCounts).length}</strong>
         </article>
         <article>
-          <span>Most watched artist</span>
-          <strong>{topEntry(artistCounts)}</strong>
+          <span>{t("stats.mostWatchedArtist")}</span>
+          <strong>{topEntry(artistCounts, t("common.noData"))}</strong>
         </article>
         <article>
-          <span>Most visited venue</span>
-          <strong>{topEntry(venueCounts)}</strong>
+          <span>{t("stats.mostVisitedVenue")}</span>
+          <strong>{topEntry(venueCounts, t("common.noData"))}</strong>
         </article>
       </div>
 
       <section className="distribution-grid">
-        <DistributionList title="Events by year" items={yearCounts} />
-        <DistributionList title="Events by artist" items={artistCounts} />
-        <DistributionList title="Events by venue" items={venueCounts} />
-        <DistributionList title="Ticket type distribution" items={ticketTypeCounts} />
+        <DistributionList title={t("stats.eventsByYear")} items={yearCounts} noDataLabel={t("common.noData")} />
+        <DistributionList title={t("stats.eventsByArtist")} items={artistCounts} noDataLabel={t("common.noData")} />
+        <DistributionList title={t("stats.eventsByVenue")} items={venueCounts} noDataLabel={t("common.noData")} />
+        <DistributionList title={t("stats.ticketTypeDistribution")} items={ticketTypeCounts} noDataLabel={t("common.noData")} />
       </section>
 
       <section className="weather-ranking">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Open-Meteo archive</span>
-            <h2>Weather summary</h2>
+            <span className="eyebrow">{t("stats.weatherEyebrow")}</span>
+            <h2>{t("stats.weatherSummary")}</h2>
           </div>
           <Thermometer size={22} aria-hidden="true" />
         </div>
 
         <div className="weather-summary-cards">
           <article>
-            <span>Average temperature</span>
-            <strong>{averageTemperature === null ? "No data" : `${averageTemperature.toFixed(1)} deg C`}</strong>
+            <span>{t("stats.averageTemperature")}</span>
+            <strong>{averageTemperature === null ? t("common.noData") : `${averageTemperature.toFixed(1)} deg C`}</strong>
           </article>
           <article>
-            <span>Weather records</span>
+            <span>{t("stats.weatherRecords")}</span>
             <strong>{events.filter((event) => event.weather).length}</strong>
           </article>
         </div>
@@ -174,7 +177,7 @@ export function Statistics({ events, ticketApplications }: StatisticsProps) {
           </div>
         ) : (
           <div className="empty-state empty-state--compact">
-            <p>No weather data yet. Fetch weather from an event card first.</p>
+            <p>{t("stats.noWeatherDataYet")}</p>
           </div>
         )}
       </section>
@@ -182,38 +185,38 @@ export function Statistics({ events, ticketApplications }: StatisticsProps) {
       <section className="ticket-statistics">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Lottery management</span>
-            <h2>Ticket statistics</h2>
+            <span className="eyebrow">{t("stats.ticketEyebrow")}</span>
+            <h2>{t("stats.ticketStatistics")}</h2>
           </div>
           <ReceiptText size={22} aria-hidden="true" />
         </div>
         <div className="stat-grid">
           <article>
-            <span>Total applications</span>
+            <span>{t("stats.totalApplications")}</span>
             <strong>{ticketStats.totalApplications}</strong>
           </article>
           <article>
-            <span>Won count</span>
+            <span>{t("stats.wonCount")}</span>
             <strong>{ticketStats.wonCount}</strong>
           </article>
           <article>
-            <span>Lost count</span>
+            <span>{t("stats.lostCount")}</span>
             <strong>{ticketStats.lostCount}</strong>
           </article>
           <article>
-            <span>Win rate</span>
+            <span>{t("stats.winRate")}</span>
             <strong>{ticketStats.winRate === null ? "N/A" : `${ticketStats.winRate}%`}</strong>
           </article>
           <article>
-            <span>Total planned spending</span>
+            <span>{t("stats.totalPlannedSpending")}</span>
             <strong>{ticketStats.totalPlannedSpending.toLocaleString()} JPY</strong>
           </article>
           <article>
-            <span>Total paid amount</span>
+            <span>{t("stats.totalPaidAmount")}</span>
             <strong>{ticketStats.totalPaidAmount.toLocaleString()} JPY</strong>
           </article>
           <article>
-            <span>Average ticket price</span>
+            <span>{t("stats.averageTicketPrice")}</span>
             <strong>
               {ticketStats.averageTicketPrice === null
                 ? "N/A"
@@ -223,22 +226,24 @@ export function Statistics({ events, ticketApplications }: StatisticsProps) {
         </div>
         <section className="distribution-grid">
           <DistributionList
-            title="Applications by platform"
+            title={t("stats.applicationsByPlatform")}
             items={Object.fromEntries(
               Object.entries(ticketStats.byPlatform).map(([platform, count]) => [
-                platformLabels[platform as keyof typeof platformLabels] ?? platform,
+                t(`platform.${platform}`, { defaultValue: platform }),
                 count,
               ]),
             )}
+            noDataLabel={t("common.noData")}
           />
           <DistributionList
-            title="Applications by status"
+            title={t("stats.applicationsByStatus")}
             items={Object.fromEntries(
               Object.entries(ticketStats.byStatus).map(([status, count]) => [
-                statusLabels[status as keyof typeof statusLabels] ?? status,
+                t(`status.${status}`, { defaultValue: status }),
                 count,
               ]),
             )}
+            noDataLabel={t("common.noData")}
           />
         </section>
       </section>

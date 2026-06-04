@@ -1,5 +1,6 @@
 import { MapPin, X } from "lucide-react";
 import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import type { SeatInfo, Venue } from "../types/event";
 
 interface SeatPickerProps {
@@ -11,6 +12,8 @@ interface SeatPickerProps {
 const clampPercentage = (value: number) => Math.max(0, Math.min(100, value));
 
 export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
+  const { t } = useTranslation();
+
   if (!venue.supportedSeatMap || !venue.mapSvg) {
     return null;
   }
@@ -33,7 +36,7 @@ export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
     <div className="seat-picker">
       <div className="seat-picker__heading">
         <div>
-          <span className="eyebrow">Seat map</span>
+          <span className="eyebrow">{t("seat.map")}</span>
           <strong>{venue.name}</strong>
         </div>
         {hasMarker ? (
@@ -43,7 +46,7 @@ export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
             onClick={() => onChange({ ...seat, x: undefined, y: undefined })}
           >
             <X size={16} aria-hidden="true" />
-            Clear seat marker
+            {t("seat.clearMarker")}
           </button>
         ) : null}
       </div>
@@ -56,7 +59,7 @@ export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
         ) : null}
       </button>
       <p className="seat-picker__hint">
-        Tap the simplified map to save a percentage-based seat position.
+        {t("seat.hint")}
       </p>
     </div>
   );

@@ -1,12 +1,10 @@
 import { Calendar, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { TicketApplication } from "../types/ticket";
 import { formatDate } from "../utils/dateUtils";
 import {
   canCreateEventRecord,
-  formatTicketPrice,
   isPaymentOverdue,
-  platformLabels,
-  statusLabels,
 } from "../utils/ticketUtils";
 
 interface TicketApplicationCardProps {
@@ -24,6 +22,7 @@ export function TicketApplicationCard({
   onDelete,
   onCreateEventRecord,
 }: TicketApplicationCardProps) {
+  const { t } = useTranslation();
   const memoPreview =
     application.memo && application.memo.length > 100
       ? `${application.memo.slice(0, 100).trim()}...`
@@ -32,70 +31,75 @@ export function TicketApplicationCard({
   const ticketNotIssued = application.status === "paid";
   const overdue = isPaymentOverdue(application);
 
+  const priceLabel =
+    typeof application.price === "number"
+      ? `${((application.price ?? 0) * (application.quantity ?? 1)).toLocaleString()} JPY`
+      : t("tickets.priceNotSet");
+
   return (
     <article className="ticket-application-card">
       <div className="ticket-application-card__header">
         <div>
           <span className={`status-badge status-badge--${application.status}`}>
-            {statusLabels[application.status]}
+            {t(`status.${application.status}`)}
           </span>
           <h3>{application.eventTitle}</h3>
           <p>{application.artist}</p>
         </div>
-        <strong>{platformLabels[application.platform]}</strong>
+        <strong>{t(`platform.${application.platform}`)}</strong>
       </div>
 
       <dl className="ticket-application-card__details">
         <div>
-          <dt>Venue</dt>
-          <dd>{application.venueName || "No venue selected"}</dd>
+          <dt>{t("tickets.venue")}</dt>
+          <dd>{application.venueName || t("tickets.noVenue")}</dd>
         </div>
         <div>
-          <dt>Event date</dt>
+          <dt>{t("tickets.eventDate")}</dt>
           <dd>{application.eventDate ? formatDate(application.eventDate) : "-"}</dd>
         </div>
         <div>
-          <dt>Price</dt>
-          <dd>{formatTicketPrice(application)}</dd>
+          <dt>{t("tickets.price")}</dt>
+          <dd>{priceLabel}</dd>
         </div>
         <div>
-          <dt>Quantity</dt>
+          <dt>{t("tickets.quantity")}</dt>
           <dd>{application.quantity ?? 1}</dd>
         </div>
         <div>
-          <dt>Companion</dt>
-          <dd>{application.companionName || "Solo / No companion"}</dd>
+          <dt>{t("tickets.companion")}</dt>
+          <dd>{application.companionName || t("tickets.solo")}</dd>
         </div>
       </dl>
 
       <div className="important-dates">
         <Calendar size={16} aria-hidden="true" />
-        <span>{dateLine("Apply", application.applicationDate)}</span>
-        <span>{dateLine("Result", application.resultDate)}</span>
-        <span>{dateLine("Pay", application.paymentDeadline)}</span>
-        <span>{dateLine("Issue", application.issueDate)}</span>
+        <span>{dateLine(t("tickets.apply"), application.applicationDate)}</span>
+        <span>{dateLine(t("tickets.result"), application.resultDate)}</span>
+        <span>{dateLine(t("tickets.pay"), application.paymentDeadline)}</span>
+        <span>{dateLine(t("tickets.issue"), application.issueDate)}</span>
       </div>
 
-      {paymentPending ? <p className="ticket-warning">Payment pending</p> : null}
-      {ticketNotIssued ? <p className="ticket-warning">Ticket not issued yet</p> : null}
-      {overdue ? <p className="ticket-warning ticket-warning--overdue">Payment deadline is overdue</p> : null}
+      {paymentPending ? <p className="ticket-warning">{t("tickets.paymentPending")}</p> : null}
+      {ticketNotIssued ? <p className="ticket-warning">{t("tickets.ticketNotIssued")}</p> : null}
+      {overdue ? <p className="ticket-warning ticket-warning--overdue">{t("tickets.overdue")}</p> : null}
       {memoPreview ? <p className="ticket-application-card__memo">{memoPreview}</p> : null}
 
       <div className="ticket-application-card__actions">
         <button className="icon-button" type="button" onClick={() => onEdit(application)}>
           <Pencil size={16} aria-hidden="true" />
-          Edit
+          {t("common.edit")}
         </button>
         <button className="icon-button" type="button" onClick={() => onDelete(application.id)}>
           <Trash2 size={16} aria-hidden="true" />
-          Delete
+          {t("common.delete")}
         </button>
         {application.linkedEventId ? (
-          <span className="linked-event-badge">Event record already created</span>
+          <span className="linked-event-badge">{t("tickets.alreadyCreated")}</span>
         ) : canCreateEventRecord(application) ? (
           <button className="icon-button icon-button--weather" type="button" onClick={() => onCreateEventRecord(application)}>
             <PlusCircle size={16} aria-hidden="true" />
-            Create Event Record
+            {t("tickets.createEventRecord")}
           </button>
         ) : null}
       </div>

@@ -1,6 +1,7 @@
 import { Save, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
 import { SeatPicker } from "./SeatPicker";
 
@@ -50,6 +51,7 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
 };
 
 export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: EventFormProps) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
   const [imageError, setImageError] = useState("");
 
@@ -93,7 +95,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
     }
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setImageError("Image is too large. Please choose an image under 1.5MB.");
+      setImageError(t("eventForm.imageTooLarge"));
       event.target.value = "";
       return;
     }
@@ -107,7 +109,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
     };
 
     reader.onerror = () => {
-      setImageError("Unable to read this image. Please choose another file.");
+      setImageError(t("eventForm.imageReadError"));
     };
 
     reader.readAsDataURL(file);
@@ -141,40 +143,40 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
     <section className="form-panel" aria-labelledby="event-form-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">{editingEvent ? "Editing" : "New record"}</span>
-          <h2 id="event-form-title">{editingEvent ? "Edit Event" : "Add Event"}</h2>
+          <span className="eyebrow">{editingEvent ? t("eventForm.editing") : t("eventForm.newRecord")}</span>
+          <h2 id="event-form-title">{editingEvent ? t("eventForm.edit") : t("eventForm.add")}</h2>
         </div>
         {editingEvent ? (
           <button className="ghost-button" type="button" onClick={onCancelEditing}>
             <X size={16} aria-hidden="true" />
-            Cancel editing
+            {t("eventForm.cancelEditing")}
           </button>
         ) : null}
       </div>
 
       <form className="event-form" onSubmit={handleSubmit}>
         <label>
-          Event title
+          {t("eventForm.title")}
           <input
             required
             value={values.title}
             onChange={(event) => updateValue("title", event.target.value)}
-            placeholder="Final live, anniversary tour, fan meeting..."
+            placeholder={t("eventForm.titlePlaceholder")}
           />
         </label>
 
         <label>
-          Artist / performer
+          {t("eventForm.artist")}
           <input
             required
             value={values.artist}
             onChange={(event) => updateValue("artist", event.target.value)}
-            placeholder="Artist, unit, orchestra, cast..."
+            placeholder={t("eventForm.artistPlaceholder")}
           />
         </label>
 
         <label>
-          Date
+          {t("eventForm.date")}
           <input
             required
             type="date"
@@ -184,7 +186,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
         </label>
 
         <label>
-          Start time
+          {t("eventForm.startTime")}
           <input
             type="time"
             value={values.startTime}
@@ -193,7 +195,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
         </label>
 
         <label>
-          Venue
+          {t("eventForm.venue")}
           <select
             required
             value={values.venueId}
@@ -208,39 +210,39 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
         </label>
 
         <label>
-          Ticket type
+          {t("eventForm.ticketType")}
           <input
             value={values.ticketType}
             onChange={(event) => updateValue("ticketType", event.target.value)}
-            placeholder="FC advance, reserved seat, general..."
+            placeholder={t("eventForm.ticketTypePlaceholder")}
           />
         </label>
 
         <div className="venue-readout">
-          <span>Venue details</span>
-          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : "Select a venue"}</strong>
+          <span>{t("eventForm.venueDetails")}</span>
+          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : t("eventForm.selectVenue")}</strong>
         </div>
 
         <fieldset className="seat-fieldset">
-          <legend>Seat information</legend>
+          <legend>{t("eventForm.seatInfo")}</legend>
           <label>
-            Gate
+            {t("eventForm.gate")}
             <input value={values.seat.gate} onChange={(event) => updateSeat("gate", event.target.value)} />
           </label>
           <label>
-            Level
+            {t("eventForm.level")}
             <input value={values.seat.level} onChange={(event) => updateSeat("level", event.target.value)} />
           </label>
           <label>
-            Block
+            {t("eventForm.block")}
             <input value={values.seat.block} onChange={(event) => updateSeat("block", event.target.value)} />
           </label>
           <label>
-            Row
+            {t("eventForm.row")}
             <input value={values.seat.row} onChange={(event) => updateSeat("row", event.target.value)} />
           </label>
           <label>
-            Seat number
+            {t("eventForm.seatNumber")}
             <input value={values.seat.number} onChange={(event) => updateSeat("number", event.target.value)} />
           </label>
         </fieldset>
@@ -251,38 +253,38 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
 
         <div className="image-upload">
           <label>
-            Event image / cover image
+            {t("eventForm.image")}
             <input accept="image/*" type="file" onChange={handleImageChange} />
           </label>
           {imageError ? <p className="form-error">{imageError}</p> : null}
           {values.imageUrl ? (
             <div className="image-preview-row">
-              <img src={values.imageUrl} alt="Event cover preview" />
+              <img src={values.imageUrl} alt={t("eventForm.imagePreviewAlt")} />
               <button
                 className="ghost-button"
                 type="button"
                 onClick={() => updateValue("imageUrl", "")}
               >
                 <X size={16} aria-hidden="true" />
-                Remove image
+                {t("eventForm.removeImage")}
               </button>
             </div>
           ) : null}
         </div>
 
         <label className="event-form__wide">
-          Notes
+          {t("eventForm.notes")}
           <textarea
             rows={5}
             value={values.notes}
             onChange={(event) => updateValue("notes", event.target.value)}
-            placeholder="Memories, setlist notes, merch, travel, friends..."
+            placeholder={t("eventForm.notesPlaceholder")}
           />
         </label>
 
         <button className="primary-button event-form__submit" type="submit">
           <Save size={18} aria-hidden="true" />
-          Save event
+          {editingEvent ? t("eventForm.update") : t("eventForm.save")}
         </button>
       </form>
     </section>

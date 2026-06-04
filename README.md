@@ -23,6 +23,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Enhanced live ticket stub UI with accent bar, perforated edge, barcode decoration, category tag, and cover image support
 - Theme switching with Sakura, Ocean, Night, and Classic themes
 - Theme persistence in `localStorage` with the key `stagelog-theme`
+- English / Chinese in-app UI language switching with persistence in `localStorage` using the key `stagelog-language`
 - Event image upload using browser FileReader and base64 data URLs
 - 1.5MB image size limit to protect localStorage capacity
 - Enhanced statistics with event distributions, ticket type distribution, average temperature, and weather summary cards
@@ -75,6 +76,7 @@ npm run build
 
 - `stagelog-events`
 - `stagelog-theme`
+- `stagelog-language`
 - `stagelog-ticket-applications`
 
 ## Notes
@@ -115,6 +117,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - 增强票根 UI：彩色竖条、虚线票根边缘、条形码装饰、分类标签和封面图片
 - 主题切换：Sakura、Ocean、Night、Classic
 - 主题保存到 `localStorage`，key 为 `stagelog-theme`
+- 应用内 English / 中文界面切换，并通过 `stagelog-language` 保存选择
 - EventForm 支持上传活动图片，使用 FileReader 转 base64 data URL
 - 图片大小限制为 1.5MB，避免占用过多 localStorage
 - 增强统计：年份、艺人、会场、票种分布、平均温度和天气摘要
@@ -167,6 +170,7 @@ npm run build
 
 - `stagelog-events`
 - `stagelog-theme`
+- `stagelog-language`
 - `stagelog-ticket-applications`
 
 ## 说明

@@ -1,9 +1,10 @@
 import { Save, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import type { Venue } from "../types/event";
 import type { TicketApplication, TicketApplicationFormValues } from "../types/ticket";
-import { platformLabels, platformOptions, statusLabels, statusOptions } from "../utils/ticketUtils";
+import { platformOptions, statusOptions } from "../utils/ticketUtils";
 
 interface TicketApplicationFormProps {
   venues: Venue[];
@@ -39,6 +40,7 @@ export function TicketApplicationForm({
   onSave,
   onCancel,
 }: TicketApplicationFormProps) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<TicketApplicationFormValues>(() =>
     createInitialValues(editingApplication),
   );
@@ -60,15 +62,15 @@ export function TicketApplicationForm({
 
   const validate = () => {
     if (!values.eventTitle.trim() || !values.artist.trim() || !values.platform || !values.status) {
-      return "Event title, artist, platform, and status are required.";
+      return t("tickets.requiredError");
     }
 
     if (values.price && Number(values.price) < 0) {
-      return "Price must be a non-negative number.";
+      return t("tickets.priceError");
     }
 
     if (values.quantity && (!Number.isInteger(Number(values.quantity)) || Number(values.quantity) <= 0)) {
-      return "Quantity must be a positive integer.";
+      return t("tickets.quantityError");
     }
 
     return "";
@@ -102,30 +104,30 @@ export function TicketApplicationForm({
     <section className="form-panel ticket-application-form" aria-labelledby="ticket-form-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">{editingApplication ? "Editing lottery" : "Ticket lottery"}</span>
-          <h2 id="ticket-form-title">{editingApplication ? "Edit Application" : "Add Application"}</h2>
+          <span className="eyebrow">{editingApplication ? t("tickets.formEyebrowEdit") : t("tickets.formEyebrowNew")}</span>
+          <h2 id="ticket-form-title">{editingApplication ? t("tickets.editApplication") : t("tickets.addApplication")}</h2>
         </div>
         {editingApplication ? (
           <button className="ghost-button" type="button" onClick={onCancel}>
             <X size={16} aria-hidden="true" />
-            Cancel
+            {t("tickets.cancel")}
           </button>
         ) : null}
       </div>
 
       <form className="event-form" onSubmit={handleSubmit}>
         <label>
-          Event title
+          {t("tickets.eventTitle")}
           <input required value={values.eventTitle} onChange={(event) => updateValue("eventTitle", event.target.value)} />
         </label>
         <label>
-          Artist
+          {t("tickets.artist")}
           <input required value={values.artist} onChange={(event) => updateValue("artist", event.target.value)} />
         </label>
         <label>
-          Venue
+          {t("tickets.venue")}
           <select value={values.venueId} onChange={(event) => updateValue("venueId", event.target.value)}>
-            <option value="">No venue selected</option>
+            <option value="">{t("tickets.noVenue")}</option>
             {venues.map((venue) => (
               <option key={venue.id} value={venue.id}>
                 {venue.name}
@@ -134,77 +136,77 @@ export function TicketApplicationForm({
           </select>
         </label>
         <label>
-          Event date
+          {t("tickets.eventDate")}
           <input type="date" value={values.eventDate} onChange={(event) => updateValue("eventDate", event.target.value)} />
         </label>
         <label>
-          Platform
+          {t("tickets.platform")}
           <select required value={values.platform} onChange={(event) => updateValue("platform", event.target.value)}>
             {platformOptions.map((platform) => (
               <option key={platform} value={platform}>
-                {platformLabels[platform]}
+                {t(`platform.${platform}`)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          Status
+          {t("tickets.status")}
           <select required value={values.status} onChange={(event) => updateValue("status", event.target.value)}>
             {statusOptions.map((status) => (
               <option key={status} value={status}>
-                {statusLabels[status]}
+                {t(`status.${status}`)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          Application date
+          {t("tickets.applicationDate")}
           <input type="date" value={values.applicationDate} onChange={(event) => updateValue("applicationDate", event.target.value)} />
         </label>
         <label>
-          Result date
+          {t("tickets.resultDate")}
           <input type="date" value={values.resultDate} onChange={(event) => updateValue("resultDate", event.target.value)} />
         </label>
         <label>
-          Payment deadline
+          {t("tickets.paymentDeadline")}
           <input type="date" value={values.paymentDeadline} onChange={(event) => updateValue("paymentDeadline", event.target.value)} />
         </label>
         <label>
-          Issue date
+          {t("tickets.issueDate")}
           <input type="date" value={values.issueDate} onChange={(event) => updateValue("issueDate", event.target.value)} />
         </label>
         <label>
-          Ticket type
+          {t("tickets.ticketType")}
           <input value={values.ticketType} onChange={(event) => updateValue("ticketType", event.target.value)} />
         </label>
         <label>
-          Price
+          {t("tickets.price")}
           <input min="0" type="number" value={values.price} onChange={(event) => updateValue("price", event.target.value)} />
         </label>
         <label>
-          Quantity
+          {t("tickets.quantity")}
           <input min="1" step="1" type="number" value={values.quantity} onChange={(event) => updateValue("quantity", event.target.value)} />
         </label>
         <label>
-          Companion name
+          {t("tickets.companionName")}
           <input value={values.companionName} onChange={(event) => updateValue("companionName", event.target.value)} />
         </label>
         <label>
-          Companion contact
+          {t("tickets.companionContact")}
           <input value={values.companionContact} onChange={(event) => updateValue("companionContact", event.target.value)} />
         </label>
         <div className="venue-readout">
-          <span>Venue details</span>
-          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : "Optional"}</strong>
+          <span>{t("eventForm.venueDetails")}</span>
+          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : t("common.optional")}</strong>
         </div>
         <label className="event-form__wide">
-          Memo
+          {t("tickets.memo")}
           <textarea rows={4} value={values.memo} onChange={(event) => updateValue("memo", event.target.value)} />
         </label>
         {error ? <p className="form-error event-form__wide">{error}</p> : null}
         <button className="primary-button event-form__submit" type="submit">
           <Save size={18} aria-hidden="true" />
-          Save application
+          {t("tickets.save")}
         </button>
       </form>
     </section>

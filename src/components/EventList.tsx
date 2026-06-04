@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getVenueById } from "../data/venues";
 import type { EventRecord } from "../types/event";
 import { TicketCard } from "./TicketCard";
@@ -26,20 +27,22 @@ export function EventList({
   onLoadSampleData,
   onViewVenueMap,
 }: EventListProps) {
+  const { t } = useTranslation();
+
   if (events.length === 0) {
     return (
       <section className="empty-state">
         <Sparkles size={28} aria-hidden="true" />
-        <h2>{isCompletelyEmpty ? "Start your live archive" : "No records match these filters"}</h2>
+        <h2>{isCompletelyEmpty ? t("empty.startArchive") : t("empty.noMatchingEvents")}</h2>
         <p>
           {isCompletelyEmpty
-            ? "Add your first event or load sample data to explore the app."
-            : "Try clearing filters or searching with a broader keyword."}
+            ? t("empty.startArchiveDescription")
+            : t("empty.noMatchingDescription")}
         </p>
         {isCompletelyEmpty ? (
           <button className="primary-button" type="button" onClick={onLoadSampleData}>
             <Sparkles size={17} aria-hidden="true" />
-            Load sample data
+            {t("empty.loadSample")}
           </button>
         ) : null}
       </section>
@@ -47,7 +50,7 @@ export function EventList({
   }
 
   return (
-    <section className="ticket-grid" aria-label="Event records">
+    <section className="ticket-grid" aria-label={t("events.savedRecords")}>
       {events.map((event) => (
         <TicketCard
           event={event}

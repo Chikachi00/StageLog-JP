@@ -1,4 +1,5 @@
 import { RotateCcw, Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { EventFilters } from "../types/event";
 
 interface FilterBarProps {
@@ -11,25 +12,26 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ filters, years, artists, venues, onChange, onClear }: FilterBarProps) {
+  const { t } = useTranslation();
   const updateFilter = (field: keyof EventFilters, value: string) => {
     onChange({ ...filters, [field]: value });
   };
 
   return (
-    <section className="filter-bar" aria-label="Event filters">
+    <section className="filter-bar" aria-label={t("filters.aria")}>
       <label className="search-field">
         <Search size={17} aria-hidden="true" />
         <input
           value={filters.search}
           onChange={(event) => updateFilter("search", event.target.value)}
-          placeholder="Search title, artist, venue..."
+          placeholder={t("filters.searchPlaceholder")}
         />
       </label>
 
       <label>
-        Year
+        {t("filters.year")}
         <select value={filters.year} onChange={(event) => updateFilter("year", event.target.value)}>
-          <option value="all">All years</option>
+          <option value="all">{t("filters.allYears")}</option>
           {years.map((year) => (
             <option key={year} value={year}>
               {year}
@@ -39,9 +41,9 @@ export function FilterBar({ filters, years, artists, venues, onChange, onClear }
       </label>
 
       <label>
-        Artist
+        {t("filters.artist")}
         <select value={filters.artist} onChange={(event) => updateFilter("artist", event.target.value)}>
-          <option value="all">All artists</option>
+          <option value="all">{t("filters.allArtists")}</option>
           {artists.map((artist) => (
             <option key={artist} value={artist}>
               {artist}
@@ -51,9 +53,9 @@ export function FilterBar({ filters, years, artists, venues, onChange, onClear }
       </label>
 
       <label>
-        Venue
+        {t("filters.venue")}
         <select value={filters.venue} onChange={(event) => updateFilter("venue", event.target.value)}>
-          <option value="all">All venues</option>
+          <option value="all">{t("filters.allVenues")}</option>
           {venues.map((venue) => (
             <option key={venue} value={venue}>
               {venue}
@@ -64,7 +66,7 @@ export function FilterBar({ filters, years, artists, venues, onChange, onClear }
 
       <button className="ghost-button" type="button" onClick={onClear}>
         <RotateCcw size={16} aria-hidden="true" />
-        Clear filters
+        {t("filters.clear")}
       </button>
     </section>
   );

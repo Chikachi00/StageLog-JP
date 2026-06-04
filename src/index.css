@@ -673,14 +673,22 @@ textarea:focus {
   color: var(--ink);
 }
 
-.theme-switcher {
+.header-controls {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+}
+
+.theme-switcher,
+.language-switcher {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   justify-content: flex-end;
 }
 
-.theme-switcher button {
+.theme-switcher button,
+.language-switcher button {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -694,7 +702,8 @@ textarea:focus {
   font-weight: 800;
 }
 
-.theme-switcher button.is-active {
+.theme-switcher button.is-active,
+.language-switcher button.is-active {
   border-color: transparent;
   background: var(--accent);
   color: #fff;
@@ -1286,11 +1295,17 @@ textarea:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .theme-switcher {
+  .header-controls {
+    justify-items: stretch;
+  }
+
+  .theme-switcher,
+  .language-switcher {
     justify-content: stretch;
   }
 
-  .theme-switcher button {
+  .theme-switcher button,
+  .language-switcher button {
     flex: 1 1 7rem;
   }
 }

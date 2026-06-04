@@ -1,5 +1,6 @@
 import { MapPinned, Pencil } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { venues } from "../data/venues";
 import type { EventRecord } from "../types/event";
 import { formatDate, sortByDateDesc } from "../utils/dateUtils";
@@ -12,6 +13,7 @@ interface VenuesPageProps {
 }
 
 export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps) {
+  const { t } = useTranslation();
   const supportedVenues = venues.filter((venue) => venue.supportedSeatMap);
   const [activeVenueId, setActiveVenueId] = useState(selectedVenueId ?? supportedVenues[0]?.id ?? "");
 
@@ -34,8 +36,8 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
     return (
       <section className="empty-state">
         <MapPinned size={28} aria-hidden="true" />
-        <h2>No venue maps yet</h2>
-        <p>Supported venue maps will appear here.</p>
+        <h2>{t("venues.emptyTitle")}</h2>
+        <p>{t("venues.emptyDescription")}</p>
       </section>
     );
   }
@@ -44,8 +46,8 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
     <section className="venues-page">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Seat memory map</span>
-          <h2>Venues</h2>
+          <span className="eyebrow">{t("venues.eyebrow")}</span>
+          <h2>{t("venues.title")}</h2>
         </div>
       </div>
 
@@ -73,7 +75,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
             <div>
               <h3>{activeVenue.name}</h3>
               <p>
-                {venueEvents.length} event records / {markedEvents.length} seat markers
+                {t("venues.eventRecords", { count: venueEvents.length })} / {t("venues.seatMarkers", { count: markedEvents.length })}
               </p>
             </div>
           </div>
@@ -81,7 +83,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
         </section>
 
         <section className="venue-history">
-          <h3>Venue history</h3>
+          <h3>{t("venues.history")}</h3>
           {venueEvents.length > 0 ? (
             <div className="venue-history-list">
               {venueEvents.map((event, index) => (
@@ -96,20 +98,20 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                     </p>
                     <small>
                       {typeof event.seat.x === "number" && typeof event.seat.y === "number"
-                        ? `Marker ${event.seat.x.toFixed(1)} / ${event.seat.y.toFixed(1)}`
-                        : "No seat marker"}
+                        ? t("seat.marker", { x: event.seat.x.toFixed(1), y: event.seat.y.toFixed(1) })
+                        : t("seat.noMarker")}
                     </small>
                   </div>
                   <button className="icon-button" type="button" onClick={() => onEdit(event)}>
                     <Pencil size={16} aria-hidden="true" />
-                    Edit
+                    {t("common.edit")}
                   </button>
                 </article>
               ))}
             </div>
           ) : (
             <div className="empty-state empty-state--compact">
-              <p>No events saved for this venue yet.</p>
+              <p>{t("venues.noEvents")}</p>
             </div>
           )}
         </section>

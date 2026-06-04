@@ -1,7 +1,8 @@
 import { CalendarDays, Pencil } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
 import { formatDate, getEventYear, sortByDateDesc } from "../utils/dateUtils";
-import { weatherCodeToText } from "../utils/weatherUtils";
+import { weatherCodeToKey } from "../utils/weatherUtils";
 
 interface TimelineProps {
   events: EventRecord[];
@@ -9,6 +10,7 @@ interface TimelineProps {
 }
 
 export function Timeline({ events, onEdit }: TimelineProps) {
+  const { t } = useTranslation();
   const groupedEvents = sortByDateDesc(events).reduce<Record<string, EventRecord[]>>((result, event) => {
     const year = getEventYear(event.date);
     result[year] = [...(result[year] ?? []), event];
@@ -20,8 +22,8 @@ export function Timeline({ events, onEdit }: TimelineProps) {
     return (
       <section className="empty-state">
         <CalendarDays size={28} aria-hidden="true" />
-        <h2>No timeline yet</h2>
-        <p>Add events or load sample data to build your live history.</p>
+        <h2>{t("timeline.emptyTitle")}</h2>
+        <p>{t("timeline.emptyDescription")}</p>
       </section>
     );
   }
@@ -30,8 +32,8 @@ export function Timeline({ events, onEdit }: TimelineProps) {
     <section className="timeline-page">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Chronological archive</span>
-          <h2>Timeline</h2>
+          <span className="eyebrow">{t("timeline.eyebrow")}</span>
+          <h2>{t("timeline.title")}</h2>
         </div>
       </div>
 
@@ -49,14 +51,14 @@ export function Timeline({ events, onEdit }: TimelineProps) {
                       {event.artist} - {event.venueName}
                     </p>
                     {event.weather ? (
-                      <span>{weatherCodeToText(event.weather.weatherCode)} / {event.weather.temperature.toFixed(1)} deg C</span>
+                      <span>{t(weatherCodeToKey(event.weather.weatherCode))} / {event.weather.temperature.toFixed(1)} deg C</span>
                     ) : (
-                      <span>No weather data</span>
+                      <span>{t("common.noWeatherData")}</span>
                     )}
                   </div>
                   <button className="icon-button" type="button" onClick={() => onEdit(event)}>
                     <Pencil size={16} aria-hidden="true" />
-                    Edit
+                    {t("common.edit")}
                   </button>
                 </article>
               ))}

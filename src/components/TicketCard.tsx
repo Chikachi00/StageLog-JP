@@ -1,7 +1,8 @@
 import { CloudSun, Image, MapPinned, Pencil, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
 import { formatDateTime } from "../utils/dateUtils";
-import { formatWeatherSummary } from "../utils/weatherUtils";
+import { weatherCodeToKey } from "../utils/weatherUtils";
 import { BarcodeDecoration } from "./BarcodeDecoration";
 
 interface TicketCardProps {
@@ -16,6 +17,7 @@ interface TicketCardProps {
 }
 
 const compactSeat = (event: EventRecord) => {
+  // Kept for fallback in places where translation is not available.
   const parts = [
     event.seat.gate ? `Gate ${event.seat.gate}` : "",
     event.seat.level,
@@ -37,19 +39,31 @@ export function TicketCard({
   onFetchWeather,
   onViewVenueMap,
 }: TicketCardProps) {
+  const { t } = useTranslation();
   const notesPreview =
     event.notes.length > 110 ? `${event.notes.slice(0, 110).trim()}...` : event.notes;
+  const seatParts = [
+    event.seat.gate ? t("seat.gatePrefix", { value: event.seat.gate }) : "",
+    event.seat.level,
+    event.seat.block ? t("seat.blockPrefix", { value: event.seat.block }) : "",
+    event.seat.row ? t("seat.rowPrefix", { value: event.seat.row }) : "",
+    event.seat.number ? t("seat.seatPrefix", { value: event.seat.number }) : "",
+  ].filter(Boolean);
+  const seatLabel = seatParts.length > 0 ? seatParts.join(" / ") : t("seat.notRecorded");
+  const weatherSummary = event.weather
+    ? `${event.weather.temperature.toFixed(1)}°C · ${t(weatherCodeToKey(event.weather.weatherCode))} ${event.weather.precipitation.toFixed(1)}mm · ${t("weather.wind")} ${event.weather.windSpeed.toFixed(1)}km/h`
+    : "";
 
   return (
     <article className="ticket-card">
       <div className="ticket-card__accent" aria-hidden="true" />
       <div className="ticket-card__main">
         <div className="ticket-card__topline">
-          <span className="ticket-card__category">{event.ticketType || "Live archive"}</span>
+          <span className="ticket-card__category">{event.ticketType || t("ticketCard.liveArchive")}</span>
           <span>{formatDateTime(event.date, event.startTime)}</span>
         </div>
         {event.imageUrl ? (
-          <img className="ticket-card__cover" src={event.imageUrl} alt={`${event.title} cover`} />
+          <img className="ticket-card__cover" src={event.imageUrl} alt={t("ticketCard.coverAlt", { title: event.title })} />
         ) : (
           <div className="ticket-card__cover ticket-card__cover--empty" aria-hidden="true">
             <Image size={22} />
@@ -60,32 +74,32 @@ export function TicketCard({
 
         <div className="ticket-card__details">
           <div>
-            <span>Venue</span>
+            <span>{t("ticketCard.venue")}</span>
             <strong>{event.venueName}</strong>
             <small>
               {event.city}, {event.country}
             </small>
           </div>
           <div>
-            <span>Seat</span>
-            <strong>{compactSeat(event)}</strong>
+            <span>{t("ticketCard.seat")}</span>
+            <strong>{seatLabel || compactSeat(event)}</strong>
           </div>
         </div>
 
         {event.weather ? (
-          <p className="weather-pill">{formatWeatherSummary(event.weather)}</p>
+          <p className="weather-pill">{weatherSummary}</p>
         ) : (
-          <p className="weather-pill weather-pill--empty">No weather data yet</p>
+          <p className="weather-pill weather-pill--empty">{t("ticketCard.noWeather")}</p>
         )}
 
         {notesPreview ? <p className="ticket-card__notes">{notesPreview}</p> : null}
         {hasSeatMap && typeof event.seat.x === "number" && typeof event.seat.y === "number" ? (
           <div className="seat-saved-pill">
             <MapPinned size={16} aria-hidden="true" />
-            <span>Seat position saved</span>
+            <span>{t("seat.saved")}</span>
             {onViewVenueMap ? (
               <button type="button" onClick={() => onViewVenueMap(event.venueId)}>
-                View on map
+                {t("seat.viewOnMap")}
               </button>
             ) : null}
           </div>
@@ -98,11 +112,11 @@ export function TicketCard({
         <div className="ticket-card__actions">
           <button className="icon-button" type="button" onClick={() => onEdit(event)}>
             <Pencil size={16} aria-hidden="true" />
-            Edit
+            {t("common.edit")}
           </button>
           <button className="icon-button" type="button" onClick={() => onDelete(event.id)}>
             <Trash2 size={16} aria-hidden="true" />
-            Delete
+            {t("common.delete")}
           </button>
           <button
             className="icon-button icon-button--weather"
@@ -111,7 +125,7 @@ export function TicketCard({
             onClick={() => onFetchWeather(event)}
           >
             <CloudSun size={16} aria-hidden="true" />
-            {isFetchingWeather ? "Fetching..." : "Fetch Weather"}
+            {isFetchingWeather ? t("ticketCard.fetching") : t("ticketCard.fetchWeather")}
           </button>
         </div>
       </div>

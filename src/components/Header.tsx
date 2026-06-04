@@ -1,6 +1,8 @@
 import { BarChart3, CalendarDays, MapPinned, Plus, ReceiptText, Ticket } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { AppTheme } from "../types/theme";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export type AppView = "events" | "timeline" | "venues" | "statistics" | "tickets" | "add";
@@ -13,13 +15,13 @@ interface HeaderProps {
   onThemeChange: (theme: AppTheme) => void;
 }
 
-const navItems: Array<{ view: AppView; label: string; icon: LucideIcon }> = [
-  { view: "events", label: "Events", icon: Ticket },
-  { view: "timeline", label: "Timeline", icon: CalendarDays },
-  { view: "venues", label: "Venues", icon: MapPinned },
-  { view: "statistics", label: "Statistics", icon: BarChart3 },
-  { view: "tickets", label: "Tickets", icon: ReceiptText },
-  { view: "add", label: "Add Event", icon: Plus },
+const navItems: Array<{ view: AppView; labelKey: string; icon: LucideIcon }> = [
+  { view: "events", labelKey: "nav.events", icon: Ticket },
+  { view: "timeline", labelKey: "nav.timeline", icon: CalendarDays },
+  { view: "venues", labelKey: "nav.venues", icon: MapPinned },
+  { view: "statistics", labelKey: "nav.statistics", icon: BarChart3 },
+  { view: "tickets", labelKey: "nav.tickets", icon: ReceiptText },
+  { view: "add", labelKey: "nav.add", icon: Plus },
 ];
 
 export function Header({
@@ -29,13 +31,15 @@ export function Header({
   onNavigate,
   onThemeChange,
 }: HeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <header className="site-header">
       <div className="site-header__brand">
         <span className="brand-mark">SL</span>
         <div>
           <h1>StageLog JP</h1>
-          <p>{totalEvents} saved live records</p>
+          <p>{t("app.subtitle", { count: totalEvents })}</p>
         </div>
       </div>
       <nav className="site-nav" aria-label="Primary navigation">
@@ -50,12 +54,15 @@ export function Header({
               onClick={() => onNavigate(item.view)}
             >
               <Icon size={17} aria-hidden="true" />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           );
         })}
       </nav>
-      <ThemeSwitcher theme={theme} onThemeChange={onThemeChange} />
+      <div className="header-controls">
+        <ThemeSwitcher theme={theme} onThemeChange={onThemeChange} />
+        <LanguageSwitcher />
+      </div>
     </header>
   );
 }

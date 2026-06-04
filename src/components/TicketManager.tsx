@@ -1,12 +1,13 @@
 import { Search, TicketCheck } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Venue } from "../types/event";
 import type {
   TicketApplication,
   TicketApplicationFilters,
   TicketApplicationFormValues,
 } from "../types/ticket";
-import { platformLabels, platformOptions, statusLabels, statusOptions } from "../utils/ticketUtils";
+import { platformOptions, statusOptions } from "../utils/ticketUtils";
 import { TicketApplicationCard } from "./TicketApplicationCard";
 import { TicketApplicationForm } from "./TicketApplicationForm";
 
@@ -37,6 +38,7 @@ export function TicketManager({
   onDelete,
   onCreateEventRecord,
 }: TicketManagerProps) {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<TicketApplicationFilters>(defaultFilters);
   const filteredApplications = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -68,8 +70,8 @@ export function TicketManager({
 
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Lottery board</span>
-          <h2>Ticket Manager</h2>
+          <span className="eyebrow">{t("tickets.boardEyebrow")}</span>
+          <h2>{t("tickets.manager")}</h2>
         </div>
       </div>
 
@@ -79,7 +81,7 @@ export function TicketManager({
           type="button"
           onClick={() => setFilters((current) => ({ ...current, status: "all" }))}
         >
-          All
+          {t("common.all")}
         </button>
         {statusOptions.map((status) => (
           <button
@@ -88,30 +90,30 @@ export function TicketManager({
             type="button"
             onClick={() => setFilters((current) => ({ ...current, status }))}
           >
-            {statusLabels[status]}
+            {t(`status.${status}`)}
           </button>
         ))}
       </div>
 
-      <section className="filter-bar ticket-filter-bar" aria-label="Ticket application filters">
+      <section className="filter-bar ticket-filter-bar" aria-label={t("tickets.manager")}>
         <label className="search-field">
           <Search size={17} aria-hidden="true" />
           <input
             value={filters.search}
             onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-            placeholder="Search event, artist, companion..."
+            placeholder={t("tickets.searchPlaceholder")}
           />
         </label>
         <label>
-          Platform
+          {t("tickets.platform")}
           <select
             value={filters.platform}
             onChange={(event) => setFilters((current) => ({ ...current, platform: event.target.value as TicketApplicationFilters["platform"] }))}
           >
-            <option value="all">All platforms</option>
+            <option value="all">{t("tickets.allPlatforms")}</option>
             {platformOptions.map((platform) => (
               <option key={platform} value={platform}>
-                {platformLabels[platform]}
+                {t(`platform.${platform}`)}
               </option>
             ))}
           </select>
@@ -119,7 +121,7 @@ export function TicketManager({
       </section>
 
       {filteredApplications.length > 0 ? (
-        <section className="ticket-application-grid" aria-label="Ticket applications">
+        <section className="ticket-application-grid" aria-label={t("tickets.manager")}>
           {filteredApplications.map((application) => (
             <TicketApplicationCard
               application={application}
@@ -133,8 +135,8 @@ export function TicketManager({
       ) : (
         <section className="empty-state">
           <TicketCheck size={28} aria-hidden="true" />
-          <h2>No ticket applications</h2>
-          <p>Add a lottery record or adjust the filters.</p>
+          <h2>{t("tickets.noApplications")}</h2>
+          <p>{t("tickets.noApplicationsDescription")}</p>
         </section>
       )}
     </section>

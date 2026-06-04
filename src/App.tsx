@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { EventForm } from "./components/EventForm";
 import { EventList } from "./components/EventList";
 import { FilterBar } from "./components/FilterBar";
@@ -107,6 +108,7 @@ const getUniqueSorted = (values: string[]) =>
   Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
 function App() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<EventRecord[]>(() => sortByDateDesc(getEvents()));
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
     getTicketApplications(),
@@ -176,17 +178,17 @@ function App() {
 
       if (editingEvent) {
         updateEvent(record);
-        setNotice("Event updated.");
+        setNotice(t("notice.eventUpdated"));
       } else {
         addEvent(record);
-        setNotice("Event saved.");
+        setNotice(t("notice.eventSaved"));
       }
 
       setEditingEvent(null);
       refreshEvents();
       setActiveView("events");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to save event.");
+      setNotice(error instanceof Error ? error.message : t("notice.eventSaveFailed"));
     }
   };
 
@@ -199,16 +201,16 @@ function App() {
 
       if (currentEditingApplication) {
         updateTicketApplication(application);
-        setNotice("Ticket application updated.");
+        setNotice(t("notice.ticketUpdated"));
       } else {
         addTicketApplication(application);
-        setNotice("Ticket application saved.");
+        setNotice(t("notice.ticketSaved"));
       }
 
       setEditingApplication(null);
       refreshTicketApplications();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to save ticket application.");
+      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
     }
   };
 
@@ -220,7 +222,9 @@ function App() {
 
   const handleDelete = (id: string) => {
     const event = events.find((item) => item.id === id);
-    const confirmed = window.confirm(`Delete "${event?.title ?? "this event"}"?`);
+    const confirmed = window.confirm(
+      t("notice.deleteEventConfirm", { title: event?.title ?? t("notice.thisEvent") }),
+    );
 
     if (!confirmed) {
       return;
@@ -233,7 +237,35 @@ function App() {
       return next;
     });
     refreshEvents();
-    setNotice("Event deleted.");
+    setNotice(t("notice.eventDeleted"));
+  };
+
+  const translateWeatherError = (message: string) => {
+    if (message === "Weather data is only available after the event date.") {
+      return t("weather.unavailableFuture");
+    }
+
+    if (message === "Venue is required to fetch weather.") {
+      return t("weather.venueRequired");
+    }
+
+    if (message === "Unable to fetch weather right now. Please check your network connection.") {
+      return t("weather.networkError");
+    }
+
+    if (message === "Weather service returned an unreadable response.") {
+      return t("weather.unreadable");
+    }
+
+    if (message === "No hourly weather data was returned for this event.") {
+      return t("weather.noHourly");
+    }
+
+    if (message === "No temperature data was returned for the selected event time.") {
+      return t("weather.noTemperature");
+    }
+
+    return message;
   };
 
   const handleFetchWeather = async (event: EventRecord) => {
@@ -250,9 +282,11 @@ function App() {
         updatedAt: new Date().toISOString(),
       });
       refreshEvents();
-      setNotice(`Weather saved for ${event.title}.`);
+      setNotice(t("notice.weatherSaved", { title: event.title }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to fetch weather.";
+      const message = translateWeatherError(
+        error instanceof Error ? error.message : t("weather.networkError"),
+      );
       setWeatherErrors((current) => ({ ...current, [event.id]: message }));
       setNotice(message);
     } finally {
@@ -265,7 +299,7 @@ function App() {
     saveEvents(sampleEvents);
     setEvents(sortByDateDesc(sampleEvents));
     setFilters(defaultFilters);
-    setNotice("Sample data loaded.");
+    setNotice(t("notice.sampleLoaded"));
   };
 
   const handleViewVenueMap = (venueId: string) => {
@@ -276,7 +310,11 @@ function App() {
 
   const handleDeleteTicketApplication = (id: string) => {
     const application = ticketApplications.find((item) => item.id === id);
-    const confirmed = window.confirm(`Delete "${application?.eventTitle ?? "this ticket application"}"?`);
+    const confirmed = window.confirm(
+      t("notice.deleteTicketConfirm", {
+        title: application?.eventTitle ?? t("notice.thisTicket"),
+      }),
+    );
 
     if (!confirmed) {
       return;
@@ -284,19 +322,19 @@ function App() {
 
     deleteTicketApplication(id);
     refreshTicketApplications();
-    setNotice("Ticket application deleted.");
+    setNotice(t("notice.ticketDeleted"));
   };
 
   const handleCreateEventFromApplication = (application: TicketApplication) => {
     if (application.linkedEventId) {
-      setNotice("Event record already created.");
+      setNotice(t("notice.alreadyCreated"));
       return;
     }
 
     const venue = application.venueId ? getVenueById(application.venueId) : undefined;
 
     if (!venue || !application.eventDate) {
-      setNotice("Select a venue and event date before creating an event record.");
+      setNotice(t("notice.createEventMissing"));
       return;
     }
 
@@ -319,7 +357,7 @@ function App() {
         row: "",
         number: "",
       },
-      notes: `Created from ticket application.${application.memo ? ` ${application.memo}` : ""}`,
+      notes: `${t("notice.createdFromTicket")}${application.memo ? ` ${application.memo}` : ""}`,
       createdAt: now,
       updatedAt: now,
     };
@@ -332,7 +370,7 @@ function App() {
     });
     refreshEvents();
     refreshTicketApplications();
-    setNotice("Event record created from ticket application.");
+    setNotice(t("notice.eventCreatedFromTicket"));
   };
 
   return (
@@ -348,12 +386,10 @@ function App() {
       <main className="app-main">
         <section className="hero-panel">
           <div>
-            <span className="eyebrow">Anime / idol / live concert archive</span>
-            <h2>Keep every live memory as a ticket stub.</h2>
+            <span className="eyebrow">{t("app.heroEyebrow")}</span>
+            <h2>{t("app.heroTitle")}</h2>
           </div>
-          <p>
-            Track venue, seat, ticket lotteries, notes, maps, and historical weather for every Japan live event.
-          </p>
+          <p>{t("app.heroDescription")}</p>
         </section>
 
         {notice ? <p className="notice" role="status">{notice}</p> : null}
@@ -362,8 +398,8 @@ function App() {
           <>
             <div className="section-heading">
               <div>
-                <span className="eyebrow">Saved records</span>
-                <h2>Events</h2>
+                <span className="eyebrow">{t("events.savedRecords")}</span>
+                <h2>{t("events.title")}</h2>
               </div>
             </div>
             <FilterBar
