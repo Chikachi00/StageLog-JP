@@ -30,12 +30,50 @@ interface CloudTicketApplicationRow {
   updated_at: string | null;
 }
 
+type CloudTicketApplicationPayload = Omit<CloudTicketApplicationRow, "id"> & {
+  id?: string;
+};
+
 const requireSupabase = () => {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
   return supabase;
+};
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const isUuid = (value: string | undefined) => Boolean(value && uuidPattern.test(value));
+
+const cleanOptionalString = (value: string | null | undefined) => {
+  const nextValue = value?.trim();
+  return nextValue ? nextValue : null;
+};
+
+const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const details = [
+      "message" in error && typeof error.message === "string" ? error.message : "",
+      "details" in error && typeof error.details === "string" ? error.details : "",
+      "hint" in error && typeof error.hint === "string" ? error.hint : "",
+      "code" in error && typeof error.code === "string" ? `(${error.code})` : "",
+    ].filter(Boolean);
+
+    if (details.length > 0) {
+      return details.join(" ");
+    }
+  }
+
+  return fallback;
+};
+
+const throwSupabaseError = (error: unknown, fallback: string): never => {
+  throw new Error(getSupabaseErrorMessage(error, fallback));
 };
 
 const normalizePlatform = (platform: string | null | undefined): TicketPlatform => {
@@ -63,32 +101,40 @@ const normalizeStatus = (status: string | null | undefined): TicketApplicationSt
 export const toCloudTicketApplicationRow = (
   application: TicketApplication,
   userId: string,
-): CloudTicketApplicationRow => ({
-  id: application.id,
-  user_id: userId,
-  event_title: application.eventTitle,
-  artist: application.artist,
-  venue_id: application.venueId ?? null,
-  venue_name: application.venueName ?? null,
-  city: application.city ?? null,
-  country: application.country ?? null,
-  event_date: application.eventDate ?? null,
-  platform: application.platform,
-  application_date: application.applicationDate ?? null,
-  result_date: application.resultDate ?? null,
-  payment_deadline: application.paymentDeadline ?? null,
-  issue_date: application.issueDate ?? null,
-  status: application.status,
-  ticket_type: application.ticketType ?? null,
-  price: application.price ?? null,
-  quantity: application.quantity ?? null,
-  companion_name: application.companionName ?? null,
-  companion_contact: application.companionContact ?? null,
-  memo: application.memo ?? null,
-  linked_event_id: application.linkedEventId ?? null,
-  created_at: application.createdAt,
-  updated_at: application.updatedAt,
-});
+  options: { includeId?: boolean } = {},
+): CloudTicketApplicationPayload => {
+  const payload: CloudTicketApplicationPayload = {
+    user_id: userId,
+    event_title: application.eventTitle,
+    artist: application.artist,
+    venue_id: cleanOptionalString(application.venueId),
+    venue_name: cleanOptionalString(application.venueName),
+    city: cleanOptionalString(application.city),
+    country: cleanOptionalString(application.country),
+    event_date: cleanOptionalString(application.eventDate),
+    platform: application.platform,
+    application_date: cleanOptionalString(application.applicationDate),
+    result_date: cleanOptionalString(application.resultDate),
+    payment_deadline: cleanOptionalString(application.paymentDeadline),
+    issue_date: cleanOptionalString(application.issueDate),
+    status: application.status,
+    ticket_type: cleanOptionalString(application.ticketType),
+    price: application.price ?? null,
+    quantity: application.quantity ?? null,
+    companion_name: cleanOptionalString(application.companionName),
+    companion_contact: cleanOptionalString(application.companionContact),
+    memo: cleanOptionalString(application.memo),
+    linked_event_id: cleanOptionalString(application.linkedEventId),
+    created_at: application.createdAt,
+    updated_at: application.updatedAt,
+  };
+
+  if (options.includeId && isUuid(application.id)) {
+    payload.id = application.id;
+  }
+
+  return payload;
+};
 
 export const fromCloudTicketApplicationRow = (row: CloudTicketApplicationRow): TicketApplication => {
   const now = new Date().toISOString();
@@ -131,7 +177,7 @@ export async function getCloudTicketApplications(userId: string): Promise<Ticket
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to load cloud ticket applications.");
   }
 
   return ((data ?? []) as CloudTicketApplicationRow[]).map(fromCloudTicketApplicationRow);
@@ -144,12 +190,12 @@ export async function addCloudTicketApplication(
   const client = requireSupabase();
   const { data, error } = await client
     .from(TABLE_NAME)
-    .insert(toCloudTicketApplicationRow(application, userId))
+    .insert(toCloudTicketApplicationRow(application, userId, { includeId: false }))
     .select()
     .single();
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to save ticket application.");
   }
 
   return fromCloudTicketApplicationRow(data as CloudTicketApplicationRow);
@@ -162,14 +208,14 @@ export async function updateCloudTicketApplication(
   const client = requireSupabase();
   const { data, error } = await client
     .from(TABLE_NAME)
-    .update(toCloudTicketApplicationRow(application, userId))
+    .update(toCloudTicketApplicationRow(application, userId, { includeId: false }))
     .eq("id", application.id)
     .eq("user_id", userId)
     .select()
     .single();
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to save ticket application.");
   }
 
   return fromCloudTicketApplicationRow(data as CloudTicketApplicationRow);
@@ -184,6 +230,6 @@ export async function deleteCloudTicketApplication(id: string, userId: string): 
     .eq("user_id", userId);
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to delete ticket application.");
   }
 }

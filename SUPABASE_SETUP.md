@@ -37,6 +37,12 @@ Run this SQL file in the Supabase SQL Editor:
 supabase/sql/02_remaining_cloud_features.sql
 ```
 
+If your existing `events` table was created before the latest cloud sync fixes, also run:
+
+```text
+supabase/sql/03_events_schema_compatibility.sql
+```
+
 It creates or updates:
 
 - `public.profiles`
@@ -44,6 +50,7 @@ It creates or updates:
 - `public.events.image_path`
 - Private Supabase Storage bucket `event-images`
 - RLS policies for profiles, ticket applications, and event image objects
+- Events schema compatibility fields and events RLS policies when running the `03` patch
 
 The SQL is written to be repeatable with `create table if not exists`, `alter table ... add column if not exists`, and policy replacement.
 

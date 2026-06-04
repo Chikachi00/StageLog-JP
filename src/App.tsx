@@ -303,7 +303,7 @@ function App() {
     try {
       setTicketApplications(await getCloudTicketApplications(user.id));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("tickets.failedLoadCloudTickets"));
+      setNotice(getErrorMessage(error, t("tickets.failedLoadCloudTickets")));
       setTicketApplications([]);
     } finally {
       setTicketsLoading(false);
@@ -428,7 +428,7 @@ function App() {
       setEditingApplication(null);
       await refreshTicketApplications();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+      setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
     }
   };
 
@@ -624,7 +624,7 @@ function App() {
       await refreshTicketApplications();
       setNotice(t("notice.ticketDeleted"));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+      setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
     }
   };
 
@@ -665,11 +665,13 @@ function App() {
       updatedAt: now,
     };
 
+    let savedEvent = record;
+
     try {
       if (isCloudMode && user) {
-        await addCloudEvent(record, user.id);
+        savedEvent = await addCloudEvent(record, user.id);
       } else {
-        addLocalEvent(record);
+        savedEvent = addLocalEvent(record);
       }
     } catch (error) {
       setNotice(getSaveFailureMessage(error));
@@ -678,7 +680,7 @@ function App() {
 
     const linkedApplication = {
       ...application,
-      linkedEventId: record.id,
+      linkedEventId: savedEvent.id,
       updatedAt: now,
     };
 
@@ -692,7 +694,7 @@ function App() {
       await refreshTicketApplications();
       setNotice(t("notice.eventCreatedFromTicket"));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+      setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
     }
   };
 
@@ -726,7 +728,7 @@ function App() {
       setLocalTicketCount(getTicketApplications().length);
       setNotice(t("auth.importedTickets", { count: ticketsToImport.length }));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("notice.ticketSaveFailed"));
+      setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
     } finally {
       setIsImportingLocalTickets(false);
     }

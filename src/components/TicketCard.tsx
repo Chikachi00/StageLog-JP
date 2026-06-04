@@ -1,4 +1,5 @@
-import { CloudSun, Image, MapPinned, Pencil, Trash2 } from "lucide-react";
+import { CloudSun, MapPinned, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
 import { formatDateTime } from "../utils/dateUtils";
@@ -29,6 +30,28 @@ const compactSeat = (event: EventRecord) => {
 
   return parts.length > 0 ? parts.join(" / ") : "Seat not recorded";
 };
+
+function TicketCover({ imageUrl, title }: { imageUrl?: string; title: string }) {
+  const { t } = useTranslation();
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [imageUrl]);
+
+  if (!imageUrl || hasError) {
+    return null;
+  }
+
+  return (
+    <img
+      className="ticket-card__cover"
+      src={imageUrl}
+      alt={t("ticketCard.coverAlt", { title })}
+      onError={() => setHasError(true)}
+    />
+  );
+}
 
 export function TicketCard({
   event,
@@ -64,13 +87,7 @@ export function TicketCard({
           <span className="ticket-card__category">{event.ticketType || t("ticketCard.liveArchive")}</span>
           <span>{formatDateTime(event.date, event.startTime)}</span>
         </div>
-        {event.imageUrl ? (
-          <img className="ticket-card__cover" src={event.imageUrl} alt={t("ticketCard.coverAlt", { title: event.title })} />
-        ) : (
-          <div className="ticket-card__cover ticket-card__cover--empty" aria-hidden="true">
-            <Image size={22} />
-          </div>
-        )}
+        <TicketCover imageUrl={event.imageUrl} title={event.title} />
         <h3>{event.title}</h3>
         <p className="ticket-card__artist">{event.artist}</p>
 
