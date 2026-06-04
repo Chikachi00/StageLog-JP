@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { getVenueById } from "../data/venues";
 import type { EventRecord } from "../types/event";
+import { getSeatMapByVenueId } from "../utils/seatMapUtils";
 import { TicketCard } from "./TicketCard";
 
 interface EventListProps {
@@ -54,7 +54,7 @@ export function EventList({
       {events.map((event) => (
         <TicketCard
           event={event}
-          hasSeatMap={Boolean(getVenueById(event.venueId)?.supportedSeatMap)}
+          hasSeatMap={Boolean(getSeatMapByVenueId(event.venueId))}
           isFetchingWeather={fetchingWeatherId === event.id}
           key={event.id}
           weatherError={weatherErrors[event.id]}

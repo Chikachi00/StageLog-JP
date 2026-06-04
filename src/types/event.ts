@@ -23,6 +23,8 @@ export interface SeatInfo {
   block?: string;
   row?: string;
   number?: string;
+  sectionId?: string;
+  sectionLabel?: string;
   x?: number;
   y?: number;
 }

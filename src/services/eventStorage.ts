@@ -25,6 +25,8 @@ const normalizeEvent = (event: Partial<EventRecord>): EventRecord => {
       block: seat.block ?? "",
       row: seat.row ?? "",
       number: seat.number ?? "",
+      sectionId: seat.sectionId,
+      sectionLabel: seat.sectionLabel,
       x: typeof seat.x === "number" ? seat.x : undefined,
       y: typeof seat.y === "number" ? seat.y : undefined,
     },

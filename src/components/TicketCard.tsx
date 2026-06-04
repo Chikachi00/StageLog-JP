@@ -85,6 +85,11 @@ export function TicketCard({
           <div>
             <span>{t("ticketCard.seat")}</span>
             <strong>{seatLabel || compactSeat(event)}</strong>
+            {seat.sectionLabel ? (
+              <small>
+                {t("seatMap.section")}: {seat.sectionLabel}
+              </small>
+            ) : null}
           </div>
         </div>
 
@@ -98,10 +103,10 @@ export function TicketCard({
         {hasSeatMap && typeof seat.x === "number" && typeof seat.y === "number" ? (
           <div className="seat-saved-pill">
             <MapPinned size={16} aria-hidden="true" />
-            <span>{t("seat.saved")}</span>
+            <span>{t("seatMap.positionSaved")}</span>
             {onViewVenueMap ? (
               <button type="button" onClick={() => onViewVenueMap(event.venueId)}>
-                {t("seat.viewOnMap")}
+                {t("seatMap.viewOnMap")}
               </button>
             ) : null}
           </div>

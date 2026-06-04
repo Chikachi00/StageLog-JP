@@ -1,7 +1,14 @@
-import { MapPin, X } from "lucide-react";
-import type { MouseEvent } from "react";
+import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SeatInfo, Venue } from "../types/event";
+import type { SeatMapSection } from "../types/seatMap";
+import {
+  findMatchingSection,
+  getSeatMapByVenueId,
+  getSectionCenter,
+} from "../utils/seatMapUtils";
+import { SeatMapRenderer } from "./SeatMapRenderer";
 
 interface SeatPickerProps {
   venue: Venue;
@@ -9,67 +16,134 @@ interface SeatPickerProps {
   onChange: (seat: SeatInfo) => void;
 }
 
-const clampPercentage = (value: number) => Math.max(0, Math.min(100, value));
+const roundCoordinate = (value: number) => Math.round(value * 10) / 10;
 
 export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
   const { t } = useTranslation();
+  const [suppressedAutoSectionId, setSuppressedAutoSectionId] = useState<string | undefined>();
+  const seatMap = useMemo(() => getSeatMapByVenueId(venue.id), [venue.id]);
+  const matchedSection = useMemo(
+    () => (seatMap ? findMatchingSection(seatMap, seat) : undefined),
+    [seat.gate, seat.level, seat.block, seat.row, seat.number, seatMap],
+  );
+  const selectedSectionId = seat.sectionId ?? matchedSection?.id;
+  const hasMarker = typeof seat.x === "number" && typeof seat.y === "number";
 
-  if (!venue.supportedSeatMap || !venue.mapSvg) {
+  useEffect(() => {
+    setSuppressedAutoSectionId(undefined);
+  }, [seat.gate, seat.level, seat.block, seat.row, seat.number]);
+
+  useEffect(() => {
+    if (
+      !seatMap ||
+      !matchedSection ||
+      hasMarker ||
+      seat.sectionId === matchedSection.id ||
+      suppressedAutoSectionId === matchedSection.id
+    ) {
+      return;
+    }
+
+    const center = getSectionCenter(matchedSection);
+    onChange({
+      ...seat,
+      sectionId: matchedSection.id,
+      sectionLabel: matchedSection.label,
+      x: roundCoordinate(center.x),
+      y: roundCoordinate(center.y),
+    });
+  }, [hasMarker, matchedSection, onChange, seat, seatMap, suppressedAutoSectionId]);
+
+  if (!seatMap) {
     return (
       <div className="seat-picker seat-picker--empty">
         <div className="seat-picker__heading">
           <div>
-            <span className="eyebrow">{t("seat.map")}</span>
+            <span className="eyebrow">{t("seatMap.title")}</span>
             <strong>{venue.name}</strong>
           </div>
         </div>
-        <p>{t("seat.unsupported")}</p>
+        <p>{t("seatMap.notAvailable")}</p>
       </div>
     );
   }
 
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = clampPercentage(((event.clientX - rect.left) / rect.width) * 100);
-    const y = clampPercentage(((event.clientY - rect.top) / rect.height) * 100);
+  const marker = hasMarker
+    ? [
+        {
+          id: "current-seat",
+          x: seat.x ?? 0,
+          y: seat.y ?? 0,
+          label: "1",
+        },
+      ]
+    : [];
 
+  const updateSection = (section: SeatMapSection) => {
     onChange({
       ...seat,
-      x: Math.round(x * 10) / 10,
-      y: Math.round(y * 10) / 10,
+      sectionId: section.id,
+      sectionLabel: section.label,
     });
   };
 
-  const hasMarker = typeof seat.x === "number" && typeof seat.y === "number";
+  const updateMarker = (x: number, y: number, sectionId?: string) => {
+    const section = sectionId ? seatMap.sections.find((item) => item.id === sectionId) : undefined;
+
+    onChange({
+      ...seat,
+      sectionId: section?.id,
+      sectionLabel: section?.label,
+      x,
+      y,
+    });
+  };
+
+  const clearMarker = () => {
+    setSuppressedAutoSectionId(matchedSection?.id);
+    onChange({
+      ...seat,
+      sectionId: undefined,
+      sectionLabel: undefined,
+      x: undefined,
+      y: undefined,
+    });
+  };
 
   return (
     <div className="seat-picker">
       <div className="seat-picker__heading">
         <div>
-          <span className="eyebrow">{t("seat.map")}</span>
+          <span className="eyebrow">{t("seatMap.title")}</span>
           <strong>{venue.name}</strong>
         </div>
-        {hasMarker ? (
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => onChange({ ...seat, x: undefined, y: undefined })}
-          >
+        {hasMarker || seat.sectionId ? (
+          <button className="ghost-button" type="button" onClick={clearMarker}>
             <X size={16} aria-hidden="true" />
-            {t("seat.clearMarker")}
+            {t("seatMap.clearMarker")}
           </button>
         ) : null}
       </div>
-      <button className="seat-map-click-target" type="button" onClick={handleClick}>
-        <img src={venue.mapSvg} alt={`${venue.name} simplified seat map`} />
-        {hasMarker ? (
-          <span className="seat-marker" style={{ left: `${seat.x}%`, top: `${seat.y}%` }}>
-            <MapPin size={18} aria-hidden="true" />
-          </span>
-        ) : null}
-      </button>
+
+      <p className="seat-picker__hint">{t("seatMap.enterBlockHint")}</p>
+
+      {matchedSection ? (
+        <p className="seat-picker__match">
+          {t("seatMap.matchedSection")}: <strong>{matchedSection.label}</strong>
+        </p>
+      ) : null}
+
+      <SeatMapRenderer
+        editable
+        markers={marker}
+        seatMap={seatMap}
+        selectedSectionId={selectedSectionId}
+        onMarkerChange={updateMarker}
+        onSectionSelect={updateSection}
+      />
+
       <p className="seat-picker__hint">
-        {hasMarker ? t("seat.markerSaved") : t("seat.hint")}
+        {hasMarker ? t("seatMap.markerSaved") : t("seatMap.clickToSave")}
       </p>
     </div>
   );

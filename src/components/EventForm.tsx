@@ -131,6 +131,8 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
         block: values.seat.block?.trim() ?? "",
         row: values.seat.row?.trim() ?? "",
         number: values.seat.number?.trim() ?? "",
+        sectionId: values.seat.sectionId,
+        sectionLabel: values.seat.sectionLabel,
         x: values.seat.x,
         y: values.seat.y,
       },

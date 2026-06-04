@@ -11,6 +11,11 @@ import {
 } from "../data/venues";
 import type { EventRecord, Venue } from "../types/event";
 import { formatDate, sortByDateDesc } from "../utils/dateUtils";
+import {
+  formatSeatText,
+  getEventSeatMapMarker,
+  getSeatMapByVenueId,
+} from "../utils/seatMapUtils";
 import { VenueMap } from "./VenueMap";
 
 interface VenuesPageProps {
@@ -87,8 +92,18 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
     () => sortByDateDesc(events.filter((event) => event.venueId === activeVenue?.id)),
     [activeVenue?.id, events],
   );
-  const markedEvents = venueEvents.filter(
-    (event) => typeof event.seat?.x === "number" && typeof event.seat?.y === "number",
+  const activeSeatMap = activeVenue ? getSeatMapByVenueId(activeVenue.id) : undefined;
+  const markerEntries = venueEvents
+    .map((event, index) => ({
+      event,
+      marker: getEventSeatMapMarker(event, activeSeatMap, index),
+    }))
+    .filter((entry): entry is { event: EventRecord; marker: NonNullable<typeof entry.marker> } =>
+      Boolean(entry.marker),
+    );
+  const markerIndexByEventId = markerEntries.reduce<Record<string, number>>(
+    (result, entry, index) => ({ ...result, [entry.event.id]: index + 1 }),
+    {},
   );
 
   if (venues.length === 0) {
@@ -183,11 +198,11 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                   {[activeVenue.city, activeVenue.prefecture, getVenueRegion(activeVenue)].filter(Boolean).join(" / ")}
                 </p>
                 <p>
-                  {t("venues.eventRecords", { count: venueEvents.length })} / {t("venues.seatMarkers", { count: markedEvents.length })}
+                  {t("venues.eventRecords", { count: venueEvents.length })} / {t("venues.seatMarkers", { count: markerEntries.length })}
                 </p>
               </div>
             </div>
-            <VenueMap venue={activeVenue} events={markedEvents} />
+            <VenueMap venue={activeVenue} events={venueEvents} />
           </section>
 
           <section className="venue-history">
@@ -197,7 +212,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                 {venueEvents.map((event, index) => (
                   <article key={event.id}>
                     <span className="marker-number">
-                      {typeof event.seat?.x === "number" && typeof event.seat?.y === "number" ? index + 1 : "-"}
+                      {markerIndexByEventId[event.id] ?? "-"}
                     </span>
                     <div>
                       <strong>{event.title}</strong>
@@ -205,9 +220,9 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                         {event.artist} - {formatDate(event.date)}
                       </p>
                       <small>
-                        {typeof event.seat?.x === "number" && typeof event.seat?.y === "number"
-                          ? t("seat.marker", { x: event.seat.x.toFixed(1), y: event.seat.y.toFixed(1) })
-                          : t("seat.noMarker")}
+                        {event.seat?.sectionLabel ? `${t("seatMap.section")}: ${event.seat.sectionLabel} / ` : ""}
+                        {formatSeatText(event.seat ?? {}) || t("seat.noMarker")}
+                        {markerIndexByEventId[event.id] ? ` / ${t("seatMap.positionSaved")}` : ""}
                       </small>
                     </div>
                     <button className="icon-button" type="button" onClick={() => onEdit(event)}>
