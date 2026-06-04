@@ -247,6 +247,106 @@ button:disabled {
   color: #b42318 !important;
 }
 
+.backup-panel {
+  flex: 1 1 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.backup-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  color: var(--ink);
+  font-weight: 900;
+  list-style: none;
+  cursor: pointer;
+}
+
+.backup-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.backup-panel summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+.backup-panel summary small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.backup-panel__body {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0 0.85rem 0.85rem;
+}
+
+.backup-panel__body > p,
+.backup-import > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.backup-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.backup-summary div,
+.backup-preview {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--soft);
+}
+
+.backup-summary dt,
+.backup-preview span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.backup-summary dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.backup-panel__actions,
+.backup-import {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.backup-import {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.55fr);
+  align-items: end;
+}
+
+.backup-preview {
+  grid-column: 1 / -1;
+}
+
+.backup-preview .primary-button {
+  justify-self: start;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -718,7 +818,8 @@ textarea:focus {
 .app-shell[data-theme="night"] .timeline-page,
 .app-shell[data-theme="night"] .sync-panel,
 .app-shell[data-theme="night"] .auth-panel,
-.app-shell[data-theme="night"] .profile-panel {
+.app-shell[data-theme="night"] .profile-panel,
+.app-shell[data-theme="night"] .backup-panel {
   background: rgba(16, 24, 39, 0.94);
 }
 

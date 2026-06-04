@@ -4,6 +4,7 @@ import { EventForm } from "./components/EventForm";
 import { EventList } from "./components/EventList";
 import { FilterBar } from "./components/FilterBar";
 import { Header } from "./components/Header";
+import { BackupPanel } from "./components/BackupPanel";
 import type { AppView } from "./components/Header";
 import { Statistics } from "./components/Statistics";
 import { TicketManager } from "./components/TicketManager";
@@ -36,8 +37,15 @@ import {
   addTicketApplication,
   deleteTicketApplication,
   getTicketApplications,
+  saveTicketApplications,
   updateTicketApplication,
 } from "./services/ticketStorage";
+import {
+  getEventBackupKey,
+  getTicketBackupKey,
+  normalizeBackupEvent,
+  normalizeBackupTicketApplication,
+} from "./services/backupService";
 import {
   deleteEventImage,
   getEventImageSignedUrl,
@@ -45,8 +53,9 @@ import {
 } from "./services/storageService";
 import { fetchWeatherForEvent } from "./services/weatherService";
 import type { EventFilters, EventFormValues, EventRecord } from "./types/event";
-import type { AppTheme } from "./types/theme";
+import { isAppTheme, type AppTheme } from "./types/theme";
 import type { TicketApplication, TicketApplicationFormValues } from "./types/ticket";
+import type { BackupImportMode, BackupImportResult, StageLogBackup } from "./types/backup";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
 
 const defaultFilters: EventFilters = {
@@ -155,7 +164,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
-  const { theme, updateThemeSetting } = useUserSettings();
+  const { language, profile, theme, updateLanguageSetting, updateThemeSetting } = useUserSettings();
   const isCloudMode = Boolean(user && isSupabaseConfigured);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
@@ -765,6 +774,161 @@ function App() {
     }
   };
 
+  const handleImportBackup = async (
+    backup: StageLogBackup,
+    importMode: BackupImportMode,
+  ): Promise<BackupImportResult> => {
+    const backupEvents = backup.data.events.map(normalizeBackupEvent);
+    const backupTickets = (backup.data.ticketApplications ?? []).map(normalizeBackupTicketApplication);
+    let importedEvents = 0;
+    let importedTickets = 0;
+    let skippedDuplicates = 0;
+    const errors: string[] = [];
+
+    const applyBackupSettings = async () => {
+      const backupLanguage = backup.data.settings?.language;
+      const backupTheme = backup.data.settings?.theme;
+
+      if (backupLanguage === "en" || backupLanguage === "zh") {
+        await updateLanguageSetting(backupLanguage);
+      }
+
+      if (isAppTheme(backupTheme ?? null)) {
+        await updateThemeSetting(backupTheme as AppTheme);
+      }
+    };
+
+    if (isCloudMode && user) {
+      const existingEventKeys = new Set(events.map(getEventBackupKey));
+      const existingTicketKeys = new Set(ticketApplications.map(getTicketBackupKey));
+
+      for (const event of backupEvents) {
+        const key = getEventBackupKey(event);
+
+        if (existingEventKeys.has(key)) {
+          skippedDuplicates += 1;
+          continue;
+        }
+
+        existingEventKeys.add(key);
+
+        try {
+          await addCloudEvent(event, user.id);
+          importedEvents += 1;
+        } catch (error) {
+          errors.push(getErrorMessage(error, t("auth.failedSaveEvent")));
+        }
+      }
+
+      for (const application of backupTickets) {
+        const key = getTicketBackupKey(application);
+
+        if (existingTicketKeys.has(key)) {
+          skippedDuplicates += 1;
+          continue;
+        }
+
+        existingTicketKeys.add(key);
+
+        try {
+          await addCloudTicketApplication(application, user.id);
+          importedTickets += 1;
+        } catch (error) {
+          errors.push(getErrorMessage(error, t("notice.ticketSaveFailed")));
+        }
+      }
+
+      await applyBackupSettings();
+      await refreshEvents();
+      await refreshTicketApplications();
+    } else if (importMode === "replace-local") {
+      const importedLocalEvents = backupEvents.map((event) => ({ ...event, id: event.id || crypto.randomUUID() }));
+      const importedLocalTickets = backupTickets.map((application) => ({
+        ...application,
+        id: application.id || crypto.randomUUID(),
+      }));
+
+      saveLocalEvents(sortByDateDesc(importedLocalEvents));
+      saveTicketApplications(importedLocalTickets);
+      setEvents(sortByDateDesc(importedLocalEvents));
+      setTicketApplications(importedLocalTickets);
+      setLocalEventCount(importedLocalEvents.length);
+      setLocalTicketCount(importedLocalTickets.length);
+      importedEvents = importedLocalEvents.length;
+      importedTickets = importedLocalTickets.length;
+      await applyBackupSettings();
+    } else {
+      const existingEvents = getLocalEvents();
+      const existingTickets = getTicketApplications();
+      const existingEventKeys = new Set(existingEvents.map(getEventBackupKey));
+      const existingTicketKeys = new Set(existingTickets.map(getTicketBackupKey));
+      const existingEventIds = new Set(existingEvents.map((event) => event.id));
+      const existingTicketIds = new Set(existingTickets.map((application) => application.id));
+      const eventsToImport: EventRecord[] = [];
+      const ticketsToImport: TicketApplication[] = [];
+
+      for (const event of backupEvents) {
+        const key = getEventBackupKey(event);
+
+        if (existingEventKeys.has(key)) {
+          skippedDuplicates += 1;
+          continue;
+        }
+
+        const nextEvent = { ...event };
+
+        if (!nextEvent.id || existingEventIds.has(nextEvent.id)) {
+          nextEvent.id = crypto.randomUUID();
+        }
+
+        existingEventKeys.add(key);
+        existingEventIds.add(nextEvent.id);
+        eventsToImport.push(nextEvent);
+      }
+
+      for (const application of backupTickets) {
+        const key = getTicketBackupKey(application);
+
+        if (existingTicketKeys.has(key)) {
+          skippedDuplicates += 1;
+          continue;
+        }
+
+        const nextApplication = { ...application };
+
+        if (!nextApplication.id || existingTicketIds.has(nextApplication.id)) {
+          nextApplication.id = crypto.randomUUID();
+        }
+
+        existingTicketKeys.add(key);
+        existingTicketIds.add(nextApplication.id);
+        ticketsToImport.push(nextApplication);
+      }
+
+      const nextEvents = sortByDateDesc([...eventsToImport, ...existingEvents]);
+      const nextTickets = [...ticketsToImport, ...existingTickets];
+      saveLocalEvents(nextEvents);
+      saveTicketApplications(nextTickets);
+      setEvents(nextEvents);
+      setTicketApplications(nextTickets);
+      setLocalEventCount(nextEvents.length);
+      setLocalTicketCount(nextTickets.length);
+      importedEvents = eventsToImport.length;
+      importedTickets = ticketsToImport.length;
+      await applyBackupSettings();
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.slice(0, 3).join(" / "));
+    }
+
+    return {
+      importedEvents,
+      importedTickets,
+      skippedDuplicates,
+    };
+  };
+
   const isEventsResolving = authLoading || eventsLoading;
 
   return (
@@ -823,6 +987,15 @@ function App() {
               {isImportingLocalTickets ? t("auth.importing") : t("auth.importLocalTickets")}
             </button>
           ) : null}
+          <BackupPanel
+            events={events}
+            mode={isCloudMode ? "cloud" : "local"}
+            profile={profile}
+            settings={{ language, theme }}
+            ticketApplications={ticketApplications}
+            userEmail={user?.email}
+            onImportBackup={handleImportBackup}
+          />
         </section>
 
         {notice ? <p className="notice" role="status">{notice}</p> : null}

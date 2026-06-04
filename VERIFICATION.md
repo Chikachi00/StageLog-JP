@@ -99,6 +99,21 @@ Verification date: 2026-06-04
 - Sign out returns language/theme behavior to localStorage fallback.
 - Runtime profile writes require manual Supabase verification.
 
+## Backup Export / Import
+
+- Code added and checked: `src/types/backup.ts`, `src/services/backupService.ts`, `src/components/BackupPanel.tsx`, and `src/App.tsx`.
+- Backup JSON shape includes `appName`, `version`, `exportedAt`, active `mode`, optional `userEmail`, events, ticket applications, profile, and language/theme settings.
+- Backup export uses currently active app state, so local mode exports localStorage data and cloud mode exports the loaded cloud data.
+- Backup JSON does not include Supabase secrets, session tokens, or environment variables.
+- Event image files are not exported as separate files. Only `imageUrl` / `imagePath` metadata is included.
+- Import parsing validates `appName`, supported version, and `data.events` array.
+- Local import supports merge and replace-local modes.
+- Cloud import supports merge mode only and does not delete existing cloud data.
+- Cloud import goes through `addCloudEvent()` / `addCloudTicketApplication()`, so backup ids are not forced into Supabase uuid columns.
+- Duplicate events are skipped by `title + artist + date + venueId`.
+- Duplicate ticket applications are skipped by `eventTitle + artist + eventDate + platform`.
+- Runtime browser download/upload and cloud import require manual UI verification.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.
@@ -115,6 +130,7 @@ Verification date: 2026-06-04
 - Ensured Create Event Record from Ticket links to the Supabase-generated event id in cloud mode.
 - Added events schema compatibility SQL for missing cloud event fields.
 - Improved ticket cloud error surfacing.
+- Added JSON backup export/import with duplicate skipping and cloud-safe id handling.
 
 ## Manual Verification Still Needed
 
@@ -133,4 +149,10 @@ Verification date: 2026-06-04
 - Create Event Record from a won/paid/issued/attended ticket and confirm `linked_event_id` matches an existing cloud event id.
 - Save ProfilePanel values and confirm `profiles` updates.
 - Change language/theme, refresh, and confirm profile/local fallback behavior.
+- Export a backup in local mode and confirm the JSON contains events and settings but no Supabase secrets.
+- Import a valid backup in local mode with merge and confirm duplicates are skipped.
+- Import a valid backup in local mode with replace-local and confirm local data is replaced only after confirmation.
+- Export a backup after logging in and confirm it reflects cloud events/tickets currently loaded in the app.
+- Import a valid backup in cloud mode and confirm Supabase receives new rows with the current user id and generated uuid ids.
+- Try importing invalid JSON and confirm a specific error is shown.
 - Log in from a phone or incognito window and confirm the same cloud Events/Tickets/Profile are visible.
