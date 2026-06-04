@@ -8,6 +8,9 @@ export const venues: Venue[] = [
     country: "Japan",
     latitude: 35.7056,
     longitude: 139.7519,
+    mapSvg: "/venue-maps/tokyo-dome.svg",
+    mapType: "svg",
+    supportedSeatMap: true,
   },
   {
     id: "belluna-dome",
@@ -16,6 +19,9 @@ export const venues: Venue[] = [
     country: "Japan",
     latitude: 35.7686,
     longitude: 139.4204,
+    mapSvg: "/venue-maps/belluna-dome.svg",
+    mapType: "svg",
+    supportedSeatMap: true,
   },
   {
     id: "k-arena-yokohama",
@@ -24,6 +30,9 @@ export const venues: Venue[] = [
     country: "Japan",
     latitude: 35.4619,
     longitude: 139.6284,
+    mapSvg: "/venue-maps/k-arena-yokohama.svg",
+    mapType: "svg",
+    supportedSeatMap: true,
   },
   {
     id: "pia-arena-mm",

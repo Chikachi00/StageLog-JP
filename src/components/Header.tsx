@@ -1,21 +1,34 @@
-import { BarChart3, Plus, Ticket } from "lucide-react";
+import { BarChart3, CalendarDays, MapPinned, Plus, ReceiptText, Ticket } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { AppTheme } from "../types/theme";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
-export type AppView = "events" | "statistics" | "add";
+export type AppView = "events" | "timeline" | "venues" | "statistics" | "tickets" | "add";
 
 interface HeaderProps {
   activeView: AppView;
   totalEvents: number;
+  theme: AppTheme;
   onNavigate: (view: AppView) => void;
+  onThemeChange: (theme: AppTheme) => void;
 }
 
 const navItems: Array<{ view: AppView; label: string; icon: LucideIcon }> = [
   { view: "events", label: "Events", icon: Ticket },
+  { view: "timeline", label: "Timeline", icon: CalendarDays },
+  { view: "venues", label: "Venues", icon: MapPinned },
   { view: "statistics", label: "Statistics", icon: BarChart3 },
+  { view: "tickets", label: "Tickets", icon: ReceiptText },
   { view: "add", label: "Add Event", icon: Plus },
 ];
 
-export function Header({ activeView, totalEvents, onNavigate }: HeaderProps) {
+export function Header({
+  activeView,
+  totalEvents,
+  theme,
+  onNavigate,
+  onThemeChange,
+}: HeaderProps) {
   return (
     <header className="site-header">
       <div className="site-header__brand">
@@ -42,6 +55,7 @@ export function Header({ activeView, totalEvents, onNavigate }: HeaderProps) {
           );
         })}
       </nav>
+      <ThemeSwitcher theme={theme} onThemeChange={onThemeChange} />
     </header>
   );
 }

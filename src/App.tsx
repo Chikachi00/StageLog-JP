@@ -5,11 +5,23 @@ import { FilterBar } from "./components/FilterBar";
 import { Header } from "./components/Header";
 import type { AppView } from "./components/Header";
 import { Statistics } from "./components/Statistics";
+import { TicketManager } from "./components/TicketManager";
+import { Timeline } from "./components/Timeline";
+import { VenuesPage } from "./components/VenuesPage";
 import { createSampleEvents } from "./data/sampleEvents";
 import { getVenueById, venues } from "./data/venues";
 import { addEvent, deleteEvent, getEvents, saveEvents, updateEvent } from "./services/eventStorage";
+import {
+  addTicketApplication,
+  deleteTicketApplication,
+  getTicketApplications,
+  updateTicketApplication,
+} from "./services/ticketStorage";
 import { fetchWeatherForEvent } from "./services/weatherService";
 import type { EventFilters, EventFormValues, EventRecord } from "./types/event";
+import type { AppTheme } from "./types/theme";
+import { isAppTheme, THEME_STORAGE_KEY } from "./types/theme";
+import type { TicketApplication, TicketApplicationFormValues } from "./types/ticket";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
 
 const defaultFilters: EventFilters = {
@@ -17,6 +29,15 @@ const defaultFilters: EventFilters = {
   artist: "all",
   venue: "all",
   search: "",
+};
+
+const getInitialTheme = (): AppTheme => {
+  if (typeof window === "undefined") {
+    return "sakura";
+  }
+
+  const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return isAppTheme(savedTheme) ? savedTheme : "sakura";
 };
 
 const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null): EventRecord => {
@@ -40,9 +61,44 @@ const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null
     country: venue.country,
     ticketType: values.ticketType,
     seat: values.seat,
+    imageUrl: values.imageUrl || undefined,
     weather: editingEvent?.weather,
     notes: values.notes,
     createdAt: editingEvent?.createdAt ?? now,
+    updatedAt: now,
+  };
+};
+
+const createTicketApplication = (
+  values: TicketApplicationFormValues,
+  editingApplication?: TicketApplication | null,
+): TicketApplication => {
+  const venue = getVenueById(values.venueId);
+  const now = new Date().toISOString();
+
+  return {
+    id: editingApplication?.id ?? crypto.randomUUID(),
+    eventTitle: values.eventTitle,
+    artist: values.artist,
+    venueId: venue?.id,
+    venueName: venue?.name,
+    city: venue?.city,
+    country: venue?.country,
+    eventDate: values.eventDate || undefined,
+    platform: values.platform,
+    applicationDate: values.applicationDate || undefined,
+    resultDate: values.resultDate || undefined,
+    paymentDeadline: values.paymentDeadline || undefined,
+    issueDate: values.issueDate || undefined,
+    status: values.status,
+    ticketType: values.ticketType || undefined,
+    price: values.price ? Number(values.price) : undefined,
+    quantity: values.quantity ? Number(values.quantity) : undefined,
+    companionName: values.companionName || undefined,
+    companionContact: values.companionContact || undefined,
+    memo: values.memo || undefined,
+    linkedEventId: editingApplication?.linkedEventId,
+    createdAt: editingApplication?.createdAt ?? now,
     updatedAt: now,
   };
 };
@@ -52,8 +108,14 @@ const getUniqueSorted = (values: string[]) =>
 
 function App() {
   const [events, setEvents] = useState<EventRecord[]>(() => sortByDateDesc(getEvents()));
+  const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
+    getTicketApplications(),
+  );
   const [activeView, setActiveView] = useState<AppView>("events");
+  const [theme, setTheme] = useState<AppTheme>(() => getInitialTheme());
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
+  const [editingApplication, setEditingApplication] = useState<TicketApplication | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>();
   const [filters, setFilters] = useState<EventFilters>(defaultFilters);
   const [fetchingWeatherId, setFetchingWeatherId] = useState<string | null>(null);
   const [weatherErrors, setWeatherErrors] = useState<Record<string, string>>({});
@@ -87,6 +149,18 @@ function App() {
     setEvents(sortByDateDesc(getEvents()));
   };
 
+  const refreshTicketApplications = () => {
+    setTicketApplications(getTicketApplications());
+  };
+
+  const handleThemeChange = (nextTheme: AppTheme) => {
+    setTheme(nextTheme);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    }
+  };
+
   const handleNavigate = (view: AppView) => {
     setActiveView(view);
     setNotice("");
@@ -113,6 +187,28 @@ function App() {
       setActiveView("events");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Unable to save event.");
+    }
+  };
+
+  const handleSaveTicketApplication = (
+    values: TicketApplicationFormValues,
+    currentEditingApplication?: TicketApplication | null,
+  ) => {
+    try {
+      const application = createTicketApplication(values, currentEditingApplication);
+
+      if (currentEditingApplication) {
+        updateTicketApplication(application);
+        setNotice("Ticket application updated.");
+      } else {
+        addTicketApplication(application);
+        setNotice("Ticket application saved.");
+      }
+
+      setEditingApplication(null);
+      refreshTicketApplications();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Unable to save ticket application.");
     }
   };
 
@@ -172,9 +268,82 @@ function App() {
     setNotice("Sample data loaded.");
   };
 
+  const handleViewVenueMap = (venueId: string) => {
+    setSelectedVenueId(venueId);
+    setActiveView("venues");
+    setNotice("");
+  };
+
+  const handleDeleteTicketApplication = (id: string) => {
+    const application = ticketApplications.find((item) => item.id === id);
+    const confirmed = window.confirm(`Delete "${application?.eventTitle ?? "this ticket application"}"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteTicketApplication(id);
+    refreshTicketApplications();
+    setNotice("Ticket application deleted.");
+  };
+
+  const handleCreateEventFromApplication = (application: TicketApplication) => {
+    if (application.linkedEventId) {
+      setNotice("Event record already created.");
+      return;
+    }
+
+    const venue = application.venueId ? getVenueById(application.venueId) : undefined;
+
+    if (!venue || !application.eventDate) {
+      setNotice("Select a venue and event date before creating an event record.");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const record: EventRecord = {
+      id: crypto.randomUUID(),
+      title: application.eventTitle,
+      artist: application.artist,
+      date: application.eventDate,
+      startTime: "",
+      venueId: venue.id,
+      venueName: venue.name,
+      city: venue.city,
+      country: venue.country,
+      ticketType: application.ticketType ?? "",
+      seat: {
+        gate: "",
+        level: "",
+        block: "",
+        row: "",
+        number: "",
+      },
+      notes: `Created from ticket application.${application.memo ? ` ${application.memo}` : ""}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    addEvent(record);
+    updateTicketApplication({
+      ...application,
+      linkedEventId: record.id,
+      updatedAt: now,
+    });
+    refreshEvents();
+    refreshTicketApplications();
+    setNotice("Event record created from ticket application.");
+  };
+
   return (
-    <div className="app-shell">
-      <Header activeView={activeView} totalEvents={events.length} onNavigate={handleNavigate} />
+    <div className="app-shell" data-theme={theme}>
+      <Header
+        activeView={activeView}
+        theme={theme}
+        totalEvents={events.length}
+        onNavigate={handleNavigate}
+        onThemeChange={handleThemeChange}
+      />
 
       <main className="app-main">
         <section className="hero-panel">
@@ -183,7 +352,7 @@ function App() {
             <h2>Keep every live memory as a ticket stub.</h2>
           </div>
           <p>
-            Track venue, seat, ticket type, notes, and historical weather for every Japan live event.
+            Track venue, seat, ticket lotteries, notes, maps, and historical weather for every Japan live event.
           </p>
         </section>
 
@@ -214,11 +383,33 @@ function App() {
               onEdit={handleEdit}
               onFetchWeather={handleFetchWeather}
               onLoadSampleData={handleLoadSampleData}
+              onViewVenueMap={handleViewVenueMap}
             />
           </>
         ) : null}
 
-        {activeView === "statistics" ? <Statistics events={events} /> : null}
+        {activeView === "timeline" ? <Timeline events={events} onEdit={handleEdit} /> : null}
+
+        {activeView === "venues" ? (
+          <VenuesPage events={events} selectedVenueId={selectedVenueId} onEdit={handleEdit} />
+        ) : null}
+
+        {activeView === "statistics" ? (
+          <Statistics events={events} ticketApplications={ticketApplications} />
+        ) : null}
+
+        {activeView === "tickets" ? (
+          <TicketManager
+            applications={ticketApplications}
+            editingApplication={editingApplication}
+            venues={venues}
+            onCancelEditing={() => setEditingApplication(null)}
+            onCreateEventRecord={handleCreateEventFromApplication}
+            onDelete={handleDeleteTicketApplication}
+            onEdit={(application) => setEditingApplication(application)}
+            onSave={handleSaveTicketApplication}
+          />
+        ) : null}
 
         {activeView === "add" ? (
           <EventForm

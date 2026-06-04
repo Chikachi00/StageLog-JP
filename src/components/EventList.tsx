@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { getVenueById } from "../data/venues";
 import type { EventRecord } from "../types/event";
 import { TicketCard } from "./TicketCard";
 
@@ -11,6 +12,7 @@ interface EventListProps {
   onDelete: (id: string) => void;
   onFetchWeather: (event: EventRecord) => void;
   onLoadSampleData: () => void;
+  onViewVenueMap?: (venueId: string) => void;
 }
 
 export function EventList({
@@ -22,6 +24,7 @@ export function EventList({
   onDelete,
   onFetchWeather,
   onLoadSampleData,
+  onViewVenueMap,
 }: EventListProps) {
   if (events.length === 0) {
     return (
@@ -48,12 +51,14 @@ export function EventList({
       {events.map((event) => (
         <TicketCard
           event={event}
+          hasSeatMap={Boolean(getVenueById(event.venueId)?.supportedSeatMap)}
           isFetchingWeather={fetchingWeatherId === event.id}
           key={event.id}
           weatherError={weatherErrors[event.id]}
           onDelete={onDelete}
           onEdit={onEdit}
           onFetchWeather={onFetchWeather}
+          onViewVenueMap={onViewVenueMap}
         />
       ))}
     </section>

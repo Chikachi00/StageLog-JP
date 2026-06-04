@@ -598,13 +598,653 @@ textarea:focus {
   min-height: 120px;
 }
 
+.app-shell[data-theme="sakura"] {
+  --ink: #2f2430;
+  --muted: #765c6c;
+  --line: #ead7e2;
+  --paper: #fff;
+  --soft: #fff5f8;
+  --accent: #e84f7a;
+  --accent-2: #b14f9f;
+  --accent-3: #f4b942;
+  background: linear-gradient(135deg, rgba(232, 79, 122, 0.1), transparent 36%), #fff8fb;
+}
+
+.app-shell[data-theme="ocean"] {
+  --ink: #142536;
+  --muted: #547084;
+  --line: #cfe2eb;
+  --paper: #fff;
+  --soft: #edf8fb;
+  --accent: #0e7490;
+  --accent-2: #2563eb;
+  --accent-3: #14b8a6;
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.12), transparent 36%), #f3fbfd;
+}
+
+.app-shell[data-theme="night"] {
+  --ink: #edf2ff;
+  --muted: #a8b3c7;
+  --line: #2e3c56;
+  --paper: #101827;
+  --soft: #172235;
+  --accent: #88a2ff;
+  --accent-2: #56d8cb;
+  --accent-3: #f4b942;
+  background: #07101f;
+  color: var(--ink);
+}
+
+.app-shell[data-theme="classic"] {
+  --ink: #252525;
+  --muted: #646464;
+  --line: #dedbd5;
+  --paper: #fff;
+  --soft: #f7f6f2;
+  --accent: #4f5d75;
+  --accent-2: #2d7d7a;
+  --accent-3: #b08968;
+  background: #faf9f6;
+}
+
+.app-shell[data-theme="night"] .site-header,
+.app-shell[data-theme="night"] .filter-bar,
+.app-shell[data-theme="night"] .form-panel,
+.app-shell[data-theme="night"] .statistics-page,
+.app-shell[data-theme="night"] .weather-ranking,
+.app-shell[data-theme="night"] .ticket-card,
+.app-shell[data-theme="night"] .ticket-application-card,
+.app-shell[data-theme="night"] .venue-map-panel,
+.app-shell[data-theme="night"] .venue-history,
+.app-shell[data-theme="night"] .timeline-page {
+  background: rgba(16, 24, 39, 0.94);
+}
+
+.app-shell[data-theme="night"] input,
+.app-shell[data-theme="night"] select,
+.app-shell[data-theme="night"] textarea,
+.app-shell[data-theme="night"] .site-nav button,
+.app-shell[data-theme="night"] .ghost-button,
+.app-shell[data-theme="night"] .icon-button,
+.app-shell[data-theme="night"] .stat-grid article,
+.app-shell[data-theme="night"] .distribution-card,
+.app-shell[data-theme="night"] .ranking-list article {
+  background: #111d2f;
+  color: var(--ink);
+}
+
+.theme-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.theme-switcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.theme-switcher button.is-active {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.theme-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.theme-dot--sakura {
+  background: #e84f7a;
+}
+
+.theme-dot--ocean {
+  background: #0e7490;
+}
+
+.theme-dot--night {
+  background: #172235;
+  border: 1px solid #88a2ff;
+}
+
+.theme-dot--classic {
+  background: #4f5d75;
+}
+
+.ticket-card__category {
+  width: fit-content;
+  padding: 0.24rem 0.5rem;
+  border-radius: 0.45rem;
+  background: rgba(232, 79, 122, 0.12);
+  color: var(--accent);
+}
+
+.ticket-card__cover {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  background: var(--soft);
+}
+
+.ticket-card__cover--empty {
+  display: grid;
+  place-items: center;
+  height: 86px;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+}
+
+.barcode-decoration {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.barcode-decoration span {
+  display: block;
+  height: 58px;
+  border-radius: 0.35rem;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 2px,
+    transparent 2px 6px,
+    var(--ink) 6px 8px,
+    transparent 8px 13px,
+    var(--ink) 13px 16px,
+    transparent 16px 22px
+  );
+  opacity: 0.78;
+}
+
+.barcode-decoration small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.seat-saved-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-2);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.seat-saved-pill button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+.form-error {
+  margin: 0;
+  color: #b42318;
+  font-weight: 800;
+}
+
+.image-upload,
+.seat-picker {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--soft);
+}
+
+.image-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.image-preview-row img {
+  width: 124px;
+  height: 78px;
+  object-fit: cover;
+  border-radius: 0.45rem;
+  border: 1px solid var(--line);
+}
+
+.seat-picker__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.seat-map-click-target,
+.venue-map {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.seat-map-click-target {
+  padding: 0;
+}
+
+.seat-map-click-target img,
+.venue-map img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.seat-marker,
+.venue-map__marker {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 8px 18px rgba(31, 41, 51, 0.22);
+}
+
+.seat-picker__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.venue-map--compact {
+  max-width: 220px;
+}
+
+.venue-map--compact .venue-map__marker {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.venue-map--empty,
+.venue-map__empty {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  color: var(--muted);
+  text-align: center;
+}
+
+.timeline-page,
+.venues-page,
+.ticket-manager,
+.ticket-statistics {
+  display: grid;
+  gap: 1rem;
+}
+
+.timeline-list,
+.timeline-year {
+  display: grid;
+  gap: 1rem;
+}
+
+.timeline-year {
+  grid-template-columns: 92px 1fr;
+  align-items: start;
+}
+
+.timeline-year h3 {
+  position: sticky;
+  top: 6.5rem;
+  margin: 0;
+  color: var(--accent);
+}
+
+.timeline-year > div {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  box-shadow: 0 8px 20px rgba(37, 48, 73, 0.07);
+}
+
+.timeline-item time,
+.timeline-item span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.timeline-item strong,
+.timeline-item p {
+  display: block;
+  margin: 0.15rem 0;
+}
+
+.venue-tabs,
+.ticket-status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.venue-tabs button,
+.ticket-status-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.45rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.venue-tabs button.is-active,
+.ticket-status-tabs button.is-active {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.venue-tabs span {
+  display: inline-grid;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.venue-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 1rem;
+}
+
+.venue-map-panel,
+.venue-history,
+.distribution-card,
+.ticket-application-card {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  box-shadow: 0 12px 30px rgba(37, 48, 73, 0.08);
+}
+
+.venue-map-panel,
+.venue-history,
+.distribution-card {
+  padding: 1rem;
+}
+
+.venue-map-panel__heading h3,
+.venue-map-panel__heading p,
+.venue-history h3,
+.distribution-card h3,
+.distribution-card p {
+  margin: 0;
+}
+
+.venue-map-panel__heading {
+  margin-bottom: 0.75rem;
+}
+
+.venue-map-panel__heading p,
+.venue-history-list small {
+  color: var(--muted);
+}
+
+.venue-history-list,
+.ticket-application-grid,
+.distribution-card ul {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.venue-history-list article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.marker-number {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 900;
+}
+
+.distribution-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.distribution-card ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.distribution-card li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.distribution-card li:last-child {
+  border-bottom: 0;
+}
+
+.weather-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.weather-summary-cards article {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--soft);
+}
+
+.weather-summary-cards span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ticket-filter-bar {
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
+}
+
+.ticket-application-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+}
+
+.ticket-application-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.ticket-application-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ticket-application-card__header h3,
+.ticket-application-card__header p,
+.ticket-application-card__memo,
+.important-dates,
+.ticket-warning {
+  margin: 0;
+}
+
+.ticket-application-card__header h3 {
+  margin-top: 0.45rem;
+  font-size: 1.25rem;
+}
+
+.ticket-application-card__header p,
+.ticket-application-card__memo {
+  color: var(--muted);
+}
+
+.status-badge,
+.linked-event-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.45rem;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.status-badge--won,
+.status-badge--paid,
+.status-badge--issued,
+.status-badge--attended {
+  background: rgba(19, 167, 160, 0.14);
+  color: #0f766e;
+}
+
+.status-badge--lost,
+.status-badge--cancelled {
+  background: rgba(180, 35, 24, 0.12);
+  color: #b42318;
+}
+
+.status-badge--waiting_result,
+.status-badge--applied {
+  background: rgba(244, 185, 66, 0.2);
+  color: #8a5a00;
+}
+
+.ticket-application-card__details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.ticket-application-card__details div {
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--soft);
+}
+
+.ticket-application-card__details dt,
+.ticket-application-card__details dd {
+  margin: 0;
+}
+
+.ticket-application-card__details dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.important-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.ticket-warning {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.45rem;
+  background: rgba(244, 185, 66, 0.18);
+  color: #8a5a00;
+  font-weight: 900;
+}
+
+.ticket-warning--overdue {
+  background: rgba(180, 35, 24, 0.12);
+  color: #b42318;
+}
+
+.ticket-application-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.ticket-application-card__actions .icon-button {
+  width: auto;
+}
+
 @media (max-width: 980px) {
   .site-header,
   .hero-panel,
   .filter-bar,
   .ticket-card,
   .event-form,
-  .stat-grid {
+  .stat-grid,
+  .venue-detail-grid,
+  .timeline-year,
+  .timeline-item,
+  .ticket-filter-bar {
     grid-template-columns: 1fr;
   }
 
@@ -634,12 +1274,24 @@ textarea:focus {
     height: 38px;
   }
 
+  .barcode-decoration span {
+    height: 38px;
+  }
+
   .ticket-card__actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .seat-fieldset {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .theme-switcher {
+    justify-content: stretch;
+  }
+
+  .theme-switcher button {
+    flex: 1 1 7rem;
   }
 }
 
@@ -666,7 +1318,9 @@ textarea:focus {
 
   .ticket-card__details,
   .ticket-card__actions,
-  .seat-fieldset {
+  .seat-fieldset,
+  .ticket-application-card__details,
+  .venue-history-list article {
     grid-template-columns: 1fr;
   }
 

@@ -4,6 +4,38 @@ export const STORAGE_KEY = "stagelog-events";
 
 const isBrowser = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
+const normalizeEvent = (event: Partial<EventRecord>): EventRecord => {
+  const now = new Date().toISOString();
+  const seat = event.seat ?? {};
+
+  return {
+    id: event.id ?? crypto.randomUUID(),
+    title: event.title ?? "",
+    artist: event.artist ?? "",
+    date: event.date ?? "",
+    startTime: event.startTime ?? "",
+    venueId: event.venueId ?? "",
+    venueName: event.venueName ?? "",
+    city: event.city ?? "",
+    country: event.country ?? "",
+    ticketType: event.ticketType ?? "",
+    seat: {
+      gate: seat.gate ?? "",
+      level: seat.level ?? "",
+      block: seat.block ?? "",
+      row: seat.row ?? "",
+      number: seat.number ?? "",
+      x: typeof seat.x === "number" ? seat.x : undefined,
+      y: typeof seat.y === "number" ? seat.y : undefined,
+    },
+    imageUrl: event.imageUrl,
+    weather: event.weather,
+    notes: event.notes ?? "",
+    createdAt: event.createdAt ?? now,
+    updatedAt: event.updatedAt ?? event.createdAt ?? now,
+  };
+};
+
 export function getEvents(): EventRecord[] {
   if (!isBrowser()) {
     return [];
@@ -17,7 +49,7 @@ export function getEvents(): EventRecord[] {
 
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as EventRecord[]) : [];
+    return Array.isArray(parsed) ? parsed.map((event) => normalizeEvent(event as Partial<EventRecord>)) : [];
   } catch {
     return [];
   }
