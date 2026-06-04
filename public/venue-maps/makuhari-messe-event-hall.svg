@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Makuhari Messe Event Hall venue map</title>
+  <desc id="desc">Simplified concert seating map for Makuhari Messe Event Hall.</desc>
+  <rect width="720" height="480" fill="#f8f6f1"/>
+  <rect x="94" y="72" width="532" height="336" rx="34" fill="#eadfcf" stroke="#3d352c" stroke-width="8"/>
+  <rect x="146" y="128" width="428" height="232" rx="18" fill="#ffffff" stroke="#8a745f" stroke-width="4"/>
+  <rect x="184" y="164" width="352" height="72" rx="8" fill="#d8c5ad"/>
+  <rect x="184" y="258" width="352" height="62" rx="8" fill="#eee4d8"/>
+  <rect x="250" y="72" width="220" height="74" rx="8" fill="#2f2b28"/>
+  <rect x="278" y="92" width="164" height="34" rx="5" fill="#f1bd62"/>
+  <text x="360" y="116" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#2f2b28">STAGE</text>
+  <g fill="#3d352c" font-family="Arial, sans-serif" font-size="17" text-anchor="middle">
+    <text x="360" y="208">Arena</text>
+    <text x="360" y="298">Stand</text>
+    <text x="126" y="246">Side Stand</text>
+    <text x="594" y="246">Side Stand</text>
+    <text x="360" y="390">Event Hall</text>
+  </g>
+</svg>

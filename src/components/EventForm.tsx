@@ -32,7 +32,7 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
       startTime: editingEvent.startTime,
       venueId: editingEvent.venueId,
       ticketType: editingEvent.ticketType,
-      seat: editingEvent.seat,
+      seat: { ...emptySeat, ...(editingEvent.seat ?? {}) },
       imageUrl: editingEvent.imageUrl,
       notes: editingEvent.notes,
     };

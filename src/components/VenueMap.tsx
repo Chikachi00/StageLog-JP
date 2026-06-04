@@ -7,13 +7,14 @@ interface VenueMapProps {
   venue: Venue;
   events?: EventRecord[];
   event?: EventRecord;
+  highlightedEventId?: string;
   compact?: boolean;
 }
 
 const getEventsWithMarkers = (events: EventRecord[]) =>
-  events.filter((event) => typeof event.seat.x === "number" && typeof event.seat.y === "number");
+  events.filter((event) => typeof event.seat?.x === "number" && typeof event.seat?.y === "number");
 
-export function VenueMap({ venue, events = [], event, compact = false }: VenueMapProps) {
+export function VenueMap({ venue, events = [], event, highlightedEventId, compact = false }: VenueMapProps) {
   const { t } = useTranslation();
   const markerEvents = getEventsWithMarkers(event ? [event] : events);
 
@@ -31,8 +32,9 @@ export function VenueMap({ venue, events = [], event, compact = false }: VenueMa
       {markerEvents.map((markerEvent, index) => (
         <span
           className="venue-map__marker"
+          data-highlighted={highlightedEventId === markerEvent.id ? "true" : undefined}
           key={markerEvent.id}
-          style={{ left: `${markerEvent.seat.x}%`, top: `${markerEvent.seat.y}%` }}
+          style={{ left: `${markerEvent.seat?.x}%`, top: `${markerEvent.seat?.y}%` }}
           title={`${index + 1}. ${markerEvent.title} - ${formatDate(markerEvent.date)}`}
         >
           {compact ? <MapPin size={14} aria-hidden="true" /> : index + 1}

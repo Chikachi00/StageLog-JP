@@ -102,6 +102,7 @@ export const resources = {
         noMarkers: "No saved seat markers for this venue yet.",
         marker: "Marker {{x}} / {{y}}",
         noMarker: "No seat marker",
+        markerSaved: "Seat marker saved.",
       },
       ticketCard: {
         liveArchive: "Live archive",
@@ -389,6 +390,7 @@ export const resources = {
         noMarkers: "这个会场还没有保存座位标记。",
         marker: "标记 {{x}} / {{y}}",
         noMarker: "暂无座位标记",
+        markerSaved: "座位标记已保存。",
       },
       ticketCard: {
         liveArchive: "Live 归档",

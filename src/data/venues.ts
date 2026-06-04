@@ -175,7 +175,9 @@ export const venues: Venue[] = [
     latitude: 35.6435,
     longitude: 139.7949,
     capacity: 15000,
-    supportedSeatMap: false,
+    mapSvg: "/venue-maps/ariake-arena.svg",
+    mapType: "svg",
+    supportedSeatMap: true,
   },
   {
     id: "tokyo-garden-theater",
@@ -204,7 +206,9 @@ export const venues: Venue[] = [
     category: "convention",
     latitude: 35.6477,
     longitude: 140.0345,
-    supportedSeatMap: false,
+    mapSvg: "/venue-maps/makuhari-messe-event-hall.svg",
+    mapType: "svg",
+    supportedSeatMap: true,
   },
   {
     id: "lala-arena-tokyo-bay",
@@ -235,7 +239,9 @@ export const venues: Venue[] = [
     latitude: 35.895,
     longitude: 139.6308,
     capacity: 37000,
-    supportedSeatMap: false,
+    mapSvg: "/venue-maps/saitama-super-arena.svg",
+    mapType: "svg",
+    supportedSeatMap: true,
   },
   {
     id: "yoyogi-national-gymnasium",

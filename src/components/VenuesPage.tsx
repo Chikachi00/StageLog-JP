@@ -88,7 +88,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
     [activeVenue?.id, events],
   );
   const markedEvents = venueEvents.filter(
-    (event) => typeof event.seat.x === "number" && typeof event.seat.y === "number",
+    (event) => typeof event.seat?.x === "number" && typeof event.seat?.y === "number",
   );
 
   if (venues.length === 0) {
@@ -197,7 +197,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                 {venueEvents.map((event, index) => (
                   <article key={event.id}>
                     <span className="marker-number">
-                      {typeof event.seat.x === "number" && typeof event.seat.y === "number" ? index + 1 : "-"}
+                      {typeof event.seat?.x === "number" && typeof event.seat?.y === "number" ? index + 1 : "-"}
                     </span>
                     <div>
                       <strong>{event.title}</strong>
@@ -205,7 +205,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
                         {event.artist} - {formatDate(event.date)}
                       </p>
                       <small>
-                        {typeof event.seat.x === "number" && typeof event.seat.y === "number"
+                        {typeof event.seat?.x === "number" && typeof event.seat?.y === "number"
                           ? t("seat.marker", { x: event.seat.x.toFixed(1), y: event.seat.y.toFixed(1) })
                           : t("seat.noMarker")}
                       </small>

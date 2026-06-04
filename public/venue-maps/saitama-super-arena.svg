@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Saitama Super Arena venue map</title>
+  <desc id="desc">Simplified concert seating map for Saitama Super Arena.</desc>
+  <rect width="720" height="480" fill="#f5f7f9"/>
+  <ellipse cx="360" cy="246" rx="296" ry="178" fill="#dfe5ea" stroke="#263440" stroke-width="8"/>
+  <ellipse cx="360" cy="246" rx="230" ry="126" fill="#ffffff" stroke="#657a8c" stroke-width="4"/>
+  <path d="M156 246a204 112 0 0 1 408 0" fill="none" stroke="#a7bdcf" stroke-width="34" stroke-linecap="round"/>
+  <path d="M156 246a204 112 0 0 0 408 0" fill="none" stroke="#d6e0e8" stroke-width="34" stroke-linecap="round"/>
+  <rect x="250" y="82" width="220" height="74" rx="10" fill="#25313b"/>
+  <rect x="278" y="102" width="164" height="34" rx="6" fill="#f2c45f"/>
+  <text x="360" y="126" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#25313b">STAGE</text>
+  <rect x="278" y="206" width="164" height="82" rx="8" fill="#eef4f8" stroke="#8aa0b4" stroke-width="3"/>
+  <g fill="#263440" font-family="Arial, sans-serif" font-size="17" text-anchor="middle">
+    <text x="360" y="252">Arena</text>
+    <text x="360" y="96">Main Stage</text>
+    <text x="118" y="252">Lower</text>
+    <text x="602" y="252">Lower</text>
+    <text x="360" y="404">Upper Stand</text>
+  </g>
+</svg>

@@ -18,12 +18,13 @@ interface TicketCardProps {
 
 const compactSeat = (event: EventRecord) => {
   // Kept for fallback in places where translation is not available.
+  const seat = event.seat ?? {};
   const parts = [
-    event.seat.gate ? `Gate ${event.seat.gate}` : "",
-    event.seat.level,
-    event.seat.block ? `Block ${event.seat.block}` : "",
-    event.seat.row ? `Row ${event.seat.row}` : "",
-    event.seat.number ? `Seat ${event.seat.number}` : "",
+    seat.gate ? `Gate ${seat.gate}` : "",
+    seat.level,
+    seat.block ? `Block ${seat.block}` : "",
+    seat.row ? `Row ${seat.row}` : "",
+    seat.number ? `Seat ${seat.number}` : "",
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(" / ") : "Seat not recorded";
@@ -40,14 +41,15 @@ export function TicketCard({
   onViewVenueMap,
 }: TicketCardProps) {
   const { t } = useTranslation();
+  const seat = event.seat ?? {};
   const notesPreview =
     event.notes.length > 110 ? `${event.notes.slice(0, 110).trim()}...` : event.notes;
   const seatParts = [
-    event.seat.gate ? t("seat.gatePrefix", { value: event.seat.gate }) : "",
-    event.seat.level,
-    event.seat.block ? t("seat.blockPrefix", { value: event.seat.block }) : "",
-    event.seat.row ? t("seat.rowPrefix", { value: event.seat.row }) : "",
-    event.seat.number ? t("seat.seatPrefix", { value: event.seat.number }) : "",
+    seat.gate ? t("seat.gatePrefix", { value: seat.gate }) : "",
+    seat.level,
+    seat.block ? t("seat.blockPrefix", { value: seat.block }) : "",
+    seat.row ? t("seat.rowPrefix", { value: seat.row }) : "",
+    seat.number ? t("seat.seatPrefix", { value: seat.number }) : "",
   ].filter(Boolean);
   const seatLabel = seatParts.length > 0 ? seatParts.join(" / ") : t("seat.notRecorded");
   const weatherSummary = event.weather
@@ -93,7 +95,7 @@ export function TicketCard({
         )}
 
         {notesPreview ? <p className="ticket-card__notes">{notesPreview}</p> : null}
-        {hasSeatMap && typeof event.seat.x === "number" && typeof event.seat.y === "number" ? (
+        {hasSeatMap && typeof seat.x === "number" && typeof seat.y === "number" ? (
           <div className="seat-saved-pill">
             <MapPinned size={16} aria-hidden="true" />
             <span>{t("seat.saved")}</span>

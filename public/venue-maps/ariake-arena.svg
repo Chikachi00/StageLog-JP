@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Ariake Arena venue map</title>
+  <desc id="desc">Simplified concert seating map for Ariake Arena.</desc>
+  <rect width="720" height="480" fill="#f6f8fb"/>
+  <rect x="92" y="62" width="536" height="356" rx="72" fill="#dfeaf4" stroke="#24384b" stroke-width="8"/>
+  <rect x="154" y="122" width="412" height="248" rx="46" fill="#ffffff" stroke="#55718e" stroke-width="4"/>
+  <path d="M180 154h360v50H180z" fill="#b7cde1"/>
+  <path d="M180 222h360v58H180z" fill="#d2e0ee"/>
+  <path d="M180 304h360v42H180z" fill="#e7eff7"/>
+  <rect x="244" y="64" width="232" height="72" rx="10" fill="#26313f"/>
+  <rect x="272" y="84" width="176" height="34" rx="6" fill="#f4c766"/>
+  <text x="360" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#26313f">STAGE</text>
+  <g fill="#24384b" font-family="Arial, sans-serif" font-size="17" text-anchor="middle">
+    <text x="360" y="188">Arena Floor</text>
+    <text x="360" y="258">Lower Stand</text>
+    <text x="360" y="334">Upper Stand</text>
+    <text x="126" y="250">East</text>
+    <text x="594" y="250">West</text>
+  </g>
+</svg>

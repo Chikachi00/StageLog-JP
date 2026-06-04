@@ -15,7 +15,17 @@ export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
   const { t } = useTranslation();
 
   if (!venue.supportedSeatMap || !venue.mapSvg) {
-    return null;
+    return (
+      <div className="seat-picker seat-picker--empty">
+        <div className="seat-picker__heading">
+          <div>
+            <span className="eyebrow">{t("seat.map")}</span>
+            <strong>{venue.name}</strong>
+          </div>
+        </div>
+        <p>{t("seat.unsupported")}</p>
+      </div>
+    );
   }
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -59,7 +69,7 @@ export function SeatPicker({ venue, seat, onChange }: SeatPickerProps) {
         ) : null}
       </button>
       <p className="seat-picker__hint">
-        {t("seat.hint")}
+        {hasMarker ? t("seat.markerSaved") : t("seat.hint")}
       </p>
     </div>
   );

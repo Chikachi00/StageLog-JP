@@ -33,6 +33,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 ### V3 Venue Seat Maps
 
 - Simplified SVG venue maps for Tokyo Dome, Belluna Dome, and K-Arena Yokohama
+- Seat map support now also includes Ariake Arena, Makuhari Messe Event Hall, and Saitama Super Arena
 - Venue metadata supports `mapSvg`, `mapType`, and `supportedSeatMap`
 - Manual seat position picker with percentage-based x/y coordinates
 - Event seat markers on venue maps
@@ -128,6 +129,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 ### V3 座位图版
 
 - 为 Tokyo Dome、Belluna Dome、K-Arena Yokohama 提供简化 SVG 会场图
+- 座位图支持扩展到 Ariake Arena、Makuhari Messe Event Hall 和 Saitama Super Arena
 - Venue 数据支持 `mapSvg`、`mapType`、`supportedSeatMap`
 - EventForm 中支持手动点击地图保存座位百分比坐标
 - 会场地图显示单个或多个参战位置 marker

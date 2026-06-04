@@ -893,6 +893,18 @@ textarea:focus {
   box-shadow: 0 8px 18px rgba(31, 41, 51, 0.22);
 }
 
+.venue-map__marker[data-highlighted="true"] {
+  background: #e85d75;
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.seat-picker--empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .seat-picker__hint {
   margin: 0;
   color: var(--muted);
