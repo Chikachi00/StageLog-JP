@@ -52,6 +52,18 @@ const setLocalLanguage = (language: AppLanguage) => {
   }
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 export function UserSettingsProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
   const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
@@ -107,7 +119,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
       applyTheme(nextProfile.theme);
       applyLanguage(nextProfile.language);
     } catch (error) {
-      setProfileError(error instanceof Error ? error.message : "Failed to load profile.");
+      setProfileError(getErrorMessage(error, "Failed to load profile."));
     } finally {
       setProfileLoading(false);
     }
@@ -123,15 +135,19 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
 
       if (user && isSupabaseConfigured) {
         try {
-          const updatedProfile = await updateProfile(user.id, { theme: nextTheme });
+          const updatedProfile = await updateProfile(user.id, {
+            email: user.email ?? profile?.email,
+            language,
+            theme: nextTheme,
+          });
           setProfile(updatedProfile);
           setProfileError("");
         } catch (error) {
-          setProfileError(error instanceof Error ? error.message : "Failed to save profile.");
+          setProfileError(getErrorMessage(error, "Failed to save profile."));
         }
       }
     },
-    [applyTheme, isSupabaseConfigured, user],
+    [applyTheme, isSupabaseConfigured, language, profile?.email, user],
   );
 
   const updateLanguageSetting = useCallback(
@@ -140,15 +156,19 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
 
       if (user && isSupabaseConfigured) {
         try {
-          const updatedProfile = await updateProfile(user.id, { language: nextLanguage });
+          const updatedProfile = await updateProfile(user.id, {
+            email: user.email ?? profile?.email,
+            language: nextLanguage,
+            theme,
+          });
           setProfile(updatedProfile);
           setProfileError("");
         } catch (error) {
-          setProfileError(error instanceof Error ? error.message : "Failed to save profile.");
+          setProfileError(getErrorMessage(error, "Failed to save profile."));
         }
       }
     },
-    [applyLanguage, isSupabaseConfigured, user],
+    [applyLanguage, isSupabaseConfigured, profile?.email, theme, user],
   );
 
   const saveProfile = useCallback(
@@ -160,11 +180,13 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
       const updatedProfile = await updateProfile(user.id, {
         ...updates,
         email: user.email ?? profile?.email,
+        language,
+        theme,
       });
       setProfile(updatedProfile);
       setProfileError("");
     },
-    [isSupabaseConfigured, profile?.email, user],
+    [isSupabaseConfigured, language, profile?.email, theme, user],
   );
 
   const value = useMemo<UserSettingsContextValue>(
