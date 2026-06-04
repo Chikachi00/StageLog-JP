@@ -164,10 +164,6 @@ export function EventForm({
         y: values.seat.y,
       },
     });
-
-    if (!editingEvent) {
-      setValues(createInitialValues(venues));
-    }
   };
 
   return (

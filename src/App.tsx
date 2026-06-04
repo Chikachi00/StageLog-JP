@@ -131,12 +131,33 @@ const getTicketImportKey = (application: TicketApplication) =>
     .join("::")
     .toLocaleLowerCase();
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const details = [
+      "message" in error && typeof error.message === "string" ? error.message : "",
+      "details" in error && typeof error.details === "string" ? error.details : "",
+      "hint" in error && typeof error.hint === "string" ? error.hint : "",
+      "code" in error && typeof error.code === "string" ? `(${error.code})` : "",
+    ].filter(Boolean);
+
+    if (details.length > 0) {
+      return details.join(" ");
+    }
+  }
+
+  return fallback;
+};
+
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
   const { theme, updateThemeSetting } = useUserSettings();
   const isCloudMode = Boolean(user && isSupabaseConfigured);
-  const [events, setEvents] = useState<EventRecord[]>(() => sortByDateDesc(getLocalEvents()));
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
     getTicketApplications(),
   );
@@ -185,6 +206,38 @@ function App() {
     });
   }, [events, filters]);
 
+  const getSaveFailureMessage = useCallback(
+    (error: unknown) => {
+      const message = getErrorMessage(error, t("auth.failedSaveEvent"));
+      console.error("Failed to save event", error);
+      return `${t("auth.failedSaveEvent")} ${message}`;
+    },
+    [t],
+  );
+
+  const validateEventValues = useCallback(
+    (values: EventFormValues) => {
+      if (!values.title.trim()) {
+        return t("eventForm.titleRequired");
+      }
+
+      if (!values.artist.trim()) {
+        return t("eventForm.artistRequired");
+      }
+
+      if (!values.date.trim()) {
+        return t("eventForm.dateRequired");
+      }
+
+      if (!values.venueId.trim() || !getVenueById(values.venueId)) {
+        return t("eventForm.venueRequired");
+      }
+
+      return "";
+    },
+    [t],
+  );
+
   const refreshEvents = useCallback(async () => {
     setLocalEventCount(getLocalEvents().length);
 
@@ -217,8 +270,10 @@ function App() {
         }),
       );
       setEvents(sortByDateDesc(eventsWithImages));
-    } catch {
-      setCloudError(t("auth.failedLoadCloudEvents"));
+    } catch (error) {
+      const message = getErrorMessage(error, t("auth.failedLoadCloudEvents"));
+      console.error("Failed to load cloud events", error);
+      setCloudError(`${t("auth.failedLoadCloudEvents")} ${message}`);
       setEvents([]);
     } finally {
       setEventsLoading(false);
@@ -277,6 +332,13 @@ function App() {
     setIsSavingEvent(true);
 
     try {
+      const validationError = validateEventValues(values);
+
+      if (validationError) {
+        setNotice(validationError);
+        return;
+      }
+
       const record = createRecord(values, editingEvent);
 
       if (isCloudMode && user) {
@@ -334,7 +396,7 @@ function App() {
       await refreshEvents();
       setActiveView("events");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      setNotice(getSaveFailureMessage(error));
     } finally {
       setIsSavingEvent(false);
     }
@@ -400,7 +462,7 @@ function App() {
         deleteLocalEvent(id);
       }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      setNotice(getSaveFailureMessage(error));
       return;
     }
 
@@ -494,7 +556,7 @@ function App() {
       setFilters(defaultFilters);
       setNotice(t("notice.sampleLoaded"));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      setNotice(getSaveFailureMessage(error));
     }
   };
 
@@ -534,7 +596,7 @@ function App() {
       setLocalEventCount(getLocalEvents().length);
       setNotice(t("auth.importedEvents", { count: eventsToImport.length }));
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      setNotice(getSaveFailureMessage(error));
     } finally {
       setIsImportingLocalEvents(false);
     }
@@ -610,7 +672,7 @@ function App() {
         addLocalEvent(record);
       }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : t("auth.failedSaveEvent"));
+      setNotice(getSaveFailureMessage(error));
       return;
     }
 
@@ -669,6 +731,8 @@ function App() {
       setIsImportingLocalTickets(false);
     }
   };
+
+  const isEventsResolving = authLoading || eventsLoading;
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -746,17 +810,24 @@ function App() {
               onChange={setFilters}
               onClear={() => setFilters(defaultFilters)}
             />
-            <EventList
-              events={filteredEvents}
-              fetchingWeatherId={fetchingWeatherId}
-              isCompletelyEmpty={events.length === 0}
-              weatherErrors={weatherErrors}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onFetchWeather={handleFetchWeather}
-              onLoadSampleData={handleLoadSampleData}
-              onViewVenueMap={handleViewVenueMap}
-            />
+            {isEventsResolving ? (
+              <section className="empty-state">
+                <h2>{t("auth.loadingCloudEvents")}</h2>
+                <p>{isCloudMode ? t("auth.cloudModeDescription") : t("auth.localModeDescription")}</p>
+              </section>
+            ) : (
+              <EventList
+                events={filteredEvents}
+                fetchingWeatherId={fetchingWeatherId}
+                isCompletelyEmpty={events.length === 0}
+                weatherErrors={weatherErrors}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onFetchWeather={handleFetchWeather}
+                onLoadSampleData={handleLoadSampleData}
+                onViewVenueMap={handleViewVenueMap}
+              />
+            )}
           </>
         ) : null}
 

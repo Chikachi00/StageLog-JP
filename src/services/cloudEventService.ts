@@ -24,12 +24,64 @@ interface CloudEventRow {
   updated_at: string | null;
 }
 
+type CloudJson = SeatInfo | WeatherInfo | Record<string, never>;
+
+type CloudEventPayload = Omit<CloudEventRow, "id" | "seat" | "weather"> & {
+  id?: string;
+  seat: CloudJson;
+  weather: CloudJson;
+};
+
 const requireSupabase = () => {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
   return supabase;
+};
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const isUuid = (value: string | undefined) => Boolean(value && uuidPattern.test(value));
+
+const cleanOptionalString = (value: string | null | undefined) => {
+  const nextValue = value?.trim();
+  return nextValue ? nextValue : null;
+};
+
+const cleanRequiredString = (value: string | null | undefined, fieldName: string) => {
+  const nextValue = value?.trim();
+
+  if (!nextValue) {
+    throw new Error(`${fieldName} is required.`);
+  }
+
+  return nextValue;
+};
+
+const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const details = [
+      "message" in error && typeof error.message === "string" ? error.message : "",
+      "details" in error && typeof error.details === "string" ? error.details : "",
+      "hint" in error && typeof error.hint === "string" ? error.hint : "",
+      "code" in error && typeof error.code === "string" ? `(${error.code})` : "",
+    ].filter(Boolean);
+
+    if (details.length > 0) {
+      return details.join(" ");
+    }
+  }
+
+  return fallback;
+};
+
+const throwSupabaseError = (error: unknown, fallback: string): never => {
+  throw new Error(getSupabaseErrorMessage(error, fallback));
 };
 
 const normalizeSeat = (seat: SeatInfo | null | undefined): SeatInfo => ({
@@ -44,32 +96,58 @@ const normalizeSeat = (seat: SeatInfo | null | undefined): SeatInfo => ({
   y: typeof seat?.y === "number" ? seat.y : undefined,
 });
 
-export const toCloudEventRow = (event: EventRecord, userId: string): CloudEventRow => ({
-  id: event.id,
-  user_id: userId,
-  title: event.title,
-  artist: event.artist,
-  date: event.date,
-  start_time: event.startTime,
-  venue_id: event.venueId,
-  venue_name: event.venueName,
-  city: event.city,
-  country: event.country,
-  ticket_type: event.ticketType,
-  seat: normalizeSeat(event.seat),
-  weather: event.weather ?? null,
-  notes: event.notes,
-  image_url:
-    !event.imagePath &&
-    event.imageUrl &&
-    !event.imageUrl.startsWith("data:") &&
-    !event.imageUrl.startsWith("blob:")
-      ? event.imageUrl
-      : null,
-  image_path: event.imagePath ?? null,
-  created_at: event.createdAt,
-  updated_at: event.updatedAt,
-});
+export const toCloudEventRow = (
+  event: EventRecord,
+  userId: string,
+  options: { includeId?: boolean } = {},
+): CloudEventPayload => {
+  const payload: CloudEventPayload = {
+    user_id: userId,
+    title: cleanRequiredString(event.title, "title"),
+    artist: cleanRequiredString(event.artist, "artist"),
+    date: cleanRequiredString(event.date, "date"),
+    start_time: cleanOptionalString(event.startTime),
+    venue_id: cleanRequiredString(event.venueId, "venue_id"),
+    venue_name: cleanRequiredString(event.venueName, "venue_name"),
+    city: cleanOptionalString(event.city),
+    country: cleanOptionalString(event.country),
+    ticket_type: cleanOptionalString(event.ticketType),
+    seat: event.seat ? normalizeSeat(event.seat) : {},
+    weather: event.weather ?? {},
+    notes: cleanOptionalString(event.notes),
+    image_url:
+      !event.imagePath &&
+      event.imageUrl &&
+      !event.imageUrl.startsWith("data:") &&
+      !event.imageUrl.startsWith("blob:")
+        ? cleanOptionalString(event.imageUrl)
+        : null,
+    image_path: cleanOptionalString(event.imagePath),
+    created_at: event.createdAt,
+    updated_at: event.updatedAt,
+  };
+
+  if (options.includeId && isUuid(event.id)) {
+    payload.id = event.id;
+  }
+
+  return payload;
+};
+
+const isWeatherInfo = (weather: unknown): weather is WeatherInfo => {
+  if (!weather || typeof weather !== "object") {
+    return false;
+  }
+
+  const candidate = weather as Partial<WeatherInfo>;
+  return (
+    typeof candidate.temperature === "number" &&
+    typeof candidate.precipitation === "number" &&
+    typeof candidate.windSpeed === "number" &&
+    typeof candidate.weatherCode === "number" &&
+    typeof candidate.fetchedAt === "string"
+  );
+};
 
 export const fromCloudEventRow = (row: CloudEventRow): EventRecord => {
   const now = new Date().toISOString();
@@ -86,7 +164,7 @@ export const fromCloudEventRow = (row: CloudEventRow): EventRecord => {
     country: row.country ?? "",
     ticketType: row.ticket_type ?? "",
     seat: normalizeSeat(row.seat),
-    weather: row.weather ?? undefined,
+    weather: isWeatherInfo(row.weather) ? row.weather : undefined,
     notes: row.notes ?? "",
     imageUrl: row.image_url ?? undefined,
     imagePath: row.image_path ?? undefined,
@@ -105,7 +183,7 @@ export async function getCloudEvents(userId: string): Promise<EventRecord[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to load cloud events.");
   }
 
   return ((data ?? []) as CloudEventRow[]).map(fromCloudEventRow);
@@ -115,12 +193,12 @@ export async function addCloudEvent(event: EventRecord, userId: string): Promise
   const client = requireSupabase();
   const { data, error } = await client
     .from(TABLE_NAME)
-    .insert(toCloudEventRow(event, userId))
+    .insert(toCloudEventRow(event, userId, { includeId: false }))
     .select()
     .single();
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to save event.");
   }
 
   return fromCloudEventRow(data as CloudEventRow);
@@ -130,14 +208,14 @@ export async function updateCloudEvent(event: EventRecord, userId: string): Prom
   const client = requireSupabase();
   const { data, error } = await client
     .from(TABLE_NAME)
-    .update(toCloudEventRow(event, userId))
+    .update(toCloudEventRow(event, userId, { includeId: false }))
     .eq("id", event.id)
     .eq("user_id", userId)
     .select()
     .single();
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to save event.");
   }
 
   return fromCloudEventRow(data as CloudEventRow);
@@ -152,6 +230,6 @@ export async function deleteCloudEvent(id: string, userId: string): Promise<void
     .eq("user_id", userId);
 
   if (error) {
-    throw error;
+    throwSupabaseError(error, "Failed to delete event.");
   }
 }
