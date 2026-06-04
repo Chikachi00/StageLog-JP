@@ -1,8 +1,15 @@
-import { MapPinned, Pencil } from "lucide-react";
+import { MapPinned, Pencil, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { venues } from "../data/venues";
-import type { EventRecord } from "../types/event";
+import {
+  compareVenues,
+  getVenueRegion,
+  venueCategoryOrder,
+  venueMatchesSearch,
+  venueRegionOrder,
+  venues,
+} from "../data/venues";
+import type { EventRecord, Venue } from "../types/event";
 import { formatDate, sortByDateDesc } from "../utils/dateUtils";
 import { VenueMap } from "./VenueMap";
 
@@ -12,10 +19,15 @@ interface VenuesPageProps {
   onEdit: (event: EventRecord) => void;
 }
 
+const isVenueCategory = (category: Venue["category"]): category is NonNullable<Venue["category"]> =>
+  Boolean(category);
+
 export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps) {
   const { t } = useTranslation();
-  const supportedVenues = venues.filter((venue) => venue.supportedSeatMap);
-  const [activeVenueId, setActiveVenueId] = useState(selectedVenueId ?? supportedVenues[0]?.id ?? "");
+  const [activeVenueId, setActiveVenueId] = useState(selectedVenueId ?? venues[0]?.id ?? "");
+  const [search, setSearch] = useState("");
+  const [regionFilter, setRegionFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   useEffect(() => {
     if (selectedVenueId) {
@@ -23,7 +35,54 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
     }
   }, [selectedVenueId]);
 
-  const activeVenue = supportedVenues.find((venue) => venue.id === activeVenueId) ?? supportedVenues[0];
+  const regionOptions = useMemo(
+    () =>
+      Array.from(new Set(venues.map(getVenueRegion))).sort((first, second) => {
+        const firstIndex = venueRegionOrder.indexOf(first);
+        const secondIndex = venueRegionOrder.indexOf(second);
+        const normalizedFirst = firstIndex === -1 ? Number.POSITIVE_INFINITY : firstIndex;
+        const normalizedSecond = secondIndex === -1 ? Number.POSITIVE_INFINITY : secondIndex;
+        return normalizedFirst === normalizedSecond ? first.localeCompare(second) : normalizedFirst - normalizedSecond;
+      }),
+    [],
+  );
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(new Set(venues.map((venue) => venue.category).filter(isVenueCategory))).sort(
+        (first, second) =>
+          venueCategoryOrder.indexOf(first) - venueCategoryOrder.indexOf(second),
+      ),
+    [],
+  );
+  const attendanceCounts = useMemo(
+    () =>
+      events.reduce<Record<string, number>>((counts, event) => {
+        counts[event.venueId] = (counts[event.venueId] ?? 0) + 1;
+        return counts;
+      }, {}),
+    [events],
+  );
+  const filteredVenues = useMemo(
+    () =>
+      venues
+        .filter((venue) => regionFilter === "all" || getVenueRegion(venue) === regionFilter)
+        .filter((venue) => categoryFilter === "all" || venue.category === categoryFilter)
+        .filter((venue) => venueMatchesSearch(venue, search))
+        .sort(compareVenues),
+    [categoryFilter, regionFilter, search],
+  );
+
+  useEffect(() => {
+    if (filteredVenues.length > 0 && !filteredVenues.some((venue) => venue.id === activeVenueId)) {
+      setActiveVenueId(filteredVenues[0].id);
+    }
+  }, [activeVenueId, filteredVenues]);
+
+  const activeVenue =
+    filteredVenues.find((venue) => venue.id === activeVenueId) ??
+    venues.find((venue) => venue.id === activeVenueId) ??
+    filteredVenues[0] ??
+    venues[0];
   const venueEvents = useMemo(
     () => sortByDateDesc(events.filter((event) => event.venueId === activeVenue?.id)),
     [activeVenue?.id, events],
@@ -32,7 +91,7 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
     (event) => typeof event.seat.x === "number" && typeof event.seat.y === "number",
   );
 
-  if (!activeVenue) {
+  if (venues.length === 0) {
     return (
       <section className="empty-state">
         <MapPinned size={28} aria-hidden="true" />
@@ -49,11 +108,49 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
           <span className="eyebrow">{t("venues.eyebrow")}</span>
           <h2>{t("venues.title")}</h2>
         </div>
+        <span className="venue-count-summary">
+          {t("venues.venueCount", { count: filteredVenues.length, total: venues.length })}
+        </span>
+      </div>
+
+      <div className="venue-filters">
+        <label className="search-field">
+          <Search size={17} aria-hidden="true" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("venues.searchPlaceholder")}
+          />
+        </label>
+
+        <label>
+          {t("venues.region")}
+          <select value={regionFilter} onChange={(event) => setRegionFilter(event.target.value)}>
+            <option value="all">{t("venues.allRegions")}</option>
+            {regionOptions.map((region) => (
+              <option key={region} value={region}>
+                {region}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          {t("venues.category")}
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+            <option value="all">{t("venues.allCategories")}</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>
+                {t(`venues.categories.${category}`)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="venue-tabs">
-        {supportedVenues.map((venue) => {
-          const count = events.filter((event) => event.venueId === venue.id).length;
+        {filteredVenues.map((venue) => {
+          const count = attendanceCounts[venue.id] ?? 0;
 
           return (
             <button
@@ -62,60 +159,77 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
               type="button"
               onClick={() => setActiveVenueId(venue.id)}
             >
-              {venue.name}
-              <span>{count}</span>
+              <strong>{venue.name}</strong>
+              {venue.nameJa ? <small>{venue.nameJa}</small> : null}
+              <small>{[venue.city, venue.prefecture].filter(Boolean).join(" / ")}</small>
+              <span className="venue-tab-badges">
+                <span className="venue-tag">{venue.category ? t(`venues.categories.${venue.category}`) : t("venues.categories.other")}</span>
+                <span className="venue-tag">{venue.supportedSeatMap ? t("venues.seatMapSupported") : t("venues.seatMapUnsupported")}</span>
+                <span className="venue-tab-count">{count}</span>
+              </span>
             </button>
           );
         })}
       </div>
 
-      <div className="venue-detail-grid">
-        <section className="venue-map-panel">
-          <div className="venue-map-panel__heading">
-            <div>
-              <h3>{activeVenue.name}</h3>
-              <p>
-                {t("venues.eventRecords", { count: venueEvents.length })} / {t("venues.seatMarkers", { count: markedEvents.length })}
-              </p>
+      {filteredVenues.length > 0 && activeVenue ? (
+        <div className="venue-detail-grid">
+          <section className="venue-map-panel">
+            <div className="venue-map-panel__heading">
+              <div>
+                <h3>{activeVenue.name}</h3>
+                {activeVenue.nameJa ? <p>{activeVenue.nameJa}</p> : null}
+                <p>
+                  {[activeVenue.city, activeVenue.prefecture, getVenueRegion(activeVenue)].filter(Boolean).join(" / ")}
+                </p>
+                <p>
+                  {t("venues.eventRecords", { count: venueEvents.length })} / {t("venues.seatMarkers", { count: markedEvents.length })}
+                </p>
+              </div>
             </div>
-          </div>
-          <VenueMap venue={activeVenue} events={markedEvents} />
-        </section>
+            <VenueMap venue={activeVenue} events={markedEvents} />
+          </section>
 
-        <section className="venue-history">
-          <h3>{t("venues.history")}</h3>
-          {venueEvents.length > 0 ? (
-            <div className="venue-history-list">
-              {venueEvents.map((event, index) => (
-                <article key={event.id}>
-                  <span className="marker-number">
-                    {typeof event.seat.x === "number" && typeof event.seat.y === "number" ? index + 1 : "-"}
-                  </span>
-                  <div>
-                    <strong>{event.title}</strong>
-                    <p>
-                      {event.artist} - {formatDate(event.date)}
-                    </p>
-                    <small>
-                      {typeof event.seat.x === "number" && typeof event.seat.y === "number"
-                        ? t("seat.marker", { x: event.seat.x.toFixed(1), y: event.seat.y.toFixed(1) })
-                        : t("seat.noMarker")}
-                    </small>
-                  </div>
-                  <button className="icon-button" type="button" onClick={() => onEdit(event)}>
-                    <Pencil size={16} aria-hidden="true" />
-                    {t("common.edit")}
-                  </button>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state empty-state--compact">
-              <p>{t("venues.noEvents")}</p>
-            </div>
-          )}
+          <section className="venue-history">
+            <h3>{t("venues.history")}</h3>
+            {venueEvents.length > 0 ? (
+              <div className="venue-history-list">
+                {venueEvents.map((event, index) => (
+                  <article key={event.id}>
+                    <span className="marker-number">
+                      {typeof event.seat.x === "number" && typeof event.seat.y === "number" ? index + 1 : "-"}
+                    </span>
+                    <div>
+                      <strong>{event.title}</strong>
+                      <p>
+                        {event.artist} - {formatDate(event.date)}
+                      </p>
+                      <small>
+                        {typeof event.seat.x === "number" && typeof event.seat.y === "number"
+                          ? t("seat.marker", { x: event.seat.x.toFixed(1), y: event.seat.y.toFixed(1) })
+                          : t("seat.noMarker")}
+                      </small>
+                    </div>
+                    <button className="icon-button" type="button" onClick={() => onEdit(event)}>
+                      <Pencil size={16} aria-hidden="true" />
+                      {t("common.edit")}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state empty-state--compact">
+                <p>{t("venues.noEvents")}</p>
+              </div>
+            )}
+          </section>
+        </div>
+      ) : (
+        <section className="empty-state empty-state--compact">
+          <MapPinned size={24} aria-hidden="true" />
+          <p>{t("venues.noMatchingVenues")}</p>
         </section>
-      </div>
+      )}
     </section>
   );
 }

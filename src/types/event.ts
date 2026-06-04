@@ -5,6 +5,13 @@ export interface Venue {
   country: string;
   latitude: number;
   longitude: number;
+  nameJa?: string;
+  nameZh?: string;
+  aliases?: string[];
+  prefecture?: string;
+  region?: string;
+  category?: "dome" | "arena" | "hall" | "livehouse" | "convention" | "stadium" | "theater" | "other";
+  capacity?: number;
   mapSvg?: string;
   mapType?: "svg" | "simple";
   supportedSeatMap?: boolean;

@@ -213,6 +213,7 @@ button:disabled {
 
 .filter-bar,
 .event-form,
+.venue-filters,
 .stat-grid {
   display: grid;
   gap: 0.85rem;
@@ -222,6 +223,16 @@ button:disabled {
   grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(150px, 0.7fr)) auto;
   align-items: end;
   margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.venue-filters {
+  grid-template-columns: minmax(220px, 1.1fr) repeat(2, minmax(160px, 0.55fr));
+  align-items: end;
+  margin-bottom: 1rem;
   padding: 1rem;
   border: 1px solid var(--line);
   border-radius: 0.5rem;
@@ -969,6 +980,10 @@ textarea:focus {
   gap: 0.5rem;
 }
 
+.venue-tabs {
+  margin-bottom: 1rem;
+}
+
 .venue-tabs button,
 .ticket-status-tabs button {
   display: inline-flex;
@@ -990,12 +1005,64 @@ textarea:focus {
   color: #fff;
 }
 
-.venue-tabs span {
+.venue-tabs button {
+  align-items: flex-start;
+  flex: 1 1 230px;
+  flex-direction: column;
+  max-width: 310px;
+  text-align: left;
+}
+
+.venue-tabs button small {
+  color: currentColor;
+  font-size: 0.74rem;
+  opacity: 0.72;
+}
+
+.venue-count-summary {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.venue-tabs .venue-tab-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: auto;
+  height: auto;
+  margin-top: 0.1rem;
+  border-radius: 0;
+  background: transparent;
+}
+
+.venue-tabs .venue-tag {
+  display: inline-flex;
+  width: auto;
+  min-width: auto;
+  height: auto;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(19, 167, 160, 0.12);
+  color: currentColor;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.venue-tabs button.is-active .venue-tag {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.venue-tabs .venue-tab-count {
   display: inline-grid;
   min-width: 1.35rem;
   height: 1.35rem;
   place-items: center;
   border-radius: 50%;
+  background: rgba(19, 167, 160, 0.14);
+}
+
+.venue-tabs button.is-active .venue-tab-count {
   background: rgba(255, 255, 255, 0.35);
 }
 
@@ -1247,6 +1314,7 @@ textarea:focus {
   .site-header,
   .hero-panel,
   .filter-bar,
+  .venue-filters,
   .ticket-card,
   .event-form,
   .stat-grid,

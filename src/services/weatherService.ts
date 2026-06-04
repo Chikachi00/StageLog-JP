@@ -43,6 +43,10 @@ export async function fetchWeatherForEvent(
     throw new Error("Venue is required to fetch weather.");
   }
 
+  if (!Number.isFinite(venue.latitude) || !Number.isFinite(venue.longitude)) {
+    throw new Error("Venue coordinates are required to fetch weather.");
+  }
+
   if (isFutureDate(event.date)) {
     throw new Error(WEATHER_UNAVAILABLE_MESSAGE);
   }

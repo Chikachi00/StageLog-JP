@@ -2,6 +2,7 @@ import { Save, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { groupVenuesByRegion } from "../data/venues";
 import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
 import { SeatPicker } from "./SeatPicker";
 
@@ -54,6 +55,7 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
   const { t } = useTranslation();
   const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
   const [imageError, setImageError] = useState("");
+  const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
 
   useEffect(() => {
     setValues(createInitialValues(venues, editingEvent));
@@ -201,10 +203,14 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
             value={values.venueId}
             onChange={(event) => updateValue("venueId", event.target.value)}
           >
-            {venues.map((venue) => (
-              <option key={venue.id} value={venue.id}>
-                {venue.name}
-              </option>
+            {venueGroups.map((group) => (
+              <optgroup key={group.region} label={group.region}>
+                {group.venues.map((venue) => (
+                  <option key={venue.id} value={venue.id}>
+                    {venue.nameJa && venue.nameJa !== venue.name ? `${venue.name} / ${venue.nameJa}` : venue.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>
@@ -220,7 +226,13 @@ export function EventForm({ venues, editingEvent, onSave, onCancelEditing }: Eve
 
         <div className="venue-readout">
           <span>{t("eventForm.venueDetails")}</span>
-          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : t("eventForm.selectVenue")}</strong>
+          <strong>
+            {selectedVenue
+              ? `${selectedVenue.city}, ${selectedVenue.prefecture ?? selectedVenue.country} · ${
+                  selectedVenue.category ? t(`venues.categories.${selectedVenue.category}`) : t("venues.categories.other")
+                }`
+              : t("eventForm.selectVenue")}
+          </strong>
         </div>
 
         <fieldset className="seat-fieldset">

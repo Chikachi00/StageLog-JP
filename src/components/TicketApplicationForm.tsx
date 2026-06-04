@@ -2,6 +2,7 @@ import { Save, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { groupVenuesByRegion } from "../data/venues";
 import type { Venue } from "../types/event";
 import type { TicketApplication, TicketApplicationFormValues } from "../types/ticket";
 import { platformOptions, statusOptions } from "../utils/ticketUtils";
@@ -45,6 +46,7 @@ export function TicketApplicationForm({
     createInitialValues(editingApplication),
   );
   const [error, setError] = useState("");
+  const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
 
   useEffect(() => {
     setValues(createInitialValues(editingApplication));
@@ -128,10 +130,14 @@ export function TicketApplicationForm({
           {t("tickets.venue")}
           <select value={values.venueId} onChange={(event) => updateValue("venueId", event.target.value)}>
             <option value="">{t("tickets.noVenue")}</option>
-            {venues.map((venue) => (
-              <option key={venue.id} value={venue.id}>
-                {venue.name}
-              </option>
+            {venueGroups.map((group) => (
+              <optgroup key={group.region} label={group.region}>
+                {group.venues.map((venue) => (
+                  <option key={venue.id} value={venue.id}>
+                    {venue.nameJa && venue.nameJa !== venue.name ? `${venue.name} / ${venue.nameJa}` : venue.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>
@@ -197,7 +203,13 @@ export function TicketApplicationForm({
         </label>
         <div className="venue-readout">
           <span>{t("eventForm.venueDetails")}</span>
-          <strong>{selectedVenue ? `${selectedVenue.city}, ${selectedVenue.country}` : t("common.optional")}</strong>
+          <strong>
+            {selectedVenue
+              ? `${selectedVenue.city}, ${selectedVenue.prefecture ?? selectedVenue.country} · ${
+                  selectedVenue.category ? t(`venues.categories.${selectedVenue.category}`) : t("venues.categories.other")
+                }`
+              : t("common.optional")}
+          </strong>
         </div>
         <label className="event-form__wide">
           {t("tickets.memo")}

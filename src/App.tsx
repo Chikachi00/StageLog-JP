@@ -10,7 +10,7 @@ import { TicketManager } from "./components/TicketManager";
 import { Timeline } from "./components/Timeline";
 import { VenuesPage } from "./components/VenuesPage";
 import { createSampleEvents } from "./data/sampleEvents";
-import { getVenueById, venues } from "./data/venues";
+import { getVenueById, getVenueSearchText, venues } from "./data/venues";
 import { addEvent, deleteEvent, getEvents, saveEvents, updateEvent } from "./services/eventStorage";
 import {
   addTicketApplication,
@@ -136,12 +136,16 @@ function App() {
     const search = filters.search.trim().toLowerCase();
 
     return events.filter((event) => {
+      const venue = getVenueById(event.venueId);
       const matchesYear = filters.year === "all" || getEventYear(event.date) === filters.year;
       const matchesArtist = filters.artist === "all" || event.artist === filters.artist;
       const matchesVenue = filters.venue === "all" || event.venueName === filters.venue;
       const matchesSearch =
         !search ||
-        [event.title, event.artist, event.venueName].some((value) => value.toLowerCase().includes(search));
+        [event.title, event.artist, event.venueName, event.city, event.country].some((value) =>
+          value.toLowerCase().includes(search),
+        ) ||
+        (venue ? getVenueSearchText(venue).includes(search) : false);
 
       return matchesYear && matchesArtist && matchesVenue && matchesSearch;
     });
@@ -247,6 +251,10 @@ function App() {
 
     if (message === "Venue is required to fetch weather.") {
       return t("weather.venueRequired");
+    }
+
+    if (message === "Venue coordinates are required to fetch weather.") {
+      return t("weather.coordinatesRequired");
     }
 
     if (message === "Unable to fetch weather right now. Please check your network connection.") {

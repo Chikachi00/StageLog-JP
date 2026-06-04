@@ -14,6 +14,7 @@ StageLog JP is a personal live event archive for anime, idol, and live concert f
 - Ticket-style event cards
 - Year, artist, venue, and keyword filters
 - Seeded Japanese venue list with approximate coordinates
+- Curated venue database covering major Japanese live event venues in Tokyo, Chiba, Kanagawa, Saitama, Kansai, Chubu, Kyushu, and Hokkaido
 - Historical weather lookup through the Open-Meteo Archive API
 - Statistics for event counts, artists, venues, and weather rankings
 - Load sample data for first-time use
@@ -108,6 +109,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - 票根风格卡片 UI
 - 按年份、艺人、会场和关键词筛选
 - 内置日本常见 Live 会场及近似坐标
+- 内置日本 Live / 动漫 / 偶像活动中常见的会场数据，覆盖东京、千叶、神奈川、埼玉、关西、中部、九州和北海道等地区
 - 接入 Open-Meteo Archive API 获取历史小时级天气
 - 统计参战数、艺人、会场和天气排行
 - 提供 sample data 加载按钮
