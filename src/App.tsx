@@ -676,8 +676,15 @@ function App() {
         activeView={activeView}
         theme={theme}
         totalEvents={events.length}
+        isCloudMode={isCloudMode}
+        localEventCount={localEventCount}
+        localTicketCount={localTicketCount}
+        isImportingLocalEvents={isImportingLocalEvents}
+        isImportingLocalTickets={isImportingLocalTickets}
         onNavigate={handleNavigate}
         onThemeChange={handleThemeChange}
+        onImportLocalEvents={handleImportLocalDataToCloud}
+        onImportLocalTickets={handleImportLocalTicketsToCloud}
       />
 
       <main className="app-main">
