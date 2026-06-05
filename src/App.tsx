@@ -5,6 +5,8 @@ import { EventList } from "./components/EventList";
 import { FilterBar } from "./components/FilterBar";
 import { Header } from "./components/Header";
 import { BackupPanel } from "./components/BackupPanel";
+import { FloatingAddButton } from "./components/FloatingAddButton";
+import { MobileBottomNav } from "./components/MobileBottomNav";
 import type { AppView } from "./components/Header";
 import { Statistics } from "./components/Statistics";
 import { TicketManager } from "./components/TicketManager";
@@ -940,13 +942,21 @@ function App() {
         isCloudMode={isCloudMode}
         localEventCount={localEventCount}
         localTicketCount={localTicketCount}
+        events={events}
+        ticketApplications={ticketApplications}
+        profile={profile}
+        language={language}
+        userEmail={user?.email}
         isImportingLocalEvents={isImportingLocalEvents}
         isImportingLocalTickets={isImportingLocalTickets}
         onNavigate={handleNavigate}
         onThemeChange={handleThemeChange}
         onImportLocalEvents={handleImportLocalDataToCloud}
         onImportLocalTickets={handleImportLocalTicketsToCloud}
+        onImportBackup={handleImportBackup}
       />
+      <MobileBottomNav activeView={activeView} onNavigate={handleNavigate} />
+      <FloatingAddButton onNavigate={handleNavigate} />
 
       <main className="app-main">
         <section className="hero-panel">

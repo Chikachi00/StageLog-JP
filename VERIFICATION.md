@@ -114,6 +114,18 @@ Verification date: 2026-06-04
 - Duplicate ticket applications are skipped by `eventTitle + artist + eventDate + platform`.
 - Runtime browser download/upload and cloud import require manual UI verification.
 
+## Mobile Responsive Navigation
+
+- Code added and checked: `src/components/MobileBottomNav.tsx`, `src/components/MobileMenuDrawer.tsx`, `src/components/FloatingAddButton.tsx`, `src/components/Header.tsx`, and `src/index.css`.
+- Desktop header navigation remains in the existing `Header` component and is hidden only below the mobile breakpoint.
+- Mobile compact header shows brand, saved-record subtitle, current page label, and a More button.
+- Mobile bottom navigation uses the same `activeView` and `onNavigate` props as desktop navigation.
+- Mobile floating add button calls the same `onNavigate("add")` path as desktop Add Event.
+- More drawer reuses existing `AuthPanel`, `ThemeSwitcher`, `LanguageSwitcher`, and `BackupPanel` components.
+- No duplicate mobile-only data loading logic was added.
+- No duplicate mobile-only business pages such as `MobileEventsPage`, `MobileTicketsPage`, or `MobileVenuesPage` were added.
+- Runtime mobile viewport behavior requires browser/device verification.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.
@@ -155,4 +167,9 @@ Verification date: 2026-06-04
 - Export a backup after logging in and confirm it reflects cloud events/tickets currently loaded in the app.
 - Import a valid backup in cloud mode and confirm Supabase receives new rows with the current user id and generated uuid ids.
 - Try importing invalid JSON and confirm a specific error is shown.
+- Open the app on a phone or narrow viewport and confirm the top header stays compact.
+- Confirm mobile bottom navigation switches Events / Timeline / Venues / Statistics / Tickets using the same app state.
+- Confirm the mobile floating Add button opens the existing EventForm.
+- Confirm the mobile More drawer opens and closes, and account/theme/language/backup controls still work there.
+- Confirm bottom navigation does not cover TicketCard action buttons or page bottom content.
 - Log in from a phone or incognito window and confirm the same cloud Events/Tickets/Profile are visible.
