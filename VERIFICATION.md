@@ -38,6 +38,16 @@ Verification date: 2026-06-04
 - Known limitation: Custom Venues B-lite does not automatically batch update or delete historical event/ticket records; those records keep venue snapshots.
 - Known limitation: App state and Backup UI wiring for exporting/importing the loaded custom venue library is reserved for a later B-lite integration stage.
 
+## Custom Venues B-lite Integration
+
+- App customVenues state: `App` now loads `CustomVenue[]` through `customVenueService` and keeps loading/error state separate from events and tickets.
+- Cloud custom venue loading: logged-in cloud mode loads custom venues through Supabase `custom_venues` using the current user id.
+- Local fallback: guest/local mode loads and saves custom venues through `stagelog-custom-venues`.
+- VenueCombobox source order: search results are ordered as built-in venues, saved custom venues, then recent custom venues inferred from records.
+- EventForm custom venue selection: EventForm receives saved custom venues and can create/select a saved custom venue without changing draft, image, weather, or seat map paths.
+- TicketForm custom venue selection: TicketApplicationForm receives saved custom venues and can create/select a saved custom venue while preserving `ticketGroupKey` behavior and next-round inheritance.
+- Backup customVenues export/import: Backup export includes `customVenues`; local import writes `stagelog-custom-venues`; cloud import recreates custom venues for the current user and skips duplicate ids.
+
 ## VenueCombobox / Custom Venue Verification
 
 - VenueCombobox verification: `EventForm` and `TicketApplicationForm` use the shared searchable venue combobox with built-in venue search and historical custom venue candidates.

@@ -812,6 +812,18 @@ textarea:focus {
   justify-self: start;
 }
 
+.venue-combobox__hint,
+.venue-combobox__error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.venue-combobox__hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .seat-fieldset {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

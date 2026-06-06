@@ -4,17 +4,21 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { clearDraft, getDraft, getEventDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import { CLOUD_IMAGE_MAX_SIZE_BYTES, CLOUD_IMAGE_MIME_TYPES } from "../services/storageService";
+import type { CustomVenueInput } from "../services/customVenueService";
 import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
+import type { CustomVenue } from "../types/venue";
 import type { VenueValue } from "../utils/venueSearchUtils";
 import { SeatPicker } from "./SeatPicker";
 import { VenueCombobox } from "./VenueCombobox";
 
 interface EventFormProps {
   venues: Venue[];
+  customVenues?: CustomVenue[];
   events?: EventRecord[];
   editingEvent?: EventRecord | null;
   useCloudImages?: boolean;
   isSaving?: boolean;
+  onCreateCustomVenue?: (input: CustomVenueInput) => Promise<CustomVenue> | CustomVenue;
   onSave: (values: EventFormValues) => void | Promise<void>;
   onCancelEditing: () => void;
 }
@@ -83,10 +87,12 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
 
 export function EventForm({
   venues,
+  customVenues = [],
   events = [],
   editingEvent,
   useCloudImages = false,
   isSaving = false,
+  onCreateCustomVenue,
   onSave,
   onCancelEditing,
 }: EventFormProps) {
@@ -432,10 +438,12 @@ export function EventForm({
         </label>
 
         <VenueCombobox
+          customVenues={customVenues}
           events={events}
           label={t("eventForm.venue")}
           value={values}
           venues={venues}
+          onCreateCustomVenue={onCreateCustomVenue}
           onChange={updateVenue}
         />
 

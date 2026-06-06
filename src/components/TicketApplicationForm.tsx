@@ -3,8 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { clearDraft, getDraft, getTicketDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
+import type { CustomVenueInput } from "../services/customVenueService";
 import type { EventRecord, Venue } from "../types/event";
 import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 import type { VenueValue } from "../utils/venueSearchUtils";
 import {
   currencyOptions,
@@ -23,12 +25,14 @@ import { VenueCombobox } from "./VenueCombobox";
 
 interface TicketApplicationFormProps {
   venues: Venue[];
+  customVenues?: CustomVenue[];
   events?: EventRecord[];
   ticketApplications?: TicketApplication[];
   editingApplication?: TicketApplication | null;
   roundPreset?: TicketRoundPreset | null;
   initialFocus?: "eventTitle" | "roundName" | null;
   focusRequestId?: number;
+  onCreateCustomVenue?: (input: CustomVenueInput) => Promise<CustomVenue> | CustomVenue;
   onSave: (values: TicketApplicationFormValues, options?: { addAnother?: boolean }) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -124,12 +128,14 @@ const createInitialValues = (
 
 export function TicketApplicationForm({
   venues,
+  customVenues = [],
   events = [],
   ticketApplications = [],
   editingApplication,
   roundPreset,
   initialFocus = null,
   focusRequestId = 0,
+  onCreateCustomVenue,
   onSave,
   onCancel,
 }: TicketApplicationFormProps) {
@@ -533,12 +539,14 @@ export function TicketApplicationForm({
           <input required value={values.artist} onChange={(event) => updateValue("artist", event.target.value)} />
         </label>
         <VenueCombobox
+          customVenues={customVenues}
           events={events}
           label={t("tickets.venue")}
           placeholder={t("tickets.noVenue")}
           ticketApplications={ticketApplications}
           value={venueValue}
           venues={venues}
+          onCreateCustomVenue={onCreateCustomVenue}
           onChange={updateVenue}
         />
         <label>

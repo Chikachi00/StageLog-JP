@@ -1,6 +1,7 @@
 import { Pencil, PlusCircle, Search, TicketCheck, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { CustomVenueInput } from "../services/customVenueService";
 import type { EventRecord, Venue } from "../types/event";
 import type {
   TicketApplication,
@@ -8,6 +9,7 @@ import type {
   TicketApplicationFormValues,
   TicketRoundPreset,
 } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 import { formatDate } from "../utils/dateUtils";
 import {
   canCreateEventRecord,
@@ -26,6 +28,7 @@ import { TicketApplicationForm } from "./TicketApplicationForm";
 interface TicketManagerProps {
   applications: TicketApplication[];
   events: EventRecord[];
+  customVenues?: CustomVenue[];
   venues: Venue[];
   editingApplication: TicketApplication | null;
   isEditingApplicationLoading?: boolean;
@@ -42,6 +45,7 @@ interface TicketManagerProps {
   onCancelEditing: () => void;
   onDelete: (id: string) => void | Promise<void>;
   onCreateEventRecord: (application: TicketApplication) => void | Promise<void>;
+  onCreateCustomVenue?: (input: CustomVenueInput) => Promise<CustomVenue> | CustomVenue;
 }
 
 const defaultFilters: TicketApplicationFilters = {
@@ -78,6 +82,7 @@ const createPresetFromGroup = (group: TicketGroupSummary): TicketRoundPreset => 
 export function TicketManager({
   applications,
   events,
+  customVenues = [],
   venues,
   editingApplication,
   isEditingApplicationLoading = false,
@@ -90,6 +95,7 @@ export function TicketManager({
   onCancelEditing,
   onDelete,
   onCreateEventRecord,
+  onCreateCustomVenue,
 }: TicketManagerProps) {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<TicketApplicationFilters>(defaultFilters);
@@ -203,6 +209,7 @@ export function TicketManager({
           </section>
         ) : (
           <TicketApplicationForm
+            customVenues={customVenues}
             editingApplication={editingApplication}
             focusRequestId={focusRequestId}
             initialFocus={initialFocus}
@@ -210,6 +217,7 @@ export function TicketManager({
             events={events}
             ticketApplications={applications}
             venues={venues}
+            onCreateCustomVenue={onCreateCustomVenue}
             onCancel={onCancelEditing}
             onSave={async (values, options) => {
               await onSave(values, editingApplication, options);

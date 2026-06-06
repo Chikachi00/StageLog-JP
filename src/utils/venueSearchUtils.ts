@@ -20,7 +20,7 @@ export type VenueCandidate = VenueValue & {
   label: string;
   detail: string;
   searchText: string;
-  source: "built-in" | "custom";
+  source: "built-in" | "custom" | "recent-custom";
   category?: Venue["category"];
   capacity?: number;
   aliases?: string[];
@@ -173,7 +173,7 @@ export const extractHistoricalCustomVenues = (
       searchText: normalizeVenueSearchText(
         [venueName, value.city, value.prefecture, value.region, value.country].filter(Boolean).join(" "),
       ),
-      source: "custom",
+      source: "recent-custom",
     });
   };
 

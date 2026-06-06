@@ -6,6 +6,7 @@ import type { EventRecord } from "../types/event";
 import type { UserProfile } from "../types/profile";
 import type { AppTheme } from "../types/theme";
 import type { TicketApplication } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 import { AuthPanel } from "./AuthPanel";
 import { BackupPanel } from "./BackupPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -20,6 +21,7 @@ interface MobileMenuDrawerProps {
   userEmail?: string;
   events: EventRecord[];
   ticketApplications: TicketApplication[];
+  customVenues?: CustomVenue[];
   profile?: UserProfile | null;
   settings: {
     language?: string;
@@ -46,6 +48,7 @@ export function MobileMenuDrawer({
   userEmail,
   events,
   ticketApplications,
+  customVenues = [],
   profile,
   settings,
   isCloudMode,
@@ -149,6 +152,7 @@ export function MobileMenuDrawer({
         </section>
 
         <BackupPanel
+          customVenues={customVenues}
           events={events}
           mode={mode}
           profile={profile}

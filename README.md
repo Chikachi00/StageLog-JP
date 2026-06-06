@@ -12,6 +12,12 @@
 - English: Custom venues sync through Supabase
 - English: Events and tickets still keep venue snapshots
 - English: Deleting a custom venue does not delete historical records
+- 中文：自定义场馆库现在可通过 Supabase 同步
+- 中文：参战和票务表单可选择自定义场馆
+- 中文：参战和票务记录仍会保留场馆快照，防止场馆被删除后历史记录丢失
+- English: Custom venue library is now synced through Supabase
+- English: Custom venues can be selected in event and ticket forms
+- English: Events and tickets still keep venue snapshots for safety
 
 ## Venue UX V1 / 场馆体验 V1
 

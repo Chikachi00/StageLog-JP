@@ -7,6 +7,7 @@ import type { EventRecord } from "../types/event";
 import type { UserProfile } from "../types/profile";
 import type { AppTheme } from "../types/theme";
 import type { TicketApplication } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 import { AuthPanel } from "./AuthPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
@@ -23,6 +24,7 @@ interface HeaderProps {
   localTicketCount?: number;
   events: EventRecord[];
   ticketApplications: TicketApplication[];
+  customVenues?: CustomVenue[];
   profile?: UserProfile | null;
   language?: string;
   userEmail?: string;
@@ -54,6 +56,7 @@ export function Header({
   localTicketCount,
   events,
   ticketApplications,
+  customVenues = [],
   profile,
   language,
   userEmail,
@@ -122,6 +125,7 @@ export function Header({
         <LanguageSwitcher />
       </div>
       <MobileMenuDrawer
+        customVenues={customVenues}
         events={events}
         isCloudMode={isCloudMode}
         isImportingLocalEvents={isImportingLocalEvents}

@@ -10,12 +10,14 @@ import type { BackupImportMode, BackupImportResult, StageLogBackup } from "../ty
 import type { EventRecord } from "../types/event";
 import type { UserProfile } from "../types/profile";
 import type { TicketApplication } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 
 interface BackupPanelProps {
   mode: "local" | "cloud";
   userEmail?: string;
   events: EventRecord[];
   ticketApplications: TicketApplication[];
+  customVenues?: CustomVenue[];
   profile?: UserProfile | null;
   settings: {
     language?: string;
@@ -31,6 +33,7 @@ export function BackupPanel({
   userEmail,
   events,
   ticketApplications,
+  customVenues = [],
   profile,
   settings,
   onImportBackup,
@@ -55,6 +58,7 @@ export function BackupPanel({
         userEmail,
         events,
         ticketApplications,
+        customVenues,
         profile,
         settings,
         notes: t("backup.imageNote"),
@@ -144,6 +148,10 @@ export function BackupPanel({
             <dd>{ticketApplications.length}</dd>
           </div>
           <div>
+            <dt>{t("backup.customVenuesCount")}</dt>
+            <dd>{customVenues.length}</dd>
+          </div>
+          <div>
             <dt>{t("backup.mode")}</dt>
             <dd>{t(mode === "cloud" ? "auth.cloudMode" : "auth.localMode")}</dd>
           </div>
@@ -190,6 +198,9 @@ export function BackupPanel({
               </span>
               <span>
                 {t("backup.ticketsCount")}: {backupPreview.data.ticketApplications?.length ?? 0}
+              </span>
+              <span>
+                {t("backup.customVenuesCount")}: {backupPreview.data.customVenues?.length ?? 0}
               </span>
               <span>
                 {t("backup.exportedAt")}: {new Date(backupPreview.exportedAt).toLocaleString()}

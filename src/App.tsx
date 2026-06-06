@@ -30,6 +30,13 @@ import {
   updateCloudTicketApplication,
 } from "./services/cloudTicketService";
 import {
+  createCustomVenue,
+  getLocalCustomVenues,
+  listCustomVenues,
+  saveLocalCustomVenues,
+  type CustomVenueInput,
+} from "./services/customVenueService";
+import {
   addEvent as addLocalEvent,
   deleteEvent as deleteLocalEvent,
   getEvents as getLocalEvents,
@@ -46,6 +53,7 @@ import {
 import {
   getEventBackupKey,
   getTicketBackupKey,
+  normalizeBackupCustomVenue,
   normalizeBackupEvent,
   normalizeBackupTicketApplication,
 } from "./services/backupService";
@@ -60,6 +68,7 @@ import type { EventFilters, EventFormValues, EventRecord, Venue } from "./types/
 import { isAppTheme, type AppTheme } from "./types/theme";
 import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "./types/ticket";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "./types/backup";
+import type { CustomVenue } from "./types/venue";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
 import {
   getTicketAmountDisplay,
@@ -509,8 +518,11 @@ function App() {
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
     getTicketApplications(),
   );
+  const [customVenues, setCustomVenues] = useState<CustomVenue[]>(() => getLocalCustomVenues());
   const [eventsLoading, setEventsLoading] = useState(false);
   const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [customVenuesLoading, setCustomVenuesLoading] = useState(false);
+  const [customVenueError, setCustomVenueError] = useState("");
   const [cloudError, setCloudError] = useState("");
   const [localEventCount, setLocalEventCount] = useState(() => getLocalEvents().length);
   const [localTicketCount, setLocalTicketCount] = useState(() => getTicketApplications().length);
@@ -684,6 +696,35 @@ function App() {
   useEffect(() => {
     void refreshTicketApplications();
   }, [refreshTicketApplications]);
+
+  const refreshCustomVenues = useCallback(async () => {
+    if (authLoading) {
+      return;
+    }
+
+    setCustomVenueError("");
+
+    if (!isCloudMode || !user) {
+      setCustomVenues(getLocalCustomVenues());
+      return;
+    }
+
+    setCustomVenuesLoading(true);
+
+    try {
+      setCustomVenues(await listCustomVenues(user.id));
+    } catch (error) {
+      const message = getErrorMessage(error, t("venueSearch.failedLoadCustomVenues"));
+      setCustomVenueError(message);
+      setCustomVenues([]);
+    } finally {
+      setCustomVenuesLoading(false);
+    }
+  }, [authLoading, isCloudMode, t, user]);
+
+  useEffect(() => {
+    void refreshCustomVenues();
+  }, [refreshCustomVenues]);
 
   useEffect(() => {
     eventFormSessionRef.current = eventFormSession;
@@ -1300,12 +1341,34 @@ function App() {
     }
   };
 
+  const handleCreateCustomVenue = async (input: CustomVenueInput) => {
+    try {
+      const savedVenue = await createCustomVenue(input, isCloudMode && user ? user.id : undefined);
+      setCustomVenues((current) => {
+        const nextVenues = [savedVenue, ...current.filter((venue) => venue.id !== savedVenue.id)];
+        return nextVenues.sort(
+          (first, second) =>
+            second.updatedAt.localeCompare(first.updatedAt) || first.name.localeCompare(second.name),
+        );
+      });
+      setCustomVenueError("");
+      setNotice(t("venueSearch.savedToCustomVenues"));
+      return savedVenue;
+    } catch (error) {
+      const message = getErrorMessage(error, t("venueSearch.failedSaveCustomVenue"));
+      setCustomVenueError(message);
+      setNotice(message);
+      throw error instanceof Error ? error : new Error(message);
+    }
+  };
+
   const handleImportBackup = async (
     backup: StageLogBackup,
     importMode: BackupImportMode,
   ): Promise<BackupImportResult> => {
     const backupEvents = backup.data.events.map(normalizeBackupEvent);
     const backupTickets = (backup.data.ticketApplications ?? []).map(normalizeBackupTicketApplication);
+    const backupCustomVenues = (backup.data.customVenues ?? []).map(normalizeBackupCustomVenue);
     let importedEvents = 0;
     let importedTickets = 0;
     let skippedDuplicates = 0;
@@ -1327,6 +1390,7 @@ function App() {
     if (isCloudMode && user) {
       const existingEventKeys = new Set(events.map(getEventBackupKey));
       const existingTicketKeys = new Set(ticketApplications.map(getTicketBackupKey));
+      const existingCustomVenueIds = new Set(customVenues.map((venue) => venue.id));
 
       for (const event of backupEvents) {
         const key = getEventBackupKey(event);
@@ -1364,20 +1428,39 @@ function App() {
         }
       }
 
+      for (const venue of backupCustomVenues) {
+        if (existingCustomVenueIds.has(venue.id)) {
+          skippedDuplicates += 1;
+          continue;
+        }
+
+        existingCustomVenueIds.add(venue.id);
+
+        try {
+          await createCustomVenue({ ...venue, userId: undefined }, user.id);
+        } catch (error) {
+          errors.push(getErrorMessage(error, t("venueSearch.failedSaveCustomVenue")));
+        }
+      }
+
       await applyBackupSettings();
       await refreshEvents();
       await refreshTicketApplications();
+      await refreshCustomVenues();
     } else if (importMode === "replace-local") {
       const importedLocalEvents = backupEvents.map((event) => ({ ...event, id: event.id || crypto.randomUUID() }));
       const importedLocalTickets = backupTickets.map((application) => ({
         ...application,
         id: application.id || crypto.randomUUID(),
       }));
+      const importedLocalCustomVenues = backupCustomVenues.map((venue) => ({ ...venue, userId: undefined }));
 
       saveLocalEvents(sortByDateDesc(importedLocalEvents));
       saveTicketApplications(importedLocalTickets);
+      saveLocalCustomVenues(importedLocalCustomVenues);
       setEvents(sortByDateDesc(importedLocalEvents));
       setTicketApplications(importedLocalTickets);
+      setCustomVenues(importedLocalCustomVenues);
       setLocalEventCount(importedLocalEvents.length);
       setLocalTicketCount(importedLocalTickets.length);
       importedEvents = importedLocalEvents.length;
@@ -1386,12 +1469,15 @@ function App() {
     } else {
       const existingEvents = getLocalEvents();
       const existingTickets = getTicketApplications();
+      const existingCustomVenues = getLocalCustomVenues();
       const existingEventKeys = new Set(existingEvents.map(getEventBackupKey));
       const existingTicketKeys = new Set(existingTickets.map(getTicketBackupKey));
+      const existingCustomVenueIds = new Set(existingCustomVenues.map((venue) => venue.id));
       const existingEventIds = new Set(existingEvents.map((event) => event.id));
       const existingTicketIds = new Set(existingTickets.map((application) => application.id));
       const eventsToImport: EventRecord[] = [];
       const ticketsToImport: TicketApplication[] = [];
+      const customVenuesToImport: CustomVenue[] = [];
 
       for (const event of backupEvents) {
         const key = getEventBackupKey(event);
@@ -1431,12 +1517,28 @@ function App() {
         ticketsToImport.push(nextApplication);
       }
 
+      for (const venue of backupCustomVenues) {
+        if (existingCustomVenueIds.has(venue.id)) {
+          skippedDuplicates += 1;
+          continue;
+        }
+
+        existingCustomVenueIds.add(venue.id);
+        customVenuesToImport.push({ ...venue, userId: undefined });
+      }
+
       const nextEvents = sortByDateDesc([...eventsToImport, ...existingEvents]);
       const nextTickets = [...ticketsToImport, ...existingTickets];
+      const nextCustomVenues = [...customVenuesToImport, ...existingCustomVenues].sort(
+        (first, second) =>
+          second.updatedAt.localeCompare(first.updatedAt) || first.name.localeCompare(second.name),
+      );
       saveLocalEvents(nextEvents);
       saveTicketApplications(nextTickets);
+      saveLocalCustomVenues(nextCustomVenues);
       setEvents(nextEvents);
       setTicketApplications(nextTickets);
+      setCustomVenues(nextCustomVenues);
       setLocalEventCount(nextEvents.length);
       setLocalTicketCount(nextTickets.length);
       importedEvents = eventsToImport.length;
@@ -1480,6 +1582,7 @@ function App() {
         localEventCount={localEventCount}
         localTicketCount={localTicketCount}
         events={events}
+        customVenues={customVenues}
         ticketApplications={ticketApplications}
         profile={profile}
         language={language}
@@ -1513,7 +1616,9 @@ function App() {
           {!isSupabaseConfigured ? <p>{t("auth.notConfigured")}</p> : null}
           {eventsLoading ? <p>{t("auth.loadingCloudEvents")}</p> : null}
           {ticketsLoading ? <p>{t("tickets.loadingCloudTickets")}</p> : null}
+          {customVenuesLoading ? <p>{t("venueSearch.loadingCustomVenues")}</p> : null}
           {cloudError ? <p className="sync-panel__error">{cloudError}</p> : null}
+          {customVenueError ? <p className="sync-panel__error">{customVenueError}</p> : null}
           {isCloudMode && localEventCount > 0 ? (
             <button
               className="ghost-button"
@@ -1535,6 +1640,7 @@ function App() {
             </button>
           ) : null}
           <BackupPanel
+            customVenues={customVenues}
             events={events}
             mode={isCloudMode ? "cloud" : "local"}
             profile={profile}
@@ -1601,6 +1707,7 @@ function App() {
         {activeView === "tickets" ? (
           <TicketManager
             applications={ticketApplications}
+            customVenues={customVenues}
             editingApplication={currentEditingApplication}
             events={events}
             isEditingApplicationLoading={isEditingTicketLoading}
@@ -1610,6 +1717,7 @@ function App() {
             onAddRoundToGroup={handleAddTicketRoundToGroup}
             onCancelEditing={handleCancelTicketEditing}
             onCreateEventRecord={handleCreateEventFromApplication}
+            onCreateCustomVenue={handleCreateCustomVenue}
             onDelete={handleDeleteTicketApplication}
             onEdit={handleEditTicketApplication}
             onSave={handleSaveTicketApplication}
@@ -1632,11 +1740,13 @@ function App() {
 
         {activeView === "add" && !isEditingEventLoading && !isEditingEventMissing ? (
           <EventForm
+            customVenues={customVenues}
             editingEvent={currentEditingEvent}
             events={events}
             isSaving={isSavingEvent}
             useCloudImages={isCloudMode}
             venues={venues}
+            onCreateCustomVenue={handleCreateCustomVenue}
             onCancelEditing={() => {
               if (eventFormSession?.mode === "edit") {
                 clearDraft(getEventDraftKey(eventFormSession.editingEventId));

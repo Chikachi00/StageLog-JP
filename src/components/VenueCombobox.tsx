@@ -1,8 +1,10 @@
 import { MapPin, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { CustomVenueInput } from "../services/customVenueService";
 import type { EventRecord, Venue } from "../types/event";
 import type { TicketApplication } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 import {
   buildCustomVenueId,
   extractHistoricalCustomVenues,
@@ -14,10 +16,12 @@ import {
 
 interface VenueComboboxProps {
   venues: Venue[];
+  customVenues?: CustomVenue[];
   events?: EventRecord[];
   ticketApplications?: TicketApplication[];
   value: VenueValue;
   onChange: (value: VenueValue) => void;
+  onCreateCustomVenue?: (input: CustomVenueInput) => Promise<CustomVenue> | CustomVenue;
   label?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -35,7 +39,7 @@ const toVenueValue = (candidate: VenueCandidate): VenueValue => ({
   region: candidate.region,
   latitude: candidate.latitude,
   longitude: candidate.longitude,
-  isCustomVenue: candidate.source === "custom",
+  isCustomVenue: candidate.source !== "built-in",
 });
 
 const parseOptionalNumber = (value: string) => {
@@ -48,8 +52,10 @@ export function VenueCombobox({
   venues,
   events = [],
   ticketApplications = [],
+  customVenues = [],
   value,
   onChange,
+  onCreateCustomVenue,
   label,
   placeholder,
   disabled = false,
@@ -58,6 +64,8 @@ export function VenueCombobox({
   const [query, setQuery] = useState(() => getDisplayValue(value, venues));
   const [isOpen, setIsOpen] = useState(false);
   const [customMode, setCustomMode] = useState(false);
+  const [customError, setCustomError] = useState("");
+  const [isSavingCustomVenue, setIsSavingCustomVenue] = useState(false);
   const [customVenue, setCustomVenue] = useState({
     venueName: value.isCustomVenue ? value.venueName ?? "" : "",
     city: value.isCustomVenue ? value.city ?? "" : "",
@@ -69,20 +77,78 @@ export function VenueCombobox({
   });
   const normalizedQuery = normalizeVenueSearchText(query);
   const builtInResults = useMemo(() => searchVenues(venues, query), [query, venues]);
+  const formalCustomCandidates = useMemo<VenueCandidate[]>(
+    () =>
+      customVenues.map((venue) => ({
+        id: venue.id,
+        venueId: venue.id,
+        venueName: venue.name,
+        city: venue.city,
+        country: venue.country,
+        prefecture: venue.prefecture,
+        region: venue.region,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        isCustomVenue: true,
+        label: venue.name,
+        detail: [venue.nameJa, venue.nameZh, venue.city, venue.prefecture ?? venue.region, venue.country]
+          .filter(Boolean)
+          .join(" / "),
+        searchText: normalizeVenueSearchText(
+          [
+            venue.name,
+            venue.nameJa,
+            venue.nameZh,
+            ...(venue.aliases ?? []),
+            venue.city,
+            venue.prefecture,
+            venue.region,
+            venue.country,
+            venue.category,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        ),
+        source: "custom",
+        category: venue.category,
+        capacity: venue.capacity,
+        aliases: venue.aliases,
+        names: [venue.name, venue.nameJa, venue.nameZh].filter((name): name is string => Boolean(name)),
+      })),
+    [customVenues],
+  );
+  const customVenueResults = useMemo(() => {
+    if (!normalizedQuery) {
+      return formalCustomCandidates.slice(0, 8);
+    }
+
+    return formalCustomCandidates.filter((candidate) => candidate.searchText.includes(normalizedQuery)).slice(0, 8);
+  }, [formalCustomCandidates, normalizedQuery]);
   const customHistory = useMemo(
     () => extractHistoricalCustomVenues(events, ticketApplications, venues),
     [events, ticketApplications, venues],
   );
   const customResults = useMemo(() => {
+    const formalIds = new Set(customVenues.map((venue) => venue.id));
+    const formalNames = new Set(
+      customVenues.map((venue) => normalizeVenueSearchText(`${venue.name} ${venue.city} ${venue.country}`)),
+    );
+    const dedupedHistory = customHistory.filter(
+      (candidate) =>
+        !formalIds.has(candidate.venueId ?? "") &&
+        !formalNames.has(normalizeVenueSearchText(`${candidate.venueName} ${candidate.city} ${candidate.country}`)),
+    );
+
     if (!normalizedQuery) {
-      return customHistory.slice(0, 8);
+      return dedupedHistory.slice(0, 8);
     }
 
-    return customHistory.filter((candidate) => candidate.searchText.includes(normalizedQuery)).slice(0, 8);
-  }, [customHistory, normalizedQuery]);
-  const hasResults = builtInResults.length > 0 || customResults.length > 0;
+    return dedupedHistory.filter((candidate) => candidate.searchText.includes(normalizedQuery)).slice(0, 8);
+  }, [customHistory, customVenues, normalizedQuery]);
+  const hasResults = builtInResults.length > 0 || customVenueResults.length > 0 || customResults.length > 0;
   const canUseCustom = query.trim().length > 0;
-  const showRecentCustomLabel = !normalizedQuery && customResults.length > 0;
+  const showCustomVenueLabel = customVenueResults.length > 0;
+  const showRecentCustomLabel = customResults.length > 0;
 
   useEffect(() => {
     setQuery(getDisplayValue(value, venues));
@@ -111,6 +177,7 @@ export function VenueCombobox({
   const selectCandidate = (candidate: VenueCandidate) => {
     onChange(toVenueValue(candidate));
     setQuery(candidate.label);
+    setCustomError("");
     setCustomMode(false);
     setIsOpen(false);
   };
@@ -126,7 +193,7 @@ export function VenueCombobox({
     setIsOpen(false);
   };
 
-  const applyCustomVenue = () => {
+  const applyCustomVenue = async () => {
     const venueName = customVenue.venueName.trim() || query.trim();
     const city = customVenue.city.trim() || "Unknown";
     const country = customVenue.country.trim() || "Japan";
@@ -135,21 +202,65 @@ export function VenueCombobox({
       return;
     }
 
-    const nextValue: VenueValue = {
-      venueId: buildCustomVenueId(venueName, city),
-      venueName,
+    const input: CustomVenueInput = {
+      name: venueName,
       city,
       country,
       prefecture: customVenue.prefecture.trim() || undefined,
       region: customVenue.region.trim() || undefined,
-      latitude: parseOptionalNumber(customVenue.latitude),
-      longitude: parseOptionalNumber(customVenue.longitude),
-      isCustomVenue: true,
+      latitude: customVenue.latitude,
+      longitude: customVenue.longitude,
     };
 
-    onChange(nextValue);
-    setQuery(venueName);
-    setCustomMode(false);
+    try {
+      setIsSavingCustomVenue(true);
+      setCustomError("");
+
+      if (onCreateCustomVenue) {
+        const savedVenue = await onCreateCustomVenue(input);
+        selectCandidate({
+          id: savedVenue.id,
+          venueId: savedVenue.id,
+          venueName: savedVenue.name,
+          city: savedVenue.city,
+          country: savedVenue.country,
+          prefecture: savedVenue.prefecture,
+          region: savedVenue.region,
+          latitude: savedVenue.latitude,
+          longitude: savedVenue.longitude,
+          isCustomVenue: true,
+          label: savedVenue.name,
+          detail: [savedVenue.city, savedVenue.prefecture ?? savedVenue.region, savedVenue.country].filter(Boolean).join(" / "),
+          searchText: normalizeVenueSearchText(
+            [savedVenue.name, savedVenue.city, savedVenue.prefecture, savedVenue.region, savedVenue.country]
+              .filter(Boolean)
+              .join(" "),
+          ),
+          source: "custom",
+        });
+        return;
+      }
+
+      const nextValue: VenueValue = {
+        venueId: buildCustomVenueId(venueName, city),
+        venueName,
+        city,
+        country,
+        prefecture: input.prefecture,
+        region: input.region,
+        latitude: parseOptionalNumber(customVenue.latitude),
+        longitude: parseOptionalNumber(customVenue.longitude),
+        isCustomVenue: true,
+      };
+
+      onChange(nextValue);
+      setQuery(venueName);
+      setCustomMode(false);
+    } catch (error) {
+      setCustomError(error instanceof Error ? error.message : t("venueSearch.failedSaveCustomVenue"));
+    } finally {
+      setIsSavingCustomVenue(false);
+    }
   };
 
   return (
@@ -202,6 +313,25 @@ export function VenueCombobox({
                   <em>{t("venueSearch.builtInVenue")}</em>
                 </button>
               ))}
+              {showCustomVenueLabel ? (
+                <span className="venue-combobox__group-label">{t("venueSearch.myCustomVenues")}</span>
+              ) : null}
+              {customVenueResults.map((candidate) => (
+                <button
+                  className="venue-combobox__option"
+                  key={`${candidate.source}-${candidate.id}`}
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectCandidate(candidate)}
+                >
+                  <MapPin size={16} aria-hidden="true" />
+                  <span>
+                    <strong>{candidate.label}</strong>
+                    <small>{candidate.detail || t("venueSearch.customVenueLibrary")}</small>
+                  </span>
+                  <em>{t("venueSearch.customVenue")}</em>
+                </button>
+              ))}
               {showRecentCustomLabel ? (
                 <span className="venue-combobox__group-label">{t("venueSearch.recentCustomVenues")}</span>
               ) : null}
@@ -216,9 +346,9 @@ export function VenueCombobox({
                   <MapPin size={16} aria-hidden="true" />
                   <span>
                     <strong>{candidate.label}</strong>
-                    <small>{candidate.detail || t("venueSearch.noVenueFound")}</small>
+                    <small>{candidate.detail || t("venueSearch.recentCustomVenueInferred")}</small>
                   </span>
-                  <em>{t("venueSearch.customVenue")}</em>
+                  <em>{t("venueSearch.recentCustomVenues")}</em>
                 </button>
               ))}
             </>
@@ -293,8 +423,15 @@ export function VenueCombobox({
               onChange={(event) => setCustomVenue((current) => ({ ...current, longitude: event.target.value }))}
             />
           </label>
-          <button className="ghost-button venue-combobox__custom-action" type="button" onClick={applyCustomVenue}>
-            {t("venueSearch.addCustomVenue")}
+          <p className="venue-combobox__hint">{t("venueSearch.syncedCustomVenue")}</p>
+          {customError ? <p className="form-error venue-combobox__error">{customError}</p> : null}
+          <button
+            className="ghost-button venue-combobox__custom-action"
+            type="button"
+            disabled={isSavingCustomVenue}
+            onClick={() => void applyCustomVenue()}
+          >
+            {isSavingCustomVenue ? t("common.saving") : t("venueSearch.addCustomVenue")}
           </button>
         </section>
       ) : null}
