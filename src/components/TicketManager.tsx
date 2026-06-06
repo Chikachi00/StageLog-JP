@@ -6,6 +6,7 @@ import type {
   TicketApplication,
   TicketApplicationFilters,
   TicketApplicationFormValues,
+  TicketRoundPreset,
 } from "../types/ticket";
 import { formatDate } from "../utils/dateUtils";
 import {
@@ -18,6 +19,7 @@ import {
   groupTicketApplications,
   platformOptions,
   statusOptions,
+  type TicketGroupSummary,
 } from "../utils/ticketUtils";
 import { TicketApplicationForm } from "./TicketApplicationForm";
 
@@ -27,7 +29,14 @@ interface TicketManagerProps {
   editingApplication: TicketApplication | null;
   isEditingApplicationLoading?: boolean;
   isEditingApplicationMissing?: boolean;
-  onSave: (values: TicketApplicationFormValues, editingApplication?: TicketApplication | null) => void | Promise<void>;
+  roundPreset?: TicketRoundPreset | null;
+  onSave: (
+    values: TicketApplicationFormValues,
+    editingApplication?: TicketApplication | null,
+    options?: { addAnother?: boolean },
+  ) => void | Promise<void>;
+  onStartNewTicket: () => void;
+  onAddRoundToGroup: (preset: TicketRoundPreset) => void;
   onEdit: (application: TicketApplication) => void;
   onCancelEditing: () => void;
   onDelete: (id: string) => void | Promise<void>;
@@ -42,13 +51,32 @@ const defaultFilters: TicketApplicationFilters = {
 
 const formatRate = (rate: number | null) => (rate === null ? "N/A" : `${rate}%`);
 
+const createPresetFromGroup = (group: TicketGroupSummary): TicketRoundPreset => {
+  const firstApplication = group.applications[0];
+
+  return {
+    ticketGroupKey: group.key,
+    eventTitle: group.eventTitle,
+    artist: group.artist,
+    eventDate: group.eventDate,
+    venueId: group.venueId,
+    venueName: group.venueName,
+    city: firstApplication?.city,
+    country: firstApplication?.country,
+    displayCurrency: group.displayCurrency,
+  };
+};
+
 export function TicketManager({
   applications,
   venues,
   editingApplication,
   isEditingApplicationLoading = false,
   isEditingApplicationMissing = false,
+  roundPreset = null,
   onSave,
+  onStartNewTicket,
+  onAddRoundToGroup,
   onEdit,
   onCancelEditing,
   onDelete,
@@ -56,6 +84,7 @@ export function TicketManager({
 }: TicketManagerProps) {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<TicketApplicationFilters>(defaultFilters);
+  const [selectedGroupKey, setSelectedGroupKey] = useState("");
   const filteredApplications = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
 
@@ -74,10 +103,60 @@ export function TicketManager({
       return matchesStatus && matchesPlatform && matchesSearch;
     });
   }, [applications, filters]);
+  const allGroups = useMemo(() => groupTicketApplications(applications), [applications]);
   const groupedApplications = useMemo(() => groupTicketApplications(filteredApplications), [filteredApplications]);
+  const selectedGroup = useMemo(
+    () => allGroups.find((group) => group.key === selectedGroupKey) ?? null,
+    [allGroups, selectedGroupKey],
+  );
 
   return (
     <section className="ticket-manager">
+      <section className="ticket-creation-panel" aria-label={t("tickets.addApplication")}>
+        <div>
+          <span className="eyebrow">{t("tickets.addApplication")}</span>
+          <h3>{t("tickets.newPerformanceTicket")}</h3>
+          <p>
+            {t("tickets.ticketRecordHint")} {t("tickets.ticketRecordGroupingHint")}
+          </p>
+        </div>
+        <div className="ticket-creation-panel__actions">
+          <button className="primary-button" type="button" onClick={onStartNewTicket}>
+            <PlusCircle size={17} aria-hidden="true" />
+            {t("tickets.newPerformanceTicket")}
+          </button>
+          <label>
+            {t("tickets.addRoundToExistingPerformance")}
+            <select
+              value={selectedGroupKey}
+              onChange={(event) => setSelectedGroupKey(event.target.value)}
+            >
+              <option value="">{t("tickets.selectPerformance")}</option>
+              {allGroups.map((group) => (
+                <option key={group.key} value={group.key}>
+                  {group.eventTitle} / {group.artist}
+                  {group.eventDate ? ` / ${formatDate(group.eventDate)}` : ""}
+                  {group.venueName ? ` / ${group.venueName}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={!selectedGroup}
+            onClick={() => {
+              if (selectedGroup) {
+                onAddRoundToGroup(createPresetFromGroup(selectedGroup));
+              }
+            }}
+          >
+            <PlusCircle size={17} aria-hidden="true" />
+            {t("tickets.addAnotherRound")}
+          </button>
+        </div>
+      </section>
+
       {isEditingApplicationLoading ? (
         <section className="empty-state">
           <h2>{t("tickets.loadingCloudTickets")}</h2>
@@ -89,9 +168,10 @@ export function TicketManager({
       ) : (
         <TicketApplicationForm
           editingApplication={editingApplication}
+          roundPreset={roundPreset}
           venues={venues}
           onCancel={onCancelEditing}
-          onSave={(values) => void onSave(values, editingApplication)}
+          onSave={(values, options) => void onSave(values, editingApplication, options)}
         />
       )}
 
@@ -164,6 +244,17 @@ export function TicketManager({
                 {group.applications.length > 1 ? (
                   <span className="linked-event-badge">{t("tickets.multipleRounds")}</span>
                 ) : null}
+              </div>
+
+              <div className="ticket-group-card__actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => onAddRoundToGroup(createPresetFromGroup(group))}
+                >
+                  <PlusCircle size={17} aria-hidden="true" />
+                  {t("tickets.addRoundToPerformance")}
+                </button>
               </div>
 
               <dl className="ticket-group-card__summary">

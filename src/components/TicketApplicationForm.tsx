@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { groupVenuesByRegion } from "../data/venues";
 import { clearDraft, getDraft, getTicketDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import type { Venue } from "../types/event";
-import type { TicketApplication, TicketApplicationFormValues } from "../types/ticket";
+import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "../types/ticket";
 import {
   currencyOptions,
   getAppliedQuantity,
@@ -23,7 +23,8 @@ import {
 interface TicketApplicationFormProps {
   venues: Venue[];
   editingApplication?: TicketApplication | null;
-  onSave: (values: TicketApplicationFormValues) => void | Promise<void>;
+  roundPreset?: TicketRoundPreset | null;
+  onSave: (values: TicketApplicationFormValues, options?: { addAnother?: boolean }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -36,11 +37,13 @@ type TicketDraftPayload = TicketApplicationFormValues & {
 
 const createInitialValues = (
   editingApplication?: TicketApplication | null,
+  roundPreset?: TicketRoundPreset | null,
 ): TicketApplicationFormValues => ({
-  eventTitle: editingApplication?.eventTitle ?? "",
-  artist: editingApplication?.artist ?? "",
-  venueId: editingApplication?.venueId ?? "",
-  eventDate: editingApplication?.eventDate ?? "",
+  ticketGroupKey: editingApplication?.ticketGroupKey ?? roundPreset?.ticketGroupKey ?? "",
+  eventTitle: editingApplication?.eventTitle ?? roundPreset?.eventTitle ?? "",
+  artist: editingApplication?.artist ?? roundPreset?.artist ?? "",
+  venueId: editingApplication?.venueId ?? roundPreset?.venueId ?? "",
+  eventDate: editingApplication?.eventDate ?? roundPreset?.eventDate ?? "",
   platform: editingApplication?.platform ?? "eplus",
   applicationDate: editingApplication?.applicationDate ?? "",
   resultDate: editingApplication?.resultDate ?? "",
@@ -59,7 +62,7 @@ const createInitialValues = (
       ? String(getPaidQuantity(editingApplication))
       : "",
   currency: editingApplication ? getTicketOriginalCurrency(editingApplication) : "CNY",
-  displayCurrency: editingApplication ? getTicketDisplayCurrency(editingApplication) : "CNY",
+  displayCurrency: editingApplication ? getTicketDisplayCurrency(editingApplication) : roundPreset?.displayCurrency ?? "CNY",
   amountOriginal:
     editingApplication && typeof getTicketAmountOriginal(editingApplication) === "number"
       ? String(getTicketAmountOriginal(editingApplication))
@@ -88,12 +91,13 @@ const createInitialValues = (
 export function TicketApplicationForm({
   venues,
   editingApplication,
+  roundPreset,
   onSave,
   onCancel,
 }: TicketApplicationFormProps) {
   const { t } = useTranslation();
   const [values, setValues] = useState<TicketApplicationFormValues>(() =>
-    createInitialValues(editingApplication),
+    createInitialValues(editingApplication, roundPreset),
   );
   const [error, setError] = useState("");
   const [draftStatus, setDraftStatus] = useState("");
@@ -104,23 +108,23 @@ export function TicketApplicationForm({
   const draftKey = useMemo(() => getTicketDraftKey(editingApplication?.id), [editingApplication?.id]);
 
   useEffect(() => {
-    setValues(createInitialValues(editingApplication));
+    setValues(createInitialValues(editingApplication, roundPreset));
     setError("");
     setDraftStatus("");
     setIsDirty(false);
     isDirtyRef.current = false;
     const draft = getDraft<TicketDraftPayload>(getTicketDraftKey(editingApplication?.id));
 
-    if (draft) {
+    if (draft && !roundPreset) {
       setValues({
-        ...createInitialValues(editingApplication),
+        ...createInitialValues(editingApplication, roundPreset),
         ...draft,
       });
       setDraftStatus(t("tickets.draftAutoRestored"));
       setIsDirty(true);
       isDirtyRef.current = true;
     }
-  }, [editingApplication, t]);
+  }, [editingApplication, roundPreset, t]);
 
   useEffect(() => {
     valuesRef.current = values;
@@ -254,7 +258,7 @@ export function TicketApplicationForm({
     setDraftStatus(t("draft.discarded"));
     setIsDirty(false);
     isDirtyRef.current = false;
-    setValues(createInitialValues(editingApplication));
+    setValues(createInitialValues(editingApplication, roundPreset));
   };
 
   const handleCancel = () => {
@@ -313,8 +317,7 @@ export function TicketApplicationForm({
     return "";
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitValues = async (options?: { addAnother?: boolean }) => {
     const validationError = validate();
 
     if (validationError) {
@@ -325,7 +328,7 @@ export function TicketApplicationForm({
     saveCurrentDraft();
     setIsDirty(false);
     isDirtyRef.current = false;
-    void onSave({
+    await onSave({
       ...values,
       eventTitle: values.eventTitle.trim(),
       artist: values.artist.trim(),
@@ -334,12 +337,40 @@ export function TicketApplicationForm({
       companionName: values.companionName.trim(),
       companionContact: values.companionContact.trim(),
       memo: values.memo.trim(),
-    });
+    }, options);
 
-    if (!editingApplication) {
-      setValues(createInitialValues());
+    if (!editingApplication && options?.addAnother) {
+      setValues((current) => ({
+        ...createInitialValues(undefined, {
+          ticketGroupKey: current.ticketGroupKey,
+          eventTitle: current.eventTitle,
+          artist: current.artist,
+          eventDate: current.eventDate || undefined,
+          venueId: current.venueId || undefined,
+          displayCurrency: current.displayCurrency,
+        }),
+        platform: current.platform,
+        status: "applied",
+        currency: current.currency,
+        displayCurrency: current.displayCurrency,
+        exchangeRateToDisplay: current.currency === current.displayCurrency ? "1" : "",
+      }));
+      setDraftStatus(t("tickets.addAnotherRound"));
+    } else if (!editingApplication) {
+      setValues(createInitialValues(undefined, roundPreset));
     }
   };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void submitValues();
+  };
+
+  const handleSaveAndAddAnother = () => {
+    void submitValues({ addAnother: true });
+  };
+
+  const presetVenue = roundPreset?.venueName || selectedVenue?.name;
 
   return (
     <section className="form-panel ticket-application-form" aria-labelledby="ticket-form-title">
@@ -356,6 +387,20 @@ export function TicketApplicationForm({
         ) : null}
       </div>
 
+      <p className="draft-status">
+        {t("tickets.ticketRecordHint")} {t("tickets.ticketRecordGroupingHint")}
+      </p>
+      {roundPreset && !editingApplication ? (
+        <section className="draft-banner" aria-label={t("tickets.ticketGroup")}>
+          <strong>{t("tickets.addingRoundToPerformance")}</strong>
+          <span>
+            {roundPreset.eventTitle} / {roundPreset.artist}
+            {roundPreset.eventDate ? ` / ${roundPreset.eventDate}` : ""}
+            {presetVenue ? ` / ${presetVenue}` : ""}
+          </span>
+        </section>
+      ) : null}
+
       {draftStatus ? (
         <section className="draft-banner" aria-label={t("draft.ticketDraft")}>
           <strong>{draftStatus}</strong>
@@ -369,6 +414,7 @@ export function TicketApplicationForm({
 
       <form className="event-form" onSubmit={handleSubmit}>
         <h3 className="event-form__wide">{t("tickets.performanceInfo")}</h3>
+        <input type="hidden" value={values.ticketGroupKey} readOnly />
         <label>
           {t("tickets.eventTitle")}
           <input required value={values.eventTitle} onChange={(event) => updateValue("eventTitle", event.target.value)} />
@@ -396,7 +442,7 @@ export function TicketApplicationForm({
           {t("tickets.eventDate")}
           <input type="date" value={values.eventDate} onChange={(event) => updateValue("eventDate", event.target.value)} />
         </label>
-        <h3 className="event-form__wide">{t("tickets.lotteryRound")}</h3>
+        <h3 className="event-form__wide">{t("tickets.roundInformation")}</h3>
         <label>
           {t("tickets.roundName")}
           <input value={values.roundName} onChange={(event) => updateValue("roundName", event.target.value)} />
@@ -538,6 +584,12 @@ export function TicketApplicationForm({
           <Save size={18} aria-hidden="true" />
           {t("tickets.save")}
         </button>
+        {!editingApplication ? (
+          <button className="ghost-button event-form__submit" type="button" onClick={handleSaveAndAddAnother}>
+            <Save size={18} aria-hidden="true" />
+            {t("tickets.saveAndAddAnotherRound")}
+          </button>
+        ) : null}
       </form>
     </section>
   );

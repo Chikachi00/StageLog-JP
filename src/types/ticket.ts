@@ -71,6 +71,7 @@ export interface TicketApplication {
 }
 
 export interface TicketApplicationFormValues {
+  ticketGroupKey: string;
   eventTitle: string;
   artist: string;
   venueId: string;
@@ -98,6 +99,18 @@ export interface TicketApplicationFormValues {
   companionName: string;
   companionContact: string;
   memo: string;
+}
+
+export interface TicketRoundPreset {
+  ticketGroupKey: string;
+  eventTitle: string;
+  artist: string;
+  eventDate?: string;
+  venueId?: string;
+  venueName?: string;
+  city?: string;
+  country?: string;
+  displayCurrency?: CurrencyCode;
 }
 
 export interface TicketApplicationFilters {

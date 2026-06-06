@@ -1,5 +1,14 @@
 # StageLog JP
 
+## Ticket group round creation UX / 票务分组录入优化
+
+- 中文：Ticket group card 内现在可以直接点击“新增这一场的抽选轮次”，表单会自动带入同一场公演的标题、艺人、日期、会场和 `ticketGroupKey`。
+- 中文：新增票务表单支持“保存并新增下一轮”，适合连续录入最速先行、二次先行、一般贩售等多轮抽选。
+- 中文：仍然使用 `ticket_applications` 单表和 `ticketGroupKey` 分组，没有新增 Supabase schema 或 `ticket_groups` 表。
+- English: Ticket group cards now include “Add lottery round to this performance” so users can add another round without retyping the performance details.
+- English: The ticket form supports “Save and add another round” for quickly entering multiple lottery rounds under the same `ticketGroupKey`.
+- English: This keeps the single-table `ticket_applications` model and does not add a `ticket_groups` table or new Supabase schema.
+
 ## Ticket Management V2 / 票务管理 V2
 
 - 中文：支持同一公演多轮抽选分组，通过 `ticketGroupKey` 在 `ticket_applications` 单表中归类，不新增 `ticket_groups` 表。

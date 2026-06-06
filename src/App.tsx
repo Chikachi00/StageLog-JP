@@ -58,7 +58,7 @@ import {
 import { fetchWeatherForEvent } from "./services/weatherService";
 import type { EventFilters, EventFormValues, EventRecord } from "./types/event";
 import { isAppTheme, type AppTheme } from "./types/theme";
-import type { TicketApplication, TicketApplicationFormValues } from "./types/ticket";
+import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "./types/ticket";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "./types/backup";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
 import {
@@ -381,7 +381,7 @@ const createTicketApplication = (
 
   return {
     ...baseApplication,
-    ticketGroupKey: normalizeTicketGroupKey(baseApplication),
+    ticketGroupKey: values.ticketGroupKey || normalizeTicketGroupKey(baseApplication),
     amountOriginal: getTicketAmountOriginal(baseApplication),
     amountDisplay: getTicketAmountDisplay(baseApplication),
   };
@@ -397,6 +397,18 @@ const getTicketImportKey = (application: TicketApplication) =>
   [application.eventTitle, application.artist, application.eventDate ?? "", application.platform]
     .join("::")
     .toLocaleLowerCase();
+
+const createTicketRoundPreset = (application: TicketApplication): TicketRoundPreset => ({
+  ticketGroupKey: application.ticketGroupKey || normalizeTicketGroupKey(application),
+  eventTitle: application.eventTitle,
+  artist: application.artist,
+  eventDate: application.eventDate,
+  venueId: application.venueId,
+  venueName: application.venueName,
+  city: application.city,
+  country: application.country,
+  displayCurrency: application.displayCurrency ?? "CNY",
+});
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (error instanceof Error) {
@@ -457,6 +469,7 @@ function App() {
     initialTicketFormSession?.mode === "edit" ? initialTicketFormSession.editingTicketId : null,
   );
   const ticketFormSessionRef = useRef<TicketFormSession | null>(initialTicketFormSession);
+  const [ticketRoundPreset, setTicketRoundPreset] = useState<TicketRoundPreset | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>();
   const [filters, setFilters] = useState<EventFilters>(defaultFilters);
   const [fetchingWeatherId, setFetchingWeatherId] = useState<string | null>(null);
@@ -789,31 +802,43 @@ function App() {
   const handleSaveTicketApplication = async (
     values: TicketApplicationFormValues,
     currentEditingApplication?: TicketApplication | null,
+    options: { addAnother?: boolean } = {},
   ) => {
     try {
-      const application = createTicketApplication(values, currentEditingApplication);
+      let application = createTicketApplication(values, currentEditingApplication);
 
       if (isCloudMode && user) {
         if (currentEditingApplication) {
-          await updateCloudTicketApplication(application, user.id);
+          application = await updateCloudTicketApplication(application, user.id);
           setNotice(t("notice.ticketUpdated"));
         } else {
-          await addCloudTicketApplication(application, user.id);
+          application = await addCloudTicketApplication(application, user.id);
           setNotice(t("notice.ticketSaved"));
         }
       } else if (currentEditingApplication) {
-        updateTicketApplication(application);
+        application = updateTicketApplication(application);
         setNotice(t("notice.ticketUpdated"));
       } else {
-        addTicketApplication(application);
+        application = addTicketApplication(application);
         setNotice(t("notice.ticketSaved"));
       }
 
       clearDraft(getTicketDraftKey(currentEditingApplication?.id));
       setEditingApplication(null);
       setEditingTicketId(null);
-      setTicketFormSession(null);
       await refreshTicketApplications();
+
+      if (!currentEditingApplication && options.addAnother) {
+        const session = createNewTicketFormSession();
+        setTicketRoundPreset(createTicketRoundPreset(application));
+        setTicketFormSession(session);
+        saveTicketFormSession(session);
+        setActiveView("tickets");
+        return;
+      }
+
+      setTicketRoundPreset(null);
+      setTicketFormSession(null);
     } catch (error) {
       setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
     }
@@ -825,8 +850,38 @@ function App() {
     setTicketFormSession(session);
     setEditingTicketId(application.id);
     setEditingApplication(application);
+    setTicketRoundPreset(null);
     setActiveView("tickets");
     setNotice("");
+  };
+
+  const handleStartNewTicketApplication = () => {
+    if (ticketFormSession?.mode === "edit") {
+      clearDraft(getTicketDraftKey(ticketFormSession.editingTicketId));
+    } else {
+      clearDraft(getTicketDraftKey());
+    }
+
+    const session = createNewTicketFormSession();
+    setEditingApplication(null);
+    setEditingTicketId(null);
+    setTicketRoundPreset(null);
+    setTicketFormSession(session);
+    saveTicketFormSession(session);
+    setActiveView("tickets");
+    setNotice("");
+  };
+
+  const handleAddTicketRoundToGroup = (preset: TicketRoundPreset) => {
+    clearDraft(getTicketDraftKey());
+    const session = createNewTicketFormSession();
+    setEditingApplication(null);
+    setEditingTicketId(null);
+    setTicketRoundPreset(preset);
+    setTicketFormSession(session);
+    saveTicketFormSession(session);
+    setActiveView("tickets");
+    setNotice(t("tickets.addingRoundToPerformance"));
   };
 
   const handleCancelTicketEditing = () => {
@@ -838,6 +893,7 @@ function App() {
 
     setEditingApplication(null);
     setEditingTicketId(null);
+    setTicketRoundPreset(null);
     setTicketFormSession(null);
   };
 
@@ -1045,6 +1101,7 @@ function App() {
       if (ticketFormSession?.mode === "edit" && ticketFormSession.editingTicketId === id) {
         setEditingApplication(null);
         setEditingTicketId(null);
+        setTicketRoundPreset(null);
         setTicketFormSession(null);
       }
       setNotice(t("notice.ticketDeleted"));
@@ -1463,12 +1520,15 @@ function App() {
             editingApplication={currentEditingApplication}
             isEditingApplicationLoading={isEditingTicketLoading}
             isEditingApplicationMissing={isEditingTicketMissing}
+            roundPreset={ticketRoundPreset}
             venues={venues}
+            onAddRoundToGroup={handleAddTicketRoundToGroup}
             onCancelEditing={handleCancelTicketEditing}
             onCreateEventRecord={handleCreateEventFromApplication}
             onDelete={handleDeleteTicketApplication}
             onEdit={handleEditTicketApplication}
             onSave={handleSaveTicketApplication}
+            onStartNewTicket={handleStartNewTicketApplication}
           />
         ) : null}
 

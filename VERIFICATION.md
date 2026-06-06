@@ -229,6 +229,17 @@ Verification date: 2026-06-04
 - Mobile CSS was added for ticket group cards and round rows to avoid horizontal overflow.
 - Runtime grouping, cloud import, mobile layout, and analytics chart behavior require browser verification.
 
+## Ticket Group Round Creation UX
+
+- Code added and checked: `src/components/TicketManager.tsx`, `src/components/TicketApplicationForm.tsx`, `src/App.tsx`, `src/types/ticket.ts`, `src/index.css`, and `src/i18n/resources.ts`.
+- Ticket group cards now expose an explicit `Add lottery round to this performance` action.
+- The add-round action passes a `TicketRoundPreset` containing `ticketGroupKey`, event title, artist, event date, venue id/name, and display currency into the existing ticket form.
+- New rounds created from a group preserve the same `ticketGroupKey`; no `ticket_groups` table or new Supabase schema was added.
+- The ticket form now supports `Save and add another round`, preserving the performance context while clearing round-specific fields for the next lottery round.
+- The top ticket creation panel now distinguishes new performance ticket entry from adding a round to an existing performance.
+- Mobile CSS was added so the creation panel and group add-round action collapse to a single-column layout.
+- Manual browser verification still needed: create a second round from a group card, confirm it appears under the same group, then use save-and-add-another to enter a third round.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.
