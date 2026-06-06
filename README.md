@@ -1,5 +1,18 @@
 # StageLog JP
 
+## Custom Venues B-lite / 自定义场馆 B-lite
+
+- 中文：自定义场馆 B-lite
+- 中文：用户自己的自定义场馆库
+- 中文：自定义场馆通过 Supabase 云同步
+- 中文：参战和票务记录仍保留场馆快照
+- 中文：删除自定义场馆不会删除历史记录
+- English: Custom Venues B-lite
+- English: User-owned custom venue library
+- English: Custom venues sync through Supabase
+- English: Events and tickets still keep venue snapshots
+- English: Deleting a custom venue does not delete historical records
+
 ## Venue UX V1 / 场馆体验 V1
 
 - 中文：可搜索场馆选择

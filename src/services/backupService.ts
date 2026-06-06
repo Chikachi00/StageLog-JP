@@ -8,6 +8,7 @@ import type {
   TicketPlatform,
   TicketRoundType,
 } from "../types/ticket";
+import type { CustomVenue, CustomVenueCategory } from "../types/venue";
 import {
   currencyOptions,
   getAppliedQuantity,
@@ -26,6 +27,7 @@ interface CreateBackupOptions {
   userEmail?: string;
   events: EventRecord[];
   ticketApplications?: TicketApplication[];
+  customVenues?: CustomVenue[];
   profile?: UserProfile | null;
   settings?: {
     language?: string;
@@ -50,6 +52,32 @@ const asOptionalString = (value: unknown) => {
 };
 
 const asNumber = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : undefined);
+
+const asNumberLike = (value: unknown) => {
+  const nextValue = typeof value === "string" ? Number(value) : value;
+  return typeof nextValue === "number" && Number.isFinite(nextValue) ? nextValue : undefined;
+};
+
+const asStringArray = (value: unknown) =>
+  Array.isArray(value) ? value.map((item) => asString(item).trim()).filter(Boolean) : undefined;
+
+const customVenueCategories: CustomVenueCategory[] = [
+  "dome",
+  "arena",
+  "hall",
+  "livehouse",
+  "convention",
+  "stadium",
+  "theater",
+  "other",
+];
+
+const normalizeCustomVenueCategory = (value: unknown): CustomVenueCategory | undefined => {
+  const category = asString(value);
+  return customVenueCategories.includes(category as CustomVenueCategory)
+    ? (category as CustomVenueCategory)
+    : undefined;
+};
 
 const normalizeSeat = (value: unknown): SeatInfo => {
   if (!isObject(value)) {
@@ -219,6 +247,31 @@ export const normalizeBackupTicketApplication = (value: unknown): TicketApplicat
   };
 };
 
+export const normalizeBackupCustomVenue = (value: unknown): CustomVenue => {
+  const now = new Date().toISOString();
+  const venue = isObject(value) ? value : {};
+
+  return {
+    id: asOptionalString(venue.id) ?? `custom:${createId()}`,
+    userId: asOptionalString(venue.userId),
+    name: asString(venue.name, "Custom venue"),
+    nameJa: asOptionalString(venue.nameJa),
+    nameZh: asOptionalString(venue.nameZh),
+    aliases: asStringArray(venue.aliases),
+    city: asString(venue.city, "Unknown"),
+    country: asString(venue.country, "Japan"),
+    prefecture: asOptionalString(venue.prefecture),
+    region: asOptionalString(venue.region),
+    latitude: asNumberLike(venue.latitude),
+    longitude: asNumberLike(venue.longitude),
+    category: normalizeCustomVenueCategory(venue.category),
+    capacity: asNumberLike(venue.capacity),
+    notes: asOptionalString(venue.notes),
+    createdAt: asOptionalString(venue.createdAt) ?? now,
+    updatedAt: asOptionalString(venue.updatedAt) ?? now,
+  };
+};
+
 const normalizeProfile = (value: unknown): UserProfile | null => {
   if (!isObject(value)) {
     return null;
@@ -250,6 +303,7 @@ export function createBackup(options: CreateBackupOptions): StageLogBackup {
     data: {
       events: options.events,
       ticketApplications: options.ticketApplications ?? [],
+      customVenues: options.customVenues,
       profile: options.profile ?? null,
       settings: options.settings,
     },
@@ -297,6 +351,9 @@ export function validateBackup(value: unknown): StageLogBackup {
   const ticketApplications = Array.isArray(value.data.ticketApplications)
     ? value.data.ticketApplications.map(normalizeBackupTicketApplication)
     : [];
+  const customVenues = Array.isArray(value.data.customVenues)
+    ? value.data.customVenues.map(normalizeBackupCustomVenue)
+    : undefined;
 
   return {
     appName: "StageLog JP",
@@ -307,6 +364,7 @@ export function validateBackup(value: unknown): StageLogBackup {
     data: {
       events: value.data.events.map(normalizeBackupEvent),
       ticketApplications,
+      customVenues,
       profile: normalizeProfile(value.data.profile),
       settings: isObject(value.data.settings)
         ? {

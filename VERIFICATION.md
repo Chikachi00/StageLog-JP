@@ -27,6 +27,17 @@ Verification date: 2026-06-04
 - i18n regression: VenueCombobox, Ticket V2, Analytics V2, Backup, custom venue weather, and seat map fallback keys are present in English and Chinese resources.
 - Known limitations: custom venues are inferred from saved records, not stored in a separate `custom_venues` table; automatic exchange rates are not supported; custom venue weather requires coordinates.
 
+## Custom Venues B-lite Foundation
+
+- `custom_venues` SQL: added `supabase/sql/05_custom_venues.sql` for the user-owned custom venue library.
+- RLS policies: `select`, `insert`, `update`, and `delete` policies restrict rows to `auth.uid() = user_id`.
+- `customVenueService`: added cloud/local list, create, update, delete, Supabase row mapping, Supabase payload mapping, and Supabase error detail preservation.
+- localStorage fallback: local custom venues use the `stagelog-custom-venues` key and parse errors fall back to an empty list.
+- Backup customVenues compatibility: backup types and validation now accept optional `customVenues`; old backups without the field remain valid.
+- SQL setup: `SUPABASE_SETUP.md` now documents running `supabase/sql/05_custom_venues.sql`.
+- Known limitation: Custom Venues B-lite does not automatically batch update or delete historical event/ticket records; those records keep venue snapshots.
+- Known limitation: App state and Backup UI wiring for exporting/importing the loaded custom venue library is reserved for a later B-lite integration stage.
+
 ## VenueCombobox / Custom Venue Verification
 
 - VenueCombobox verification: `EventForm` and `TicketApplicationForm` use the shared searchable venue combobox with built-in venue search and historical custom venue candidates.

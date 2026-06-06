@@ -1,6 +1,7 @@
 import type { EventRecord } from "./event";
 import type { UserProfile } from "./profile";
 import type { TicketApplication } from "./ticket";
+import type { CustomVenue } from "./venue";
 
 export interface StageLogBackup {
   appName: "StageLog JP";
@@ -11,6 +12,7 @@ export interface StageLogBackup {
   data: {
     events: EventRecord[];
     ticketApplications?: TicketApplication[];
+    customVenues?: CustomVenue[];
     profile?: UserProfile | null;
     settings?: {
       language?: string;

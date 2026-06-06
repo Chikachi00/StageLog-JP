@@ -49,6 +49,12 @@ For Ticket Management V2 fields, also run:
 supabase/sql/04_ticket_model_v2.sql
 ```
 
+For Custom Venues B-lite, also run:
+
+```text
+supabase/sql/05_custom_venues.sql
+```
+
 It creates or updates:
 
 - `public.profiles`
@@ -58,6 +64,7 @@ It creates or updates:
 - RLS policies for profiles, ticket applications, and event image objects
 - Events schema compatibility fields and events RLS policies when running the `03` patch
 - Ticket application V2 fields for lottery rounds, applied/won/paid quantities, and manual currency conversion when running the `04` patch
+- `public.custom_venues` and user-owned custom venue RLS policies when running the `05` patch
 
 The SQL is written to be repeatable with `create table if not exists`, `alter table ... add column if not exists`, and policy replacement.
 
