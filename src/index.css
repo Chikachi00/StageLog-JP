@@ -1916,14 +1916,21 @@ textarea:focus {
 
 .analytics-chart-body {
   width: 100%;
-  height: 280px;
   min-width: 0;
-  min-height: 240px;
+  height: auto;
+  min-height: 280px;
 }
 
-.analytics-chart-body .recharts-wrapper,
-.analytics-chart-body svg {
+.analytics-chart-frame {
+  width: 100%;
+  min-width: 0;
+  height: 280px;
+}
+
+.analytics-chart-frame .recharts-wrapper,
+.analytics-chart-frame svg {
   max-width: 100%;
+  overflow: visible;
 }
 
 .chart-data-list {
@@ -2414,7 +2421,7 @@ textarea:focus {
   }
 
   .analytics-chart-body {
-    height: 240px;
+    min-height: 280px;
   }
 }
 
