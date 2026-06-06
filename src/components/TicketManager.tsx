@@ -1,5 +1,5 @@
 import { Pencil, PlusCircle, Search, TicketCheck, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Venue } from "../types/event";
 import type {
@@ -51,6 +51,8 @@ const defaultFilters: TicketApplicationFilters = {
 
 const formatRate = (rate: number | null) => (rate === null ? "N/A" : `${rate}%`);
 
+type TicketFormFocusTarget = "eventTitle" | "roundName";
+
 const createPresetFromGroup = (group: TicketGroupSummary): TicketRoundPreset => {
   const firstApplication = group.applications[0];
 
@@ -85,6 +87,9 @@ export function TicketManager({
   const { t } = useTranslation();
   const [filters, setFilters] = useState<TicketApplicationFilters>(defaultFilters);
   const [selectedGroupKey, setSelectedGroupKey] = useState("");
+  const [initialFocus, setInitialFocus] = useState<TicketFormFocusTarget | null>(null);
+  const [focusRequestId, setFocusRequestId] = useState(0);
+  const ticketFormRef = useRef<HTMLDivElement | null>(null);
   const filteredApplications = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
 
@@ -109,6 +114,29 @@ export function TicketManager({
     () => allGroups.find((group) => group.key === selectedGroupKey) ?? null,
     [allGroups, selectedGroupKey],
   );
+  const scrollToTicketForm = useCallback((focusTarget: TicketFormFocusTarget) => {
+    setInitialFocus(focusTarget);
+    setFocusRequestId((current) => current + 1);
+
+    requestAnimationFrame(() => {
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      ticketFormRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }, []);
+  const handleStartNewTicket = () => {
+    onStartNewTicket();
+    scrollToTicketForm("eventTitle");
+  };
+  const handleAddRound = (preset: TicketRoundPreset) => {
+    onAddRoundToGroup(preset);
+    scrollToTicketForm("roundName");
+  };
 
   return (
     <section className="ticket-manager">
@@ -121,7 +149,7 @@ export function TicketManager({
           </p>
         </div>
         <div className="ticket-creation-panel__actions">
-          <button className="primary-button" type="button" onClick={onStartNewTicket}>
+          <button className="primary-button" type="button" onClick={handleStartNewTicket}>
             <PlusCircle size={17} aria-hidden="true" />
             {t("tickets.newPerformanceTicket")}
           </button>
@@ -147,7 +175,7 @@ export function TicketManager({
             disabled={!selectedGroup}
             onClick={() => {
               if (selectedGroup) {
-                onAddRoundToGroup(createPresetFromGroup(selectedGroup));
+                handleAddRound(createPresetFromGroup(selectedGroup));
               }
             }}
           >
@@ -157,23 +185,33 @@ export function TicketManager({
         </div>
       </section>
 
-      {isEditingApplicationLoading ? (
-        <section className="empty-state">
-          <h2>{t("tickets.loadingCloudTickets")}</h2>
-        </section>
-      ) : isEditingApplicationMissing ? (
-        <section className="empty-state">
-          <h2>{t("tickets.notFound")}</h2>
-        </section>
-      ) : (
-        <TicketApplicationForm
-          editingApplication={editingApplication}
-          roundPreset={roundPreset}
-          venues={venues}
-          onCancel={onCancelEditing}
-          onSave={(values, options) => void onSave(values, editingApplication, options)}
-        />
-      )}
+      <div ref={ticketFormRef} className="ticket-form-anchor">
+        {isEditingApplicationLoading ? (
+          <section className="empty-state">
+            <h2>{t("tickets.loadingCloudTickets")}</h2>
+          </section>
+        ) : isEditingApplicationMissing ? (
+          <section className="empty-state">
+            <h2>{t("tickets.notFound")}</h2>
+          </section>
+        ) : (
+          <TicketApplicationForm
+            editingApplication={editingApplication}
+            focusRequestId={focusRequestId}
+            initialFocus={initialFocus}
+            roundPreset={roundPreset}
+            venues={venues}
+            onCancel={onCancelEditing}
+            onSave={async (values, options) => {
+              await onSave(values, editingApplication, options);
+
+              if (options?.addAnother) {
+                scrollToTicketForm("roundName");
+              }
+            }}
+          />
+        )}
+      </div>
 
       <div className="section-heading">
         <div>
@@ -250,7 +288,7 @@ export function TicketManager({
                 <button
                   className="primary-button"
                   type="button"
-                  onClick={() => onAddRoundToGroup(createPresetFromGroup(group))}
+                  onClick={() => handleAddRound(createPresetFromGroup(group))}
                 >
                   <PlusCircle size={17} aria-hidden="true" />
                   {t("tickets.addRoundToPerformance")}

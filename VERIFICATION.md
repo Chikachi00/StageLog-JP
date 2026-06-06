@@ -240,6 +240,21 @@ Verification date: 2026-06-04
 - Mobile CSS was added so the creation panel and group add-round action collapse to a single-column layout.
 - Manual browser verification still needed: create a second round from a group card, confirm it appears under the same group, then use save-and-add-another to enter a third round.
 
+## Ticket Form Scroll And Focus UX
+
+- Code added and checked: `src/components/TicketManager.tsx`, `src/components/TicketApplicationForm.tsx`, `src/App.tsx`, `src/index.css`, and `src/i18n/resources.ts`.
+- TicketManager now wraps `TicketApplicationForm` in a `ticket-form-anchor` and scrolls to it when starting a new performance ticket, adding a round from an existing group, or saving and adding another round.
+- The scroll behavior respects `prefers-reduced-motion` and uses `scroll-margin-top` / `scroll-margin-bottom` so sticky header and mobile bottom navigation are less likely to cover the form.
+- TicketApplicationForm accepts focus requests for `eventTitle` and `roundName`.
+- New performance ticket entry focuses `eventTitle`; group round entry and save-and-add-another focus `roundName`.
+- Save-and-add-another now only resets and continues when the save succeeds; failed saves keep the current form values and show the save error.
+- Commands run:
+  - `npm install`: passed, 0 vulnerabilities.
+  - `npm.cmd run build`: passed. TypeScript and Vite build completed successfully with the existing chunk size warning.
+  - `npm run lint`: script not found in `package.json`.
+  - `npm run test`: script not found in `package.json`.
+- Manual browser verification still needed: click all three ticket add-round entry points and confirm the form scroll/focus behavior on desktop and mobile.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.

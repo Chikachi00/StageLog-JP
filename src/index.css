@@ -1804,6 +1804,11 @@ textarea:focus {
   font-weight: 800;
 }
 
+.ticket-form-anchor {
+  scroll-margin-top: 6rem;
+  scroll-margin-bottom: 7rem;
+}
+
 .ticket-group-card {
   display: grid;
   gap: 0.9rem;
@@ -2602,6 +2607,11 @@ textarea:focus {
   .ticket-round-row__actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .ticket-form-anchor {
+    scroll-margin-top: 4.75rem;
+    scroll-margin-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 
   .ticket-round-row__actions {

@@ -24,6 +24,8 @@ interface TicketApplicationFormProps {
   venues: Venue[];
   editingApplication?: TicketApplication | null;
   roundPreset?: TicketRoundPreset | null;
+  initialFocus?: "eventTitle" | "roundName" | null;
+  focusRequestId?: number;
   onSave: (values: TicketApplicationFormValues, options?: { addAnother?: boolean }) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -92,6 +94,8 @@ export function TicketApplicationForm({
   venues,
   editingApplication,
   roundPreset,
+  initialFocus = null,
+  focusRequestId = 0,
   onSave,
   onCancel,
 }: TicketApplicationFormProps) {
@@ -104,6 +108,8 @@ export function TicketApplicationForm({
   const [isDirty, setIsDirty] = useState(false);
   const valuesRef = useRef(values);
   const isDirtyRef = useRef(false);
+  const eventTitleRef = useRef<HTMLInputElement | null>(null);
+  const roundNameRef = useRef<HTMLInputElement | null>(null);
   const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
   const draftKey = useMemo(() => getTicketDraftKey(editingApplication?.id), [editingApplication?.id]);
 
@@ -133,6 +139,25 @@ export function TicketApplicationForm({
   useEffect(() => {
     isDirtyRef.current = isDirty;
   }, [isDirty]);
+
+  useEffect(() => {
+    const target =
+      initialFocus === "roundName"
+        ? roundNameRef.current
+        : initialFocus === "eventTitle"
+          ? eventTitleRef.current
+          : null;
+
+    if (!target) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      target.focus();
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [focusRequestId, initialFocus]);
 
   const selectedVenue = useMemo(
     () => venues.find((venue) => venue.id === values.venueId),
@@ -328,16 +353,24 @@ export function TicketApplicationForm({
     saveCurrentDraft();
     setIsDirty(false);
     isDirtyRef.current = false;
-    await onSave({
-      ...values,
-      eventTitle: values.eventTitle.trim(),
-      artist: values.artist.trim(),
-      roundName: values.roundName.trim(),
-      ticketType: values.ticketType.trim(),
-      companionName: values.companionName.trim(),
-      companionContact: values.companionContact.trim(),
-      memo: values.memo.trim(),
-    }, options);
+    try {
+      await onSave({
+        ...values,
+        eventTitle: values.eventTitle.trim(),
+        artist: values.artist.trim(),
+        roundName: values.roundName.trim(),
+        ticketType: values.ticketType.trim(),
+        companionName: values.companionName.trim(),
+        companionContact: values.companionContact.trim(),
+        memo: values.memo.trim(),
+      }, options);
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : t("notice.ticketSaveFailed");
+      setError(message);
+      setIsDirty(true);
+      isDirtyRef.current = true;
+      return;
+    }
 
     if (!editingApplication && options?.addAnother) {
       setValues((current) => ({
@@ -417,7 +450,7 @@ export function TicketApplicationForm({
         <input type="hidden" value={values.ticketGroupKey} readOnly />
         <label>
           {t("tickets.eventTitle")}
-          <input required value={values.eventTitle} onChange={(event) => updateValue("eventTitle", event.target.value)} />
+          <input ref={eventTitleRef} required value={values.eventTitle} onChange={(event) => updateValue("eventTitle", event.target.value)} />
         </label>
         <label>
           {t("tickets.artist")}
@@ -445,7 +478,7 @@ export function TicketApplicationForm({
         <h3 className="event-form__wide">{t("tickets.roundInformation")}</h3>
         <label>
           {t("tickets.roundName")}
-          <input value={values.roundName} onChange={(event) => updateValue("roundName", event.target.value)} />
+          <input ref={roundNameRef} value={values.roundName} onChange={(event) => updateValue("roundName", event.target.value)} />
         </label>
         <label>
           {t("tickets.roundType")}

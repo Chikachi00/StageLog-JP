@@ -834,13 +834,16 @@ function App() {
         setTicketFormSession(session);
         saveTicketFormSession(session);
         setActiveView("tickets");
+        setNotice(t("notice.ticketSavedContinueRound"));
         return;
       }
 
       setTicketRoundPreset(null);
       setTicketFormSession(null);
     } catch (error) {
-      setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
+      const message = getErrorMessage(error, t("notice.ticketSaveFailed"));
+      setNotice(message);
+      throw new Error(message);
     }
   };
 
