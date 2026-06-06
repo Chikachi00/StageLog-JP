@@ -97,8 +97,8 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - Analytics 页面提供完整数据分析仪表盘
 - 参战趋势可视化：年度参战数、月度参战数、累计参战数
 - 艺人 / 会场 / 地区统计图表
-- 天气分析：平均气温、最热参战、最冷参战、雨量最大、风最大和气温趋势
-- 票务分析：申请状态、平台分布、当选率、已支付总额和平均票价
+- 天气分析：天气状态分布、月度平均气温、月度降水量、风速排行、最热 / 最冷 / 雨量最大 / 风最大参战
+- 票务分析：申请状态、平台分布、各平台当选率、月度支出、累计支出、各平台支出和各平台平均票价
 
 ### 票务抽选管理
 
@@ -307,8 +307,8 @@ The first version includes:
 - Dedicated Analytics dashboard for visual insights
 - Attendance trend visualization with yearly, monthly, and cumulative charts
 - Artist / venue / region charts
-- Weather analytics for average temperature, hottest, coldest, rainiest, windiest events, and temperature trends
-- Ticket analytics for application status, platform distribution, win rate, total paid amount, and average ticket price
+- Weather analytics charts for condition distribution, average temperature by month, monthly precipitation, wind speed ranking, and weather extremes
+- Ticket analytics for application status, platform distribution, win rate by platform, monthly spending, cumulative spending, spending by platform, and average ticket price by platform
 
 ### Ticket Lottery Management
 

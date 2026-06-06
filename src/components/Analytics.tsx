@@ -16,16 +16,27 @@ import {
 import type { EventRecord, Venue } from "../types/event";
 import type { TicketApplication } from "../types/ticket";
 import {
+  getAverageTemperatureByMonth,
+  getAverageTicketPriceByPlatform,
+  getCumulativeTicketSpendingByMonth,
   getCumulativeEventsByMonth,
   getEventsByMonth,
   getEventsByRegion,
   getEventsByYear,
+  getPrecipitationByMonth,
   getRainfallRanking,
   getTemperatureTrend,
   getTicketAnalytics,
+  getTicketPlatformDistribution,
+  getTicketSpendingByMonth,
+  getTicketSpendingByPlatform,
+  getTicketStatusDistribution,
+  getTicketWinRateByPlatform,
   getTopArtists,
   getTopVenues,
+  getWeatherConditionDistribution,
   getWeatherSummary,
+  getWindSpeedRanking,
 } from "../utils/analyticsUtils";
 import { formatDate } from "../utils/dateUtils";
 
@@ -72,7 +83,9 @@ const tooltipContentStyle = {
   color: "var(--ink)",
 };
 
+const roundOneDecimal = (value: number) => Math.round(value * 10) / 10;
 const formatCurrency = (value: number) => `${Math.round(value).toLocaleString()} JPY`;
+const formatPercent = (value: number) => `${roundOneDecimal(value)}%`;
 
 const truncate = (value: string, maxLength = 18) =>
   value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
@@ -176,24 +189,41 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
   const weatherSummary = useMemo(() => getWeatherSummary(events), [events]);
   const temperatureTrend = useMemo(() => getTemperatureTrend(events), [events]);
   const rainfallRanking = useMemo(() => getRainfallRanking(events), [events]);
+  const weatherConditionData = useMemo(() => getWeatherConditionDistribution(events), [events]);
+  const averageTemperatureByMonth = useMemo(() => getAverageTemperatureByMonth(events), [events]);
+  const precipitationByMonth = useMemo(() => getPrecipitationByMonth(events), [events]);
+  const windSpeedRanking = useMemo(() => getWindSpeedRanking(events), [events]);
   const ticketStats = useMemo(() => getTicketAnalytics(ticketApplications), [ticketApplications]);
+  const ticketStatusDistribution = useMemo(() => getTicketStatusDistribution(ticketApplications), [ticketApplications]);
+  const ticketPlatformDistribution = useMemo(() => getTicketPlatformDistribution(ticketApplications), [ticketApplications]);
+  const ticketWinRateByPlatform = useMemo(() => getTicketWinRateByPlatform(ticketApplications), [ticketApplications]);
+  const ticketSpendingByMonth = useMemo(() => getTicketSpendingByMonth(ticketApplications), [ticketApplications]);
+  const cumulativeTicketSpending = useMemo(
+    () => getCumulativeTicketSpendingByMonth(ticketApplications),
+    [ticketApplications],
+  );
+  const ticketSpendingByPlatform = useMemo(() => getTicketSpendingByPlatform(ticketApplications), [ticketApplications]);
+  const averageTicketPriceByPlatform = useMemo(
+    () => getAverageTicketPriceByPlatform(ticketApplications),
+    [ticketApplications],
+  );
   const statusData = useMemo(
     () =>
-      Object.entries(ticketStats.byStatus).map(([status, count]) => ({
+      ticketStatusDistribution.map(({ name: status, count }) => ({
         name: t(`status.${status}`, { defaultValue: status }),
         count,
         shortName: truncate(t(`status.${status}`, { defaultValue: status }), 16),
       })),
-    [t, ticketStats.byStatus],
+    [t, ticketStatusDistribution],
   );
   const platformData = useMemo(
     () =>
-      Object.entries(ticketStats.byPlatform).map(([platform, count]) => ({
+      ticketPlatformDistribution.map(({ name: platform, count }) => ({
         name: t(`platform.${platform}`, { defaultValue: platform }),
         count,
         shortName: truncate(t(`platform.${platform}`, { defaultValue: platform }), 16),
       })),
-    [t, ticketStats.byPlatform],
+    [t, ticketPlatformDistribution],
   );
   const topArtistChartData = useMemo(
     () => topArtists.map((item) => ({ ...item, shortName: truncate(item.name) })),
@@ -211,6 +241,54 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
     () => rainfallRanking.map((item) => ({ ...item, shortName: truncate(item.name, 18) })),
     [rainfallRanking],
   );
+  const weatherConditionChartData = useMemo(
+    () =>
+      weatherConditionData.map((item) => ({
+        ...item,
+        name: t(`analytics.weatherConditions.${item.name}`, { defaultValue: item.name }),
+        shortName: truncate(t(`analytics.weatherConditions.${item.name}`, { defaultValue: item.name }), 16),
+      })),
+    [t, weatherConditionData],
+  );
+  const windSpeedChartData = useMemo(
+    () => windSpeedRanking.map((item) => ({ ...item, shortName: truncate(item.name, 18) })),
+    [windSpeedRanking],
+  );
+  const ticketWinRateChartData = useMemo(
+    () =>
+      ticketWinRateByPlatform.map((item) => ({
+        ...item,
+        name: t(`platform.${item.platform}`, { defaultValue: item.platform }),
+        shortName: truncate(t(`platform.${item.platform}`, { defaultValue: item.platform }), 16),
+      })),
+    [t, ticketWinRateByPlatform],
+  );
+  const ticketSpendingByMonthFallback = useMemo(
+    () => ticketSpendingByMonth.map((item) => ({ name: item.name, count: item.paidAmount })),
+    [ticketSpendingByMonth],
+  );
+  const cumulativeTicketSpendingFallback = useMemo(
+    () => cumulativeTicketSpending.map((item) => ({ name: item.name, count: item.cumulativePaid })),
+    [cumulativeTicketSpending],
+  );
+  const ticketSpendingPlatformChartData = useMemo(
+    () =>
+      ticketSpendingByPlatform.map((item) => ({
+        ...item,
+        name: t(`platform.${item.platform}`, { defaultValue: item.platform }),
+        shortName: truncate(t(`platform.${item.platform}`, { defaultValue: item.platform }), 16),
+      })),
+    [t, ticketSpendingByPlatform],
+  );
+  const averageTicketPricePlatformChartData = useMemo(
+    () =>
+      averageTicketPriceByPlatform.map((item) => ({
+        ...item,
+        name: t(`platform.${item.platform}`, { defaultValue: item.platform }),
+        shortName: truncate(t(`platform.${item.platform}`, { defaultValue: item.platform }), 16),
+      })),
+    [t, averageTicketPriceByPlatform],
+  );
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -226,20 +304,38 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
       topVenues,
       regionData,
       temperatureData: temperatureTrend,
+      weatherConditionData,
+      averageTemperatureByMonth,
+      precipitationByMonth,
+      windSpeedData: windSpeedRanking,
       ticketStatusData: statusData,
       ticketPlatformData: platformData,
+      ticketWinRateByPlatform,
+      ticketSpendingByMonth,
+      cumulativeTicketSpending,
+      ticketSpendingByPlatform,
+      averageTicketPriceByPlatform,
     });
   }, [
+    averageTemperatureByMonth,
+    averageTicketPriceByPlatform,
+    cumulativeTicketSpending,
     cumulativeByMonth,
     events.length,
     eventsByYear,
     monthlyData,
     platformData,
+    precipitationByMonth,
     regionData,
     statusData,
     temperatureTrend,
+    ticketSpendingByMonth,
+    ticketSpendingByPlatform,
+    ticketWinRateByPlatform,
     topArtists,
     topVenues,
+    weatherConditionData,
+    windSpeedRanking,
   ]);
 
   return (
@@ -482,6 +578,139 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
         </ChartCard>
       </section>
 
+      <section className="analytics-section">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">{t("analytics.weatherAnalytics")}</span>
+            <h2>{t("analytics.weatherAnalytics")}</h2>
+          </div>
+          <CloudRain size={22} aria-hidden="true" />
+        </div>
+        <section className="analytics-grid">
+          <ChartCard
+            title={t("analytics.weatherConditionDistribution")}
+            emptyLabel={`${t("analytics.noWeatherData")} ${t("analytics.fetchWeatherFirst")}`}
+            fallbackData={weatherConditionChartData}
+            isEmpty={weatherConditionChartData.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart width={width} height={height} data={weatherConditionChartData} margin={chartMargin} barCategoryGap="30%">
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="shortName" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
+                  <YAxis allowDecimals={false} axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={36} />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [value, item.payload.name]} />
+                  <Bar
+                    dataKey="count"
+                    fill={TERTIARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.weatherConditionDistribution")}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.averageTemperatureByMonth")}
+            emptyLabel={`${t("analytics.noWeatherData")} ${t("analytics.fetchWeatherFirst")}`}
+            fallbackData={averageTemperatureByMonth}
+            fallbackUnit="\u00b0C"
+            isEmpty={averageTemperatureByMonth.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <LineChart width={width} height={height} data={averageTemperatureByMonth} margin={chartMargin}>
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    minTickGap={18}
+                    axisLine={{ stroke: AXIS_STROKE }}
+                    tick={axisTick}
+                    tickLine={{ stroke: AXIS_STROKE }}
+                  />
+                  <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} unit="\u00b0C" width={44} />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value) => [`${value}\u00b0C`, t("analytics.averageTemperature")]} />
+                  <Line
+                    activeDot={{ r: 6 }}
+                    dataKey="count"
+                    dot={{ r: 4, fill: PRIMARY_COLOR, strokeWidth: 0 }}
+                    isAnimationActive={false}
+                    name={t("analytics.averageTemperature")}
+                    stroke={PRIMARY_COLOR}
+                    strokeWidth={2.5}
+                    type="monotone"
+                  />
+                </LineChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.monthlyPrecipitation")}
+            emptyLabel={`${t("analytics.noWeatherData")} ${t("analytics.fetchWeatherFirst")}`}
+            fallbackData={precipitationByMonth}
+            fallbackUnit="mm"
+            isEmpty={precipitationByMonth.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart width={width} height={height} data={precipitationByMonth} margin={chartMargin} barCategoryGap="30%">
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
+                  <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} unit="mm" width={44} />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value) => [`${value}mm`, t("analytics.monthlyPrecipitation")]} />
+                  <Bar
+                    dataKey="count"
+                    fill={SECONDARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.monthlyPrecipitation")}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.windSpeedRanking")}
+            emptyLabel={`${t("analytics.noWeatherData")} ${t("analytics.fetchWeatherFirst")}`}
+            fallbackData={windSpeedRanking}
+            fallbackUnit="km/h"
+            isEmpty={windSpeedChartData.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart width={width} height={height} data={windSpeedChartData} layout="vertical" margin={verticalChartMargin} barCategoryGap="24%">
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" horizontal={false} />
+                  <XAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} type="number" unit="km/h" />
+                  <YAxis
+                    dataKey="shortName"
+                    axisLine={{ stroke: AXIS_STROKE }}
+                    tick={axisTick}
+                    tickLine={{ stroke: AXIS_STROKE }}
+                    type="category"
+                    width={108}
+                  />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [`${value}km/h`, item.payload.title]} />
+                  <Bar
+                    dataKey="count"
+                    fill={PRIMARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.windSpeedRanking")}
+                    radius={[0, 6, 6, 0]}
+                  />
+                </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+        </section>
+      </section>
+
       <section className="analytics-insight-grid">
         <article className="analytics-card">
           <div className="analytics-card__heading">
@@ -649,6 +878,198 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                   radius={[6, 6, 0, 0]}
                 />
               </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+        </section>
+
+        <section className="analytics-grid analytics-grid--compact">
+          <ChartCard
+            title={t("analytics.ticketWinRateByPlatform")}
+            emptyLabel={t("analytics.noResolvedTicketData")}
+            fallbackData={ticketWinRateChartData}
+            fallbackUnit="%"
+            isEmpty={!ticketWinRateByPlatform.some((item) => item.resolved > 0)}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart width={width} height={height} data={ticketWinRateChartData} margin={chartMargin} barCategoryGap="30%">
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="shortName" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
+                  <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} unit="%" width={44} />
+                  <Tooltip
+                    contentStyle={tooltipContentStyle}
+                    formatter={(value, _name, item) => [
+                      `${formatPercent(Number(value))} / ${t("analytics.applications")}: ${item.payload.applications}, ${t(
+                        "analytics.won",
+                      )}: ${item.payload.won}, ${t("analytics.lost")}: ${item.payload.lost}, ${t("analytics.resolved")}: ${
+                        item.payload.resolved
+                      }`,
+                      item.payload.name,
+                    ]}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill={SECONDARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.ticketWinRateByPlatform")}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.monthlyTicketSpending")}
+            emptyLabel={t("analytics.noSpendingData")}
+            fallbackData={ticketSpendingByMonthFallback}
+            fallbackUnit=" JPY"
+            isEmpty={ticketSpendingByMonth.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart width={width} height={height} data={ticketSpendingByMonth} margin={chartMargin} barCategoryGap="24%">
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
+                  <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={72} />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                  <Legend />
+                  <Bar
+                    dataKey="paidAmount"
+                    fill={PRIMARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.paidAmount")}
+                    radius={[6, 6, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="plannedAmount"
+                    fill={TERTIARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.plannedAmount")}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.cumulativeTicketSpending")}
+            emptyLabel={t("analytics.noSpendingData")}
+            fallbackData={cumulativeTicketSpendingFallback}
+            fallbackUnit=" JPY"
+            isEmpty={cumulativeTicketSpending.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <LineChart width={width} height={height} data={cumulativeTicketSpending} margin={chartMargin}>
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" minTickGap={18} axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
+                  <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={72} />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                  <Legend />
+                  <Line
+                    activeDot={{ r: 6 }}
+                    dataKey="cumulativePaid"
+                    dot={{ r: 4, fill: PRIMARY_COLOR, strokeWidth: 0 }}
+                    isAnimationActive={false}
+                    name={t("analytics.cumulativePaid")}
+                    stroke={PRIMARY_COLOR}
+                    strokeWidth={2.5}
+                    type="monotone"
+                  />
+                  <Line
+                    activeDot={{ r: 6 }}
+                    dataKey="cumulativePlanned"
+                    dot={{ r: 4, fill: TERTIARY_COLOR, strokeWidth: 0 }}
+                    isAnimationActive={false}
+                    name={t("analytics.cumulativePlanned")}
+                    stroke={TERTIARY_COLOR}
+                    strokeWidth={2.5}
+                    type="monotone"
+                  />
+                </LineChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.spendingByPlatform")}
+            emptyLabel={t("analytics.noSpendingData")}
+            fallbackData={ticketSpendingPlatformChartData}
+            fallbackUnit=" JPY"
+            isEmpty={ticketSpendingByPlatform.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart
+                  width={width}
+                  height={height}
+                  data={ticketSpendingPlatformChartData}
+                  layout="vertical"
+                  margin={verticalChartMargin}
+                  barCategoryGap="20%"
+                >
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" horizontal={false} />
+                  <XAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} type="number" />
+                  <YAxis
+                    dataKey="shortName"
+                    axisLine={{ stroke: AXIS_STROKE }}
+                    tick={axisTick}
+                    tickLine={{ stroke: AXIS_STROKE }}
+                    type="category"
+                    width={108}
+                  />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                  <Legend />
+                  <Bar
+                    dataKey="paidAmount"
+                    fill={PRIMARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.paidAmount")}
+                    radius={[0, 6, 6, 0]}
+                  />
+                  <Bar
+                    dataKey="plannedAmount"
+                    fill={SECONDARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.plannedAmount")}
+                    radius={[0, 6, 6, 0]}
+                  />
+                </BarChart>
+              )}
+            </ChartFrame>
+          </ChartCard>
+
+          <ChartCard
+            title={t("analytics.averageTicketPriceByPlatform")}
+            emptyLabel={t("analytics.noTicketPriceData")}
+            fallbackData={averageTicketPricePlatformChartData}
+            fallbackUnit=" JPY"
+            isEmpty={averageTicketPriceByPlatform.length === 0}
+          >
+            <ChartFrame>
+              {(width, height) => (
+                <BarChart width={width} height={height} data={averageTicketPricePlatformChartData} margin={chartMargin} barCategoryGap="30%">
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="shortName" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
+                  <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={72} />
+                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [formatCurrency(Number(value)), item.payload.name]} />
+                  <Bar
+                    dataKey="count"
+                    fill={TERTIARY_COLOR}
+                    isAnimationActive={false}
+                    minPointSize={4}
+                    name={t("analytics.averageTicketPriceByPlatform")}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
               )}
             </ChartFrame>
           </ChartCard>

@@ -1989,6 +1989,7 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
+.analytics-section,
 .analytics-ticket-section {
   display: grid;
   gap: 1rem;

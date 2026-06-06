@@ -146,6 +146,12 @@ Verification date: 2026-06-04
 - Follow-up fix checked: chart wrappers now use `.analytics-chart-body` with explicit desktop/mobile heights, avoiding parent-height ambiguity around `ResponsiveContainer`.
 - Follow-up fix checked: non-empty charts render a compact fallback data list beneath the chart so small datasets remain visible even if chart rendering is constrained by the browser.
 - Follow-up check added: development builds log safe aggregate chart data through `[Analytics data]` without Supabase sessions, tokens, keys, or user objects.
+- Analytics V2 weather charts added and code-checked: weather condition distribution, average temperature by month, monthly precipitation, and wind speed ranking.
+- Analytics V2 ticket charts added and code-checked: ticket status distribution, platform distribution, win rate by platform, monthly spending, cumulative spending, spending by platform, and average ticket price by platform.
+- Analytics V2 keeps the existing `ChartFrame` + `ResizeObserver` rendering path and does not reintroduce `ResponsiveContainer`.
+- Analytics V2 uses only the App-provided `events`, `ticketApplications`, and `venues` props; no Supabase SQL, schema change, or duplicate data request was added.
+- Empty-state checks are included for missing weather, resolved ticket, ticket price, and spending data.
+- Chart tooltip formatting includes `JPY` for spending data and `%` for win-rate data.
 - Runtime chart rendering and mobile viewport behavior require browser verification.
 
 ## Draft Autosave
@@ -224,6 +230,9 @@ Verification date: 2026-06-04
 - Open Analytics from the mobile More drawer and confirm charts remain inside the viewport without horizontal overflow.
 - Confirm Analytics empty states display correctly when events, weather, or tickets are missing.
 - Confirm switching language/theme updates Analytics labels and keeps chart cards readable.
+- Confirm Analytics V2 weather charts render when weather data exists: condition distribution, monthly temperature, monthly precipitation, and wind ranking.
+- Confirm Analytics V2 ticket charts render when ticket data exists: win rate by platform, spending charts, and average price by platform.
+- Confirm Analytics V2 amount tooltips show JPY and win-rate tooltips show percentages.
 - Confirm bottom navigation does not cover TicketCard action buttons or page bottom content.
 - In Add Event, type a title, refresh, and confirm the event draft restore prompt appears.
 - Restore and discard an event draft and confirm both flows behave correctly.
