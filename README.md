@@ -1,5 +1,18 @@
 # StageLog JP
 
+## Venue UX V1 / 场馆体验 V1
+
+- 中文：可搜索场馆选择
+- 中文：自定义场馆输入
+- 中文：最近使用的自定义场馆
+- 中文：支持按别名 / 城市 / 地区搜索内置场馆
+- 中文：自定义场馆第一版从已保存记录中提取，不单独建表
+- English: Searchable venue selection
+- English: Custom venue input
+- English: Recent custom venues
+- English: Built-in venue search by alias / city / region
+- English: Custom venues are inferred from saved events and tickets, not stored in a separate table
+
 ## Ticket group round creation UX / 票务分组录入优化
 
 - 中文：Ticket group card 内现在可以直接点击“新增这一场的抽选轮次”，表单会自动带入同一场公演的标题、艺人、日期、会场和 `ticketGroupKey`。

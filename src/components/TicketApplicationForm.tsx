@@ -2,10 +2,10 @@ import { Save, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { groupVenuesByRegion } from "../data/venues";
 import { clearDraft, getDraft, getTicketDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
-import type { Venue } from "../types/event";
+import type { EventRecord, Venue } from "../types/event";
 import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "../types/ticket";
+import type { VenueValue } from "../utils/venueSearchUtils";
 import {
   currencyOptions,
   getAppliedQuantity,
@@ -19,9 +19,12 @@ import {
   roundTypeOptions,
   statusOptions,
 } from "../utils/ticketUtils";
+import { VenueCombobox } from "./VenueCombobox";
 
 interface TicketApplicationFormProps {
   venues: Venue[];
+  events?: EventRecord[];
+  ticketApplications?: TicketApplication[];
   editingApplication?: TicketApplication | null;
   roundPreset?: TicketRoundPreset | null;
   initialFocus?: "eventTitle" | "roundName" | null;
@@ -31,10 +34,16 @@ interface TicketApplicationFormProps {
 }
 
 type TicketDraftPayload = TicketApplicationFormValues & {
-  venueName?: string;
-  city?: string;
-  country?: string;
   linkedEventId?: string;
+};
+
+const parseOptionalPresetNumber = (value?: string) => {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const nextValue = Number(value);
+  return Number.isFinite(nextValue) ? nextValue : undefined;
 };
 
 const createInitialValues = (
@@ -45,6 +54,29 @@ const createInitialValues = (
   eventTitle: editingApplication?.eventTitle ?? roundPreset?.eventTitle ?? "",
   artist: editingApplication?.artist ?? roundPreset?.artist ?? "",
   venueId: editingApplication?.venueId ?? roundPreset?.venueId ?? "",
+  venueName: editingApplication?.venueName ?? roundPreset?.venueName ?? "",
+  city: editingApplication?.city ?? roundPreset?.city ?? "",
+  country: editingApplication?.country ?? roundPreset?.country ?? "Japan",
+  prefecture: editingApplication?.prefecture ?? roundPreset?.prefecture ?? "",
+  region: editingApplication?.region ?? roundPreset?.region ?? "",
+  latitude:
+    typeof editingApplication?.latitude === "number"
+      ? String(editingApplication.latitude)
+      : typeof roundPreset?.latitude === "number"
+        ? String(roundPreset.latitude)
+        : "",
+  longitude:
+    typeof editingApplication?.longitude === "number"
+      ? String(editingApplication.longitude)
+      : typeof roundPreset?.longitude === "number"
+        ? String(roundPreset.longitude)
+        : "",
+  isCustomVenue:
+    editingApplication?.isCustomVenue ??
+    roundPreset?.isCustomVenue ??
+    editingApplication?.venueId?.startsWith("custom:") ??
+    roundPreset?.venueId?.startsWith("custom:") ??
+    false,
   eventDate: editingApplication?.eventDate ?? roundPreset?.eventDate ?? "",
   platform: editingApplication?.platform ?? "eplus",
   applicationDate: editingApplication?.applicationDate ?? "",
@@ -92,6 +124,8 @@ const createInitialValues = (
 
 export function TicketApplicationForm({
   venues,
+  events = [],
+  ticketApplications = [],
   editingApplication,
   roundPreset,
   initialFocus = null,
@@ -110,7 +144,6 @@ export function TicketApplicationForm({
   const isDirtyRef = useRef(false);
   const eventTitleRef = useRef<HTMLInputElement | null>(null);
   const roundNameRef = useRef<HTMLInputElement | null>(null);
-  const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
   const draftKey = useMemo(() => getTicketDraftKey(editingApplication?.id), [editingApplication?.id]);
 
   useEffect(() => {
@@ -163,6 +196,46 @@ export function TicketApplicationForm({
     () => venues.find((venue) => venue.id === values.venueId),
     [venues, values.venueId],
   );
+  const venueValue = useMemo<VenueValue>(
+    () => ({
+      venueId: values.venueId,
+      venueName: values.venueName,
+      city: values.city,
+      country: values.country,
+      prefecture: values.prefecture,
+      region: values.region,
+      latitude: parseOptionalPresetNumber(values.latitude),
+      longitude: parseOptionalPresetNumber(values.longitude),
+      isCustomVenue: values.isCustomVenue,
+    }),
+    [
+      values.city,
+      values.country,
+      values.isCustomVenue,
+      values.latitude,
+      values.longitude,
+      values.prefecture,
+      values.region,
+      values.venueId,
+      values.venueName,
+    ],
+  );
+
+  const updateVenue = (venue: VenueValue) => {
+    setIsDirty(true);
+    setValues((current) => ({
+      ...current,
+      venueId: venue.venueId ?? "",
+      venueName: venue.venueName ?? "",
+      city: venue.city ?? "",
+      country: venue.country ?? "Japan",
+      prefecture: venue.prefecture ?? "",
+      region: venue.region ?? "",
+      latitude: typeof venue.latitude === "number" ? String(venue.latitude) : "",
+      longitude: typeof venue.longitude === "number" ? String(venue.longitude) : "",
+      isCustomVenue: venue.isCustomVenue ?? false,
+    }));
+  };
 
   const updateValue = (field: keyof TicketApplicationFormValues, value: string) => {
     setIsDirty(true);
@@ -179,17 +252,12 @@ export function TicketApplicationForm({
 
   const createDraftPayload = useCallback(
     (currentValues: TicketApplicationFormValues): TicketDraftPayload => {
-      const venue = venues.find((item) => item.id === currentValues.venueId);
-
       return {
         ...currentValues,
-        venueName: venue?.name,
-        city: venue?.city,
-        country: venue?.country,
         linkedEventId: editingApplication?.linkedEventId,
       };
     },
-    [editingApplication?.linkedEventId, venues],
+    [editingApplication?.linkedEventId],
   );
 
   const saveCurrentDraft = useCallback(() => {
@@ -380,6 +448,14 @@ export function TicketApplicationForm({
           artist: current.artist,
           eventDate: current.eventDate || undefined,
           venueId: current.venueId || undefined,
+          venueName: current.venueName || undefined,
+          city: current.city || undefined,
+          country: current.country || undefined,
+          prefecture: current.prefecture || undefined,
+          region: current.region || undefined,
+          latitude: parseOptionalPresetNumber(current.latitude),
+          longitude: parseOptionalPresetNumber(current.longitude),
+          isCustomVenue: current.isCustomVenue,
           displayCurrency: current.displayCurrency,
         }),
         platform: current.platform,
@@ -456,21 +532,15 @@ export function TicketApplicationForm({
           {t("tickets.artist")}
           <input required value={values.artist} onChange={(event) => updateValue("artist", event.target.value)} />
         </label>
-        <label>
-          {t("tickets.venue")}
-          <select value={values.venueId} onChange={(event) => updateValue("venueId", event.target.value)}>
-            <option value="">{t("tickets.noVenue")}</option>
-            {venueGroups.map((group) => (
-              <optgroup key={group.region} label={group.region}>
-                {group.venues.map((venue) => (
-                  <option key={venue.id} value={venue.id}>
-                    {venue.nameJa && venue.nameJa !== venue.name ? `${venue.name} / ${venue.nameJa}` : venue.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+        <VenueCombobox
+          events={events}
+          label={t("tickets.venue")}
+          placeholder={t("tickets.noVenue")}
+          ticketApplications={ticketApplications}
+          value={venueValue}
+          venues={venues}
+          onChange={updateVenue}
+        />
         <label>
           {t("tickets.eventDate")}
           <input type="date" value={values.eventDate} onChange={(event) => updateValue("eventDate", event.target.value)} />
@@ -605,7 +675,9 @@ export function TicketApplicationForm({
               ? `${selectedVenue.city}, ${selectedVenue.prefecture ?? selectedVenue.country} · ${
                   selectedVenue.category ? t(`venues.categories.${selectedVenue.category}`) : t("venues.categories.other")
                 }`
-              : t("common.optional")}
+              : values.venueName
+                ? `${values.city || "Unknown"}, ${values.country || "Japan"} / ${t("venueSearch.customVenue")}`
+                : t("common.optional")}
           </strong>
         </div>
         <label className="event-form__wide">

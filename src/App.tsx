@@ -297,6 +297,15 @@ const parseOptionalNumber = (value: string | undefined) => {
   return Number.isFinite(nextValue) && nextValue >= 0 ? nextValue : undefined;
 };
 
+const parseOptionalCoordinate = (value: string | undefined) => {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const nextValue = Number(value);
+  return Number.isFinite(nextValue) ? nextValue : undefined;
+};
+
 const hasCoordinates = (event: Pick<EventRecord, "latitude" | "longitude">) =>
   typeof event.latitude === "number" &&
   Number.isFinite(event.latitude) &&
@@ -382,14 +391,27 @@ const createTicketApplication = (
     (typeof amountOriginal === "number" && typeof exchangeRateToDisplay === "number"
       ? Math.round(amountOriginal * exchangeRateToDisplay * 100) / 100
       : undefined);
+  const isBuiltInVenue = Boolean(venue && !values.isCustomVenue);
+  const customVenueName = values.venueName.trim();
+  const customCity = values.city.trim() || "Unknown";
+  const customCountry = values.country.trim() || "Japan";
   const baseApplication: TicketApplication = {
     id: editingApplication?.id ?? crypto.randomUUID(),
     eventTitle: values.eventTitle.trim(),
     artist: values.artist.trim(),
-    venueId: venue?.id,
-    venueName: venue?.name,
-    city: venue?.city,
-    country: venue?.country,
+    venueId: isBuiltInVenue
+      ? venue!.id
+      : customVenueName
+        ? values.venueId.trim() || buildCustomVenueId(customVenueName, customCity)
+        : undefined,
+    venueName: isBuiltInVenue ? venue!.name : customVenueName || undefined,
+    city: isBuiltInVenue ? venue!.city : customVenueName ? customCity : undefined,
+    country: isBuiltInVenue ? venue!.country : customVenueName ? customCountry : undefined,
+    prefecture: isBuiltInVenue ? venue!.prefecture : values.prefecture?.trim() || undefined,
+    region: isBuiltInVenue ? venue!.region : values.region?.trim() || undefined,
+    latitude: isBuiltInVenue ? venue!.latitude : parseOptionalCoordinate(values.latitude),
+    longitude: isBuiltInVenue ? venue!.longitude : parseOptionalCoordinate(values.longitude),
+    isCustomVenue: isBuiltInVenue ? false : Boolean(customVenueName || isCustomVenueId(values.venueId)),
     eventDate: values.eventDate || undefined,
     platform: values.platform,
     applicationDate: values.applicationDate || undefined,
@@ -447,6 +469,11 @@ const createTicketRoundPreset = (application: TicketApplication): TicketRoundPre
   venueName: application.venueName,
   city: application.city,
   country: application.country,
+  prefecture: application.prefecture,
+  region: application.region,
+  latitude: application.latitude,
+  longitude: application.longitude,
+  isCustomVenue: application.isCustomVenue,
   displayCurrency: application.displayCurrency ?? "CNY",
 });
 
@@ -1168,8 +1195,9 @@ function App() {
     }
 
     const venue = application.venueId ? getVenueById(application.venueId) : undefined;
+    const hasVenue = Boolean(venue || application.venueName?.trim());
 
-    if (!venue || !application.eventDate) {
+    if (!hasVenue || !application.eventDate) {
       setNotice(t("notice.createEventMissing"));
       return;
     }
@@ -1181,10 +1209,15 @@ function App() {
       artist: application.artist,
       date: application.eventDate,
       startTime: "",
-      venueId: venue.id,
-      venueName: venue.name,
-      city: venue.city,
-      country: venue.country,
+      venueId: venue?.id ?? application.venueId ?? buildCustomVenueId(application.venueName ?? "", application.city),
+      venueName: venue?.name ?? application.venueName ?? "",
+      city: venue?.city ?? application.city ?? (application.venueName ? "Unknown" : ""),
+      country: venue?.country ?? application.country ?? "Japan",
+      prefecture: venue?.prefecture ?? application.prefecture,
+      region: venue?.region ?? application.region,
+      latitude: venue?.latitude ?? application.latitude,
+      longitude: venue?.longitude ?? application.longitude,
+      isCustomVenue: venue ? false : true,
       ticketType: application.ticketType ?? "",
       seat: {
         gate: "",
@@ -1569,6 +1602,7 @@ function App() {
           <TicketManager
             applications={ticketApplications}
             editingApplication={currentEditingApplication}
+            events={events}
             isEditingApplicationLoading={isEditingTicketLoading}
             isEditingApplicationMissing={isEditingTicketMissing}
             roundPreset={ticketRoundPreset}

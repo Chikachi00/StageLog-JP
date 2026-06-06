@@ -40,6 +40,11 @@ export interface TicketApplication {
   venueName?: string;
   city?: string;
   country?: string;
+  prefecture?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+  isCustomVenue?: boolean;
   eventDate?: string;
   platform: TicketPlatform;
   applicationDate?: string;
@@ -75,6 +80,14 @@ export interface TicketApplicationFormValues {
   eventTitle: string;
   artist: string;
   venueId: string;
+  venueName: string;
+  city: string;
+  country: string;
+  prefecture?: string;
+  region?: string;
+  latitude?: string;
+  longitude?: string;
+  isCustomVenue?: boolean;
   eventDate: string;
   platform: TicketPlatform;
   applicationDate: string;
@@ -110,6 +123,11 @@ export interface TicketRoundPreset {
   venueName?: string;
   city?: string;
   country?: string;
+  prefecture?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+  isCustomVenue?: boolean;
   displayCurrency?: CurrencyCode;
 }
 

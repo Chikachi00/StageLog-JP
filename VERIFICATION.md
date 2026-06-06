@@ -16,6 +16,19 @@ Verification date: 2026-06-04
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## VenueCombobox / Custom Venue Verification
+
+- VenueCombobox verification: `EventForm` and `TicketApplicationForm` use the shared searchable venue combobox with built-in venue search and historical custom venue candidates.
+- EventForm custom venue: custom venues save with `custom:` venue ids plus venue name, city, country, optional prefecture/region, optional coordinates, and `isCustomVenue`.
+- TicketForm custom venue: ticket applications preserve `venueId`, `venueName`, `city`, `country`, optional prefecture/region, optional latitude/longitude, and `isCustomVenue`.
+- Ticket group compatibility: `ticketGroupKey` can use a `custom:` venue id, and falls back to normalized venue name if no venue id exists.
+- Add round compatibility: adding another round from a ticket group and using "save and add another round" preserve custom venue details and the existing `ticketGroupKey`.
+- Seat map fallback: custom venues do not use built-in seat maps; only supported built-in venues can show seat maps.
+- Weather coordinate limitation: custom venues without coordinates cannot fetch weather automatically; custom venues with coordinates can still be used for weather lookup.
+- Backup compatibility: backup export/import keeps venue fields on events and ticket applications, including `custom:` venue ids; no separate `customVenues` backup field is required.
+- Mobile verification: VenueCombobox input, results list, touch targets, and inline custom venue form were checked for responsive CSS constraints.
+- Runtime browser checks for creating/editing records should still be verified manually with real local or Supabase data.
+
 ## Basic Project Checks
 
 - `.gitignore` includes `.env`, `.env.local`, `node_modules/`, `dist/`, `.DS_Store`, and `vite-verify*.log`.

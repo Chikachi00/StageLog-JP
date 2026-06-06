@@ -1,7 +1,7 @@
 import { Pencil, PlusCircle, Search, TicketCheck, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Venue } from "../types/event";
+import type { EventRecord, Venue } from "../types/event";
 import type {
   TicketApplication,
   TicketApplicationFilters,
@@ -25,6 +25,7 @@ import { TicketApplicationForm } from "./TicketApplicationForm";
 
 interface TicketManagerProps {
   applications: TicketApplication[];
+  events: EventRecord[];
   venues: Venue[];
   editingApplication: TicketApplication | null;
   isEditingApplicationLoading?: boolean;
@@ -65,12 +66,18 @@ const createPresetFromGroup = (group: TicketGroupSummary): TicketRoundPreset => 
     venueName: group.venueName,
     city: firstApplication?.city,
     country: firstApplication?.country,
+    prefecture: firstApplication?.prefecture,
+    region: firstApplication?.region,
+    latitude: firstApplication?.latitude,
+    longitude: firstApplication?.longitude,
+    isCustomVenue: firstApplication?.isCustomVenue,
     displayCurrency: group.displayCurrency,
   };
 };
 
 export function TicketManager({
   applications,
+  events,
   venues,
   editingApplication,
   isEditingApplicationLoading = false,
@@ -200,6 +207,8 @@ export function TicketManager({
             focusRequestId={focusRequestId}
             initialFocus={initialFocus}
             roundPreset={roundPreset}
+            events={events}
+            ticketApplications={applications}
             venues={venues}
             onCancel={onCancelEditing}
             onSave={async (values, options) => {
@@ -277,6 +286,8 @@ export function TicketManager({
                     {group.artist}
                     {group.eventDate ? ` / ${formatDate(group.eventDate)}` : ""}
                     {group.venueName ? ` / ${group.venueName}` : ""}
+                    {group.applications[0]?.city ? ` / ${group.applications[0].city}` : ""}
+                    {group.applications[0]?.country ? `, ${group.applications[0].country}` : ""}
                   </p>
                 </div>
                 {group.applications.length > 1 ? (
