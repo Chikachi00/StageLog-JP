@@ -1,4 +1,14 @@
 import type { TicketApplication } from "../types/ticket";
+import {
+  getAppliedQuantity,
+  getTicketAmountDisplay,
+  getTicketAmountOriginal,
+  getTicketDisplayCurrency,
+  getTicketOriginalCurrency,
+  getWonQuantity,
+  getPaidQuantity,
+  normalizeTicketGroupKey,
+} from "../utils/ticketUtils";
 
 export const TICKET_APPLICATIONS_STORAGE_KEY = "stagelog-ticket-applications";
 
@@ -6,6 +16,18 @@ const isBrowser = () => typeof window !== "undefined" && Boolean(window.localSto
 
 const normalizeApplication = (application: Partial<TicketApplication>): TicketApplication => {
   const now = new Date().toISOString();
+  const baseApplication = {
+    ...application,
+    currency: application.currency ?? "CNY",
+    displayCurrency: application.displayCurrency ?? "CNY",
+  } as TicketApplication;
+  const appliedQuantity = getAppliedQuantity(baseApplication);
+  const wonQuantity = getWonQuantity(baseApplication);
+  const paidQuantity = getPaidQuantity(baseApplication);
+  const currency = getTicketOriginalCurrency(baseApplication);
+  const displayCurrency = getTicketDisplayCurrency(baseApplication);
+  const amountOriginal = getTicketAmountOriginal(baseApplication);
+  const amountDisplay = getTicketAmountDisplay(baseApplication);
 
   return {
     id: application.id ?? crypto.randomUUID(),
@@ -29,6 +51,28 @@ const normalizeApplication = (application: Partial<TicketApplication>): TicketAp
     companionContact: application.companionContact,
     memo: application.memo,
     linkedEventId: application.linkedEventId,
+    ticketGroupKey: application.ticketGroupKey ?? normalizeTicketGroupKey(application),
+    roundName: application.roundName,
+    roundType: application.roundType,
+    appliedQuantity,
+    wonQuantity,
+    paidQuantity,
+    currency,
+    displayCurrency,
+    amountOriginal,
+    exchangeRateToDisplay:
+      typeof application.exchangeRateToDisplay === "number"
+        ? application.exchangeRateToDisplay
+        : currency === displayCurrency && typeof amountOriginal === "number"
+          ? 1
+          : undefined,
+    amountDisplay,
+    unitPriceOriginal:
+      typeof application.unitPriceOriginal === "number"
+        ? application.unitPriceOriginal
+        : typeof application.price === "number"
+          ? application.price
+          : undefined,
     createdAt: application.createdAt ?? now,
     updatedAt: application.updatedAt ?? application.createdAt ?? now,
   };

@@ -61,6 +61,11 @@ import { isAppTheme, type AppTheme } from "./types/theme";
 import type { TicketApplication, TicketApplicationFormValues } from "./types/ticket";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "./types/backup";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
+import {
+  getTicketAmountDisplay,
+  getTicketAmountOriginal,
+  normalizeTicketGroupKey,
+} from "./utils/ticketUtils";
 
 const defaultFilters: EventFilters = {
   year: "all",
@@ -70,6 +75,7 @@ const defaultFilters: EventFilters = {
 };
 
 const EVENT_FORM_SESSION_KEY = "stagelog-event-form-session";
+const TICKET_FORM_SESSION_KEY = "stagelog-ticket-form-session";
 
 type EventFormSession =
   | {
@@ -84,6 +90,23 @@ type EventFormSession =
       mode: "edit";
       editingEventId: string;
       currentView: "add";
+      openedAt: string;
+      updatedAt: string;
+    };
+
+type TicketFormSession =
+  | {
+      version: 1;
+      mode: "new";
+      currentView: "tickets";
+      openedAt: string;
+      updatedAt: string;
+    }
+  | {
+      version: 1;
+      mode: "edit";
+      editingTicketId: string;
+      currentView: "tickets";
       openedAt: string;
       updatedAt: string;
     };
@@ -177,6 +200,102 @@ const saveEventFormSession = (session: EventFormSession | null) => {
   );
 };
 
+const createNewTicketFormSession = (): TicketFormSession => {
+  const now = new Date().toISOString();
+
+  return {
+    version: 1,
+    mode: "new",
+    currentView: "tickets",
+    openedAt: now,
+    updatedAt: now,
+  };
+};
+
+const createEditTicketFormSession = (editingTicketId: string): TicketFormSession => {
+  const now = new Date().toISOString();
+
+  return {
+    version: 1,
+    mode: "edit",
+    editingTicketId,
+    currentView: "tickets",
+    openedAt: now,
+    updatedAt: now,
+  };
+};
+
+const getStoredTicketFormSession = (): TicketFormSession | null => {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(TICKET_FORM_SESSION_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<TicketFormSession>;
+
+    if (parsed.version !== 1 || parsed.currentView !== "tickets" || !parsed.openedAt) {
+      window.localStorage.removeItem(TICKET_FORM_SESSION_KEY);
+      return null;
+    }
+
+    if (parsed.mode === "new") {
+      return {
+        version: 1,
+        mode: "new",
+        currentView: "tickets",
+        openedAt: parsed.openedAt,
+        updatedAt: parsed.updatedAt ?? parsed.openedAt,
+      };
+    }
+
+    if (parsed.mode === "edit" && typeof parsed.editingTicketId === "string" && parsed.editingTicketId) {
+      return {
+        version: 1,
+        mode: "edit",
+        editingTicketId: parsed.editingTicketId,
+        currentView: "tickets",
+        openedAt: parsed.openedAt,
+        updatedAt: parsed.updatedAt ?? parsed.openedAt,
+      };
+    }
+  } catch {
+    window.localStorage.removeItem(TICKET_FORM_SESSION_KEY);
+  }
+
+  return null;
+};
+
+const saveTicketFormSession = (session: TicketFormSession | null) => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  if (!session) {
+    window.localStorage.removeItem(TICKET_FORM_SESSION_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(
+    TICKET_FORM_SESSION_KEY,
+    JSON.stringify({ ...session, updatedAt: new Date().toISOString() }),
+  );
+};
+
+const parseOptionalNumber = (value: string | undefined) => {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const nextValue = Number(value);
+  return Number.isFinite(nextValue) && nextValue >= 0 ? nextValue : undefined;
+};
+
 const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null): EventRecord => {
   const venue = getVenueById(values.venueId);
 
@@ -213,11 +332,20 @@ const createTicketApplication = (
 ): TicketApplication => {
   const venue = getVenueById(values.venueId);
   const now = new Date().toISOString();
-
-  return {
+  const unitPriceOriginal = parseOptionalNumber(values.unitPriceOriginal);
+  const price = parseOptionalNumber(values.price) ?? unitPriceOriginal;
+  const amountOriginal = parseOptionalNumber(values.amountOriginal);
+  const exchangeRateToDisplay =
+    values.currency === values.displayCurrency ? 1 : parseOptionalNumber(values.exchangeRateToDisplay);
+  const amountDisplay =
+    parseOptionalNumber(values.amountDisplay) ??
+    (typeof amountOriginal === "number" && typeof exchangeRateToDisplay === "number"
+      ? Math.round(amountOriginal * exchangeRateToDisplay * 100) / 100
+      : undefined);
+  const baseApplication: TicketApplication = {
     id: editingApplication?.id ?? crypto.randomUUID(),
-    eventTitle: values.eventTitle,
-    artist: values.artist,
+    eventTitle: values.eventTitle.trim(),
+    artist: values.artist.trim(),
     venueId: venue?.id,
     venueName: venue?.name,
     city: venue?.city,
@@ -229,15 +357,33 @@ const createTicketApplication = (
     paymentDeadline: values.paymentDeadline || undefined,
     issueDate: values.issueDate || undefined,
     status: values.status,
-    ticketType: values.ticketType || undefined,
-    price: values.price ? Number(values.price) : undefined,
-    quantity: values.quantity ? Number(values.quantity) : undefined,
-    companionName: values.companionName || undefined,
-    companionContact: values.companionContact || undefined,
-    memo: values.memo || undefined,
+    ticketType: values.ticketType.trim() || undefined,
+    price,
+    quantity: parseOptionalNumber(values.quantity),
+    companionName: values.companionName.trim() || undefined,
+    companionContact: values.companionContact.trim() || undefined,
+    memo: values.memo.trim() || undefined,
     linkedEventId: editingApplication?.linkedEventId,
+    roundName: values.roundName.trim() || undefined,
+    roundType: values.roundType,
+    appliedQuantity: parseOptionalNumber(values.appliedQuantity),
+    wonQuantity: parseOptionalNumber(values.wonQuantity),
+    paidQuantity: parseOptionalNumber(values.paidQuantity),
+    currency: values.currency || "CNY",
+    displayCurrency: values.displayCurrency || "CNY",
+    amountOriginal,
+    exchangeRateToDisplay,
+    amountDisplay,
+    unitPriceOriginal,
     createdAt: editingApplication?.createdAt ?? now,
     updatedAt: now,
+  };
+
+  return {
+    ...baseApplication,
+    ticketGroupKey: normalizeTicketGroupKey(baseApplication),
+    amountOriginal: getTicketAmountOriginal(baseApplication),
+    amountDisplay: getTicketAmountDisplay(baseApplication),
   };
 };
 
@@ -278,6 +424,7 @@ function App() {
   const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
   const { language, profile, theme, updateLanguageSetting, updateThemeSetting } = useUserSettings();
   const initialEventFormSession = useMemo(() => getStoredEventFormSession(), []);
+  const initialTicketFormSession = useMemo(() => getStoredTicketFormSession(), []);
   const isCloudMode = Boolean(user && isSupabaseConfigured);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
@@ -292,7 +439,7 @@ function App() {
   const [isImportingLocalTickets, setIsImportingLocalTickets] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [activeView, setActiveView] = useState<AppView>(() =>
-    initialEventFormSession ? "add" : "events",
+    initialEventFormSession ? "add" : initialTicketFormSession ? "tickets" : "events",
   );
   const [eventFormSession, setEventFormSession] = useState<EventFormSession | null>(
     initialEventFormSession,
@@ -303,6 +450,13 @@ function App() {
   );
   const eventFormSessionRef = useRef<EventFormSession | null>(initialEventFormSession);
   const [editingApplication, setEditingApplication] = useState<TicketApplication | null>(null);
+  const [ticketFormSession, setTicketFormSession] = useState<TicketFormSession | null>(
+    initialTicketFormSession,
+  );
+  const [editingTicketId, setEditingTicketId] = useState<string | null>(
+    initialTicketFormSession?.mode === "edit" ? initialTicketFormSession.editingTicketId : null,
+  );
+  const ticketFormSessionRef = useRef<TicketFormSession | null>(initialTicketFormSession);
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>();
   const [filters, setFilters] = useState<EventFilters>(defaultFilters);
   const [fetchingWeatherId, setFetchingWeatherId] = useState<string | null>(null);
@@ -449,7 +603,6 @@ function App() {
 
   useEffect(() => {
     void refreshTicketApplications();
-    setEditingApplication(null);
   }, [refreshTicketApplications]);
 
   useEffect(() => {
@@ -459,8 +612,15 @@ function App() {
   }, [eventFormSession]);
 
   useEffect(() => {
+    ticketFormSessionRef.current = ticketFormSession;
+    saveTicketFormSession(ticketFormSession);
+    setEditingTicketId(ticketFormSession?.mode === "edit" ? ticketFormSession.editingTicketId : null);
+  }, [ticketFormSession]);
+
+  useEffect(() => {
     const persistCurrentSession = () => {
       saveEventFormSession(eventFormSessionRef.current);
+      saveTicketFormSession(ticketFormSessionRef.current);
     };
 
     const handleVisibilityChange = () => {
@@ -471,10 +631,17 @@ function App() {
 
     const handlePageShow = () => {
       const storedSession = getStoredEventFormSession();
+      const storedTicketSession = getStoredTicketFormSession();
 
       if (storedSession) {
         setEventFormSession(storedSession);
         setActiveView("add");
+        return;
+      }
+
+      if (storedTicketSession) {
+        setTicketFormSession(storedTicketSession);
+        setActiveView("tickets");
       }
     };
 
@@ -504,6 +671,10 @@ function App() {
       setActiveView("add");
       setNotice("");
       return;
+    }
+
+    if (view === "tickets" && !ticketFormSession) {
+      setTicketFormSession(createNewTicketFormSession());
     }
 
     setActiveView(view);
@@ -640,10 +811,34 @@ function App() {
 
       clearDraft(getTicketDraftKey(currentEditingApplication?.id));
       setEditingApplication(null);
+      setEditingTicketId(null);
+      setTicketFormSession(null);
       await refreshTicketApplications();
     } catch (error) {
       setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
     }
+  };
+
+  const handleEditTicketApplication = (application: TicketApplication) => {
+    const session = createEditTicketFormSession(application.id);
+    saveTicketFormSession(session);
+    setTicketFormSession(session);
+    setEditingTicketId(application.id);
+    setEditingApplication(application);
+    setActiveView("tickets");
+    setNotice("");
+  };
+
+  const handleCancelTicketEditing = () => {
+    if (ticketFormSession?.mode === "edit") {
+      clearDraft(getTicketDraftKey(ticketFormSession.editingTicketId));
+    } else {
+      clearDraft(getTicketDraftKey());
+    }
+
+    setEditingApplication(null);
+    setEditingTicketId(null);
+    setTicketFormSession(null);
   };
 
   const handleEdit = (event: EventRecord) => {
@@ -846,6 +1041,12 @@ function App() {
       }
 
       await refreshTicketApplications();
+      clearDraft(getTicketDraftKey(id));
+      if (ticketFormSession?.mode === "edit" && ticketFormSession.editingTicketId === id) {
+        setEditingApplication(null);
+        setEditingTicketId(null);
+        setTicketFormSession(null);
+      }
       setNotice(t("notice.ticketDeleted"));
     } catch (error) {
       setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
@@ -1119,6 +1320,14 @@ function App() {
     : null;
   const isEditingEventLoading = activeView === "add" && Boolean(editingEventId) && isEventsResolving && !currentEditingEvent;
   const isEditingEventMissing = activeView === "add" && Boolean(editingEventId) && !isEventsResolving && !currentEditingEvent;
+  const currentEditingApplication = editingTicketId
+    ? ticketApplications.find((application) => application.id === editingTicketId) ??
+      (editingApplication?.id === editingTicketId ? editingApplication : null)
+    : null;
+  const isEditingTicketLoading =
+    activeView === "tickets" && Boolean(editingTicketId) && (authLoading || ticketsLoading) && !currentEditingApplication;
+  const isEditingTicketMissing =
+    activeView === "tickets" && Boolean(editingTicketId) && !authLoading && !ticketsLoading && !currentEditingApplication;
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -1251,12 +1460,14 @@ function App() {
         {activeView === "tickets" ? (
           <TicketManager
             applications={ticketApplications}
-            editingApplication={editingApplication}
+            editingApplication={currentEditingApplication}
+            isEditingApplicationLoading={isEditingTicketLoading}
+            isEditingApplicationMissing={isEditingTicketMissing}
             venues={venues}
-            onCancelEditing={() => setEditingApplication(null)}
+            onCancelEditing={handleCancelTicketEditing}
             onCreateEventRecord={handleCreateEventFromApplication}
             onDelete={handleDeleteTicketApplication}
-            onEdit={(application) => setEditingApplication(application)}
+            onEdit={handleEditTicketApplication}
             onSave={handleSaveTicketApplication}
           />
         ) : null}

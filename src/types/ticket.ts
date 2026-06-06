@@ -6,6 +6,21 @@ export type TicketPlatform =
   | "rakuten"
   | "other";
 
+export type CurrencyCode = "CNY" | "JPY" | "MYR" | "USD" | "EUR" | "GBP" | "KRW" | "TWD" | "HKD" | "SGD";
+
+export type TicketRoundType =
+  | "fastest"
+  | "cd_serial"
+  | "fc"
+  | "first_lottery"
+  | "second_lottery"
+  | "general"
+  | "reserved_seat_extra"
+  | "standing"
+  | "official_resale"
+  | "upgrade"
+  | "other";
+
 export type TicketApplicationStatus =
   | "planned"
   | "applied"
@@ -39,6 +54,18 @@ export interface TicketApplication {
   companionContact?: string;
   memo?: string;
   linkedEventId?: string;
+  ticketGroupKey?: string;
+  roundName?: string;
+  roundType?: TicketRoundType;
+  appliedQuantity?: number;
+  wonQuantity?: number;
+  paidQuantity?: number;
+  currency?: CurrencyCode;
+  displayCurrency?: CurrencyCode;
+  amountOriginal?: number;
+  exchangeRateToDisplay?: number;
+  amountDisplay?: number;
+  unitPriceOriginal?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,9 +81,20 @@ export interface TicketApplicationFormValues {
   paymentDeadline: string;
   issueDate: string;
   status: TicketApplicationStatus;
+  roundName: string;
+  roundType: TicketRoundType;
   ticketType: string;
   price: string;
   quantity: string;
+  appliedQuantity: string;
+  wonQuantity: string;
+  paidQuantity: string;
+  currency: CurrencyCode;
+  displayCurrency: CurrencyCode;
+  amountOriginal: string;
+  exchangeRateToDisplay: string;
+  amountDisplay: string;
+  unitPriceOriginal: string;
   companionName: string;
   companionContact: string;
   memo: string;

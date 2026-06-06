@@ -181,6 +181,31 @@ Verification date: 2026-06-04
 - Browser lifecycle fix checked: saving, cancelling, or deleting an edited event clears the matching edit draft and `stagelog-event-form-session`.
 - Runtime browser-level navigation recovery requires manual verification by leaving the site/tab/app and returning.
 
+## Ticket Management V2 Phase 1
+
+- Commands run for this phase:
+  - `npm install`: passed, 0 vulnerabilities.
+  - `npm.cmd run build`: passed. TypeScript and Vite build completed successfully.
+  - `npm run lint`: script not found in `package.json`.
+  - `npm run test`: script not found in `package.json`.
+- Code added and checked: `src/types/ticket.ts`, `src/utils/ticketUtils.ts`, `src/components/TicketApplicationForm.tsx`, `src/components/TicketApplicationCard.tsx`, `src/services/ticketStorage.ts`, `src/services/cloudTicketService.ts`, and `src/App.tsx`.
+- SQL added: `supabase/sql/04_ticket_model_v2.sql`.
+- Ticket applications now support `ticketGroupKey`, `roundName`, `roundType`, `appliedQuantity`, `wonQuantity`, `paidQuantity`, `currency`, `displayCurrency`, `amountOriginal`, `exchangeRateToDisplay`, `amountDisplay`, and `unitPriceOriginal`.
+- No `ticket_groups` table was added. `ticketGroupKey` is generated from artist, event title, event date, and venue id/name.
+- Local storage normalization defaults old ticket records to `currency = CNY` and `displayCurrency = CNY`.
+- Old `quantity` / `price` data remains compatible through helper fallbacks for applied quantity, won quantity, paid quantity, and displayed amount.
+- Cloud ticket mapping now includes the new V2 fields with snake_case / camelCase conversion.
+- Cloud insert still does not force frontend ids into Supabase uuid columns.
+- TicketApplicationForm includes lottery round, quantity, and manual currency fields.
+- TicketApplicationForm validates non-negative amounts/rates, positive applied quantity, won quantity <= applied quantity, and paid quantity <= won quantity.
+- Manual currency conversion only uses user-entered values. No exchange-rate API or network conversion was added.
+- Browser lifecycle persistence added for tickets through `stagelog-ticket-form-session`.
+- Ticket edit sessions store `mode: "edit"`, `editingTicketId`, `currentView: "tickets"`, and timestamps.
+- `pagehide`, `beforeunload`, `visibilitychange`, and `pageshow` persist or reload the ticket form session.
+- Ticket drafts remain local-only with `stagelog-ticket-draft-new` and `stagelog-ticket-draft-edit-{ticketId}` and are never written to Supabase before Save.
+- Saving, cancelling, or deleting an edited ticket clears the matching ticket draft and form session.
+- Runtime cloud save for V2 fields requires manually running `supabase/sql/04_ticket_model_v2.sql` in Supabase first.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.

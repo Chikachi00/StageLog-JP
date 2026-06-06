@@ -6,7 +6,19 @@ import { groupVenuesByRegion } from "../data/venues";
 import { clearDraft, getDraft, getTicketDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import type { Venue } from "../types/event";
 import type { TicketApplication, TicketApplicationFormValues } from "../types/ticket";
-import { platformOptions, statusOptions } from "../utils/ticketUtils";
+import {
+  currencyOptions,
+  getAppliedQuantity,
+  getPaidQuantity,
+  getTicketAmountDisplay,
+  getTicketAmountOriginal,
+  getTicketDisplayCurrency,
+  getTicketOriginalCurrency,
+  getWonQuantity,
+  platformOptions,
+  roundTypeOptions,
+  statusOptions,
+} from "../utils/ticketUtils";
 
 interface TicketApplicationFormProps {
   venues: Venue[];
@@ -38,6 +50,36 @@ const createInitialValues = (
   ticketType: editingApplication?.ticketType ?? "",
   price: typeof editingApplication?.price === "number" ? String(editingApplication.price) : "",
   quantity: typeof editingApplication?.quantity === "number" ? String(editingApplication.quantity) : "1",
+  roundName: editingApplication?.roundName ?? "",
+  roundType: editingApplication?.roundType ?? "other",
+  appliedQuantity: String(editingApplication ? getAppliedQuantity(editingApplication) : 1),
+  wonQuantity: String(editingApplication ? getWonQuantity(editingApplication) : 0),
+  paidQuantity:
+    editingApplication && typeof editingApplication.paidQuantity === "number"
+      ? String(getPaidQuantity(editingApplication))
+      : "",
+  currency: editingApplication ? getTicketOriginalCurrency(editingApplication) : "CNY",
+  displayCurrency: editingApplication ? getTicketDisplayCurrency(editingApplication) : "CNY",
+  amountOriginal:
+    editingApplication && typeof getTicketAmountOriginal(editingApplication) === "number"
+      ? String(getTicketAmountOriginal(editingApplication))
+      : "",
+  exchangeRateToDisplay:
+    typeof editingApplication?.exchangeRateToDisplay === "number"
+      ? String(editingApplication.exchangeRateToDisplay)
+      : editingApplication && getTicketOriginalCurrency(editingApplication) === getTicketDisplayCurrency(editingApplication)
+        ? "1"
+        : "",
+  amountDisplay:
+    editingApplication && typeof getTicketAmountDisplay(editingApplication) === "number"
+      ? String(getTicketAmountDisplay(editingApplication))
+      : "",
+  unitPriceOriginal:
+    typeof editingApplication?.unitPriceOriginal === "number"
+      ? String(editingApplication.unitPriceOriginal)
+      : typeof editingApplication?.price === "number"
+        ? String(editingApplication.price)
+        : "",
   companionName: editingApplication?.companionName ?? "",
   companionContact: editingApplication?.companionContact ?? "",
   memo: editingApplication?.memo ?? "",
@@ -55,7 +97,6 @@ export function TicketApplicationForm({
   );
   const [error, setError] = useState("");
   const [draftStatus, setDraftStatus] = useState("");
-  const [pendingDraft, setPendingDraft] = useState<TicketDraftPayload | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const valuesRef = useRef(values);
   const isDirtyRef = useRef(false);
@@ -68,8 +109,18 @@ export function TicketApplicationForm({
     setDraftStatus("");
     setIsDirty(false);
     isDirtyRef.current = false;
-    setPendingDraft(getDraft<TicketDraftPayload>(getTicketDraftKey(editingApplication?.id)));
-  }, [editingApplication]);
+    const draft = getDraft<TicketDraftPayload>(getTicketDraftKey(editingApplication?.id));
+
+    if (draft) {
+      setValues({
+        ...createInitialValues(editingApplication),
+        ...draft,
+      });
+      setDraftStatus(t("tickets.draftAutoRestored"));
+      setIsDirty(true);
+      isDirtyRef.current = true;
+    }
+  }, [editingApplication, t]);
 
   useEffect(() => {
     valuesRef.current = values;
@@ -86,7 +137,15 @@ export function TicketApplicationForm({
 
   const updateValue = (field: keyof TicketApplicationFormValues, value: string) => {
     setIsDirty(true);
-    setValues((current) => ({ ...current, [field]: value }));
+    setValues((current) => {
+      const nextValues = { ...current, [field]: value };
+
+      if ((field === "currency" || field === "displayCurrency") && nextValues.currency === nextValues.displayCurrency) {
+        nextValues.exchangeRateToDisplay = "1";
+      }
+
+      return nextValues;
+    });
   };
 
   const createDraftPayload = useCallback(
@@ -112,6 +171,32 @@ export function TicketApplicationForm({
     saveDraft(draftKey, createDraftPayload(valuesRef.current));
     setDraftStatus(t("draft.saved"));
   }, [createDraftPayload, draftKey, t]);
+
+  useEffect(() => {
+    const amountOriginal = Number(values.amountOriginal);
+    const exchangeRate = values.currency === values.displayCurrency ? 1 : Number(values.exchangeRateToDisplay);
+
+    if (!values.amountOriginal || Number.isNaN(amountOriginal) || amountOriginal < 0) {
+      return;
+    }
+
+    if (Number.isNaN(exchangeRate) || exchangeRate < 0) {
+      return;
+    }
+
+    const nextAmountDisplay = String(Math.round(amountOriginal * exchangeRate * 100) / 100);
+    const nextExchangeRate = values.currency === values.displayCurrency ? "1" : values.exchangeRateToDisplay;
+
+    if (values.amountDisplay === nextAmountDisplay && values.exchangeRateToDisplay === nextExchangeRate) {
+      return;
+    }
+
+    setValues((current) => ({
+      ...current,
+      exchangeRateToDisplay: nextExchangeRate,
+      amountDisplay: nextAmountDisplay,
+    }));
+  }, [values.amountDisplay, values.amountOriginal, values.currency, values.displayCurrency, values.exchangeRateToDisplay]);
 
   useEffect(() => {
     if (!isDirty) {
@@ -164,27 +249,12 @@ export function TicketApplicationForm({
     [saveCurrentDraft],
   );
 
-  const restoreDraft = () => {
-    if (!pendingDraft) {
-      return;
-    }
-
-    setValues({
-      ...createInitialValues(editingApplication),
-      ...pendingDraft,
-    });
-    setPendingDraft(null);
-    setIsDirty(true);
-    isDirtyRef.current = true;
-    setDraftStatus(t("draft.restored"));
-  };
-
   const discardDraft = () => {
     clearDraft(draftKey);
-    setPendingDraft(null);
     setDraftStatus(t("draft.discarded"));
     setIsDirty(false);
     isDirtyRef.current = false;
+    setValues(createInitialValues(editingApplication));
   };
 
   const handleCancel = () => {
@@ -213,6 +283,33 @@ export function TicketApplicationForm({
       return t("tickets.quantityError");
     }
 
+    const appliedQuantity = Number(values.appliedQuantity);
+    const wonQuantity = Number(values.wonQuantity || 0);
+    const paidQuantity = values.paidQuantity ? Number(values.paidQuantity) : 0;
+
+    if (!Number.isInteger(appliedQuantity) || appliedQuantity <= 0) {
+      return t("tickets.appliedQuantityError");
+    }
+
+    if (!Number.isInteger(wonQuantity) || wonQuantity < 0 || wonQuantity > appliedQuantity) {
+      return t("tickets.wonQuantityError");
+    }
+
+    if (!Number.isInteger(paidQuantity) || paidQuantity < 0 || paidQuantity > wonQuantity) {
+      return t("tickets.paidQuantityError");
+    }
+
+    for (const [field, messageKey] of [
+      [values.unitPriceOriginal, "tickets.priceError"],
+      [values.amountOriginal, "tickets.amountError"],
+      [values.exchangeRateToDisplay, "tickets.exchangeRateError"],
+      [values.amountDisplay, "tickets.amountError"],
+    ] as const) {
+      if (field && (Number.isNaN(Number(field)) || Number(field) < 0)) {
+        return t(messageKey);
+      }
+    }
+
     return "";
   };
 
@@ -228,10 +325,11 @@ export function TicketApplicationForm({
     saveCurrentDraft();
     setIsDirty(false);
     isDirtyRef.current = false;
-    onSave({
+    void onSave({
       ...values,
       eventTitle: values.eventTitle.trim(),
       artist: values.artist.trim(),
+      roundName: values.roundName.trim(),
       ticketType: values.ticketType.trim(),
       companionName: values.companionName.trim(),
       companionContact: values.companionContact.trim(),
@@ -258,22 +356,19 @@ export function TicketApplicationForm({
         ) : null}
       </div>
 
-      {pendingDraft ? (
+      {draftStatus ? (
         <section className="draft-banner" aria-label={t("draft.ticketDraft")}>
-          <strong>{t("draft.found")}</strong>
+          <strong>{draftStatus}</strong>
           <div>
-            <button className="ghost-button" type="button" onClick={restoreDraft}>
-              {t("draft.restore")}
-            </button>
             <button className="ghost-button" type="button" onClick={discardDraft}>
               {t("draft.discard")}
             </button>
           </div>
         </section>
       ) : null}
-      {draftStatus ? <p className="draft-status">{draftStatus}</p> : null}
 
       <form className="event-form" onSubmit={handleSubmit}>
+        <h3 className="event-form__wide">{t("tickets.performanceInfo")}</h3>
         <label>
           {t("tickets.eventTitle")}
           <input required value={values.eventTitle} onChange={(event) => updateValue("eventTitle", event.target.value)} />
@@ -300,6 +395,21 @@ export function TicketApplicationForm({
         <label>
           {t("tickets.eventDate")}
           <input type="date" value={values.eventDate} onChange={(event) => updateValue("eventDate", event.target.value)} />
+        </label>
+        <h3 className="event-form__wide">{t("tickets.lotteryRound")}</h3>
+        <label>
+          {t("tickets.roundName")}
+          <input value={values.roundName} onChange={(event) => updateValue("roundName", event.target.value)} />
+        </label>
+        <label>
+          {t("tickets.roundType")}
+          <select value={values.roundType} onChange={(event) => updateValue("roundType", event.target.value)}>
+            {roundTypeOptions.map((roundType) => (
+              <option key={roundType} value={roundType}>
+                {t(`roundType.${roundType}`)}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           {t("tickets.platform")}
@@ -341,6 +451,57 @@ export function TicketApplicationForm({
           {t("tickets.ticketType")}
           <input value={values.ticketType} onChange={(event) => updateValue("ticketType", event.target.value)} />
         </label>
+        <h3 className="event-form__wide">{t("tickets.quantitySection")}</h3>
+        <label>
+          {t("tickets.appliedQuantity")}
+          <input min="1" step="1" type="number" value={values.appliedQuantity} onChange={(event) => updateValue("appliedQuantity", event.target.value)} />
+        </label>
+        <label>
+          {t("tickets.wonQuantity")}
+          <input min="0" step="1" type="number" value={values.wonQuantity} onChange={(event) => updateValue("wonQuantity", event.target.value)} />
+        </label>
+        <label>
+          {t("tickets.paidQuantity")}
+          <input min="0" step="1" type="number" value={values.paidQuantity} onChange={(event) => updateValue("paidQuantity", event.target.value)} />
+        </label>
+        <h3 className="event-form__wide">{t("tickets.currencySection")}</h3>
+        <label>
+          {t("tickets.originalCurrency")}
+          <select value={values.currency} onChange={(event) => updateValue("currency", event.target.value)}>
+            {currencyOptions.map((currency) => (
+              <option key={currency} value={currency}>
+                {t(`currency.${currency}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("tickets.displayCurrency")}
+          <select value={values.displayCurrency} onChange={(event) => updateValue("displayCurrency", event.target.value)}>
+            {currencyOptions.map((currency) => (
+              <option key={currency} value={currency}>
+                {t(`currency.${currency}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("tickets.unitPriceOriginal")}
+          <input min="0" type="number" value={values.unitPriceOriginal} onChange={(event) => updateValue("unitPriceOriginal", event.target.value)} />
+        </label>
+        <label>
+          {t("tickets.amountOriginal")}
+          <input min="0" type="number" value={values.amountOriginal} onChange={(event) => updateValue("amountOriginal", event.target.value)} />
+        </label>
+        <label>
+          {t("tickets.exchangeRateToDisplay")}
+          <input min="0" step="0.0001" type="number" value={values.exchangeRateToDisplay} onChange={(event) => updateValue("exchangeRateToDisplay", event.target.value)} />
+        </label>
+        <label>
+          {t("tickets.amountDisplay")}
+          <input min="0" type="number" value={values.amountDisplay} onChange={(event) => updateValue("amountDisplay", event.target.value)} />
+        </label>
+        <p className="event-form__wide draft-status">{t("tickets.manualExchangeHint")}</p>
         <label>
           {t("tickets.price")}
           <input min="0" type="number" value={values.price} onChange={(event) => updateValue("price", event.target.value)} />
@@ -349,6 +510,7 @@ export function TicketApplicationForm({
           {t("tickets.quantity")}
           <input min="1" step="1" type="number" value={values.quantity} onChange={(event) => updateValue("quantity", event.target.value)} />
         </label>
+        <h3 className="event-form__wide">{t("tickets.companionSection")}</h3>
         <label>
           {t("tickets.companionName")}
           <input value={values.companionName} onChange={(event) => updateValue("companionName", event.target.value)} />

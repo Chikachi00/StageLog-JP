@@ -1,5 +1,23 @@
 import { supabase } from "../lib/supabase";
-import type { TicketApplication, TicketApplicationStatus, TicketPlatform } from "../types/ticket";
+import type {
+  CurrencyCode,
+  TicketApplication,
+  TicketApplicationStatus,
+  TicketPlatform,
+  TicketRoundType,
+} from "../types/ticket";
+import {
+  currencyOptions,
+  getAppliedQuantity,
+  getPaidQuantity,
+  getTicketAmountDisplay,
+  getTicketAmountOriginal,
+  getTicketDisplayCurrency,
+  getTicketOriginalCurrency,
+  getWonQuantity,
+  normalizeTicketGroupKey,
+  roundTypeOptions,
+} from "../utils/ticketUtils";
 
 const TABLE_NAME = "ticket_applications";
 
@@ -26,6 +44,18 @@ interface CloudTicketApplicationRow {
   companion_contact: string | null;
   memo: string | null;
   linked_event_id: string | null;
+  ticket_group_key: string | null;
+  round_name: string | null;
+  round_type: string | null;
+  applied_quantity: number | null;
+  won_quantity: number | null;
+  paid_quantity: number | null;
+  currency: string | null;
+  display_currency: string | null;
+  amount_original: number | string | null;
+  exchange_rate_to_display: number | string | null;
+  amount_display: number | string | null;
+  unit_price_original: number | string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -49,6 +79,16 @@ const isUuid = (value: string | undefined) => Boolean(value && uuidPattern.test(
 const cleanOptionalString = (value: string | null | undefined) => {
   const nextValue = value?.trim();
   return nextValue ? nextValue : null;
+};
+
+const cleanOptionalNumber = (value: number | null | undefined) =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+
+const normalizeNumber = (value: number | string | null | undefined) => {
+  const nextValue = typeof value === "string" ? Number(value) : value;
+  return typeof nextValue === "number" && Number.isFinite(nextValue) && nextValue >= 0
+    ? nextValue
+    : undefined;
 };
 
 const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
@@ -98,11 +138,21 @@ const normalizeStatus = (status: string | null | undefined): TicketApplicationSt
     : "planned";
 };
 
+const normalizeCurrency = (currency: string | null | undefined): CurrencyCode =>
+  currencyOptions.includes(currency as CurrencyCode) ? (currency as CurrencyCode) : "CNY";
+
+const normalizeRoundType = (roundType: string | null | undefined): TicketRoundType | undefined =>
+  roundTypeOptions.includes(roundType as TicketRoundType) ? (roundType as TicketRoundType) : undefined;
+
 export const toCloudTicketApplicationRow = (
   application: TicketApplication,
   userId: string,
   options: { includeId?: boolean } = {},
 ): CloudTicketApplicationPayload => {
+  const currency = getTicketOriginalCurrency(application);
+  const displayCurrency = getTicketDisplayCurrency(application);
+  const amountOriginal = getTicketAmountOriginal(application);
+  const amountDisplay = getTicketAmountDisplay(application);
   const payload: CloudTicketApplicationPayload = {
     user_id: userId,
     event_title: application.eventTitle,
@@ -125,6 +175,20 @@ export const toCloudTicketApplicationRow = (
     companion_contact: cleanOptionalString(application.companionContact),
     memo: cleanOptionalString(application.memo),
     linked_event_id: cleanOptionalString(application.linkedEventId),
+    ticket_group_key: cleanOptionalString(application.ticketGroupKey ?? normalizeTicketGroupKey(application)),
+    round_name: cleanOptionalString(application.roundName),
+    round_type: application.roundType ?? null,
+    applied_quantity: cleanOptionalNumber(application.appliedQuantity ?? getAppliedQuantity(application)),
+    won_quantity: cleanOptionalNumber(application.wonQuantity ?? getWonQuantity(application)),
+    paid_quantity: cleanOptionalNumber(application.paidQuantity ?? getPaidQuantity(application)),
+    currency,
+    display_currency: displayCurrency,
+    amount_original: cleanOptionalNumber(amountOriginal),
+    exchange_rate_to_display: cleanOptionalNumber(
+      application.exchangeRateToDisplay ?? (currency === displayCurrency && typeof amountOriginal === "number" ? 1 : undefined),
+    ),
+    amount_display: cleanOptionalNumber(amountDisplay),
+    unit_price_original: cleanOptionalNumber(application.unitPriceOriginal ?? application.price),
     created_at: application.createdAt,
     updated_at: application.updatedAt,
   };
@@ -139,8 +203,7 @@ export const toCloudTicketApplicationRow = (
 export const fromCloudTicketApplicationRow = (row: CloudTicketApplicationRow): TicketApplication => {
   const now = new Date().toISOString();
   const price = typeof row.price === "string" ? Number(row.price) : row.price;
-
-  return {
+  const application: TicketApplication = {
     id: row.id,
     eventTitle: row.event_title ?? "",
     artist: row.artist ?? "",
@@ -162,8 +225,31 @@ export const fromCloudTicketApplicationRow = (row: CloudTicketApplicationRow): T
     companionContact: row.companion_contact ?? undefined,
     memo: row.memo ?? undefined,
     linkedEventId: row.linked_event_id ?? undefined,
+    ticketGroupKey: row.ticket_group_key ?? undefined,
+    roundName: row.round_name ?? undefined,
+    roundType: normalizeRoundType(row.round_type),
+    appliedQuantity: typeof row.applied_quantity === "number" ? row.applied_quantity : undefined,
+    wonQuantity: typeof row.won_quantity === "number" ? row.won_quantity : undefined,
+    paidQuantity: typeof row.paid_quantity === "number" ? row.paid_quantity : undefined,
+    currency: normalizeCurrency(row.currency),
+    displayCurrency: normalizeCurrency(row.display_currency),
+    amountOriginal: normalizeNumber(row.amount_original),
+    exchangeRateToDisplay: normalizeNumber(row.exchange_rate_to_display),
+    amountDisplay: normalizeNumber(row.amount_display),
+    unitPriceOriginal: normalizeNumber(row.unit_price_original),
     createdAt: row.created_at ?? now,
     updatedAt: row.updated_at ?? row.created_at ?? now,
+  };
+
+  return {
+    ...application,
+    ticketGroupKey: application.ticketGroupKey ?? normalizeTicketGroupKey(application),
+    appliedQuantity: getAppliedQuantity(application),
+    wonQuantity: getWonQuantity(application),
+    paidQuantity: getPaidQuantity(application),
+    amountOriginal: getTicketAmountOriginal(application),
+    amountDisplay: getTicketAmountDisplay(application),
+    unitPriceOriginal: application.unitPriceOriginal ?? application.price,
   };
 };
 

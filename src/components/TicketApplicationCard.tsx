@@ -4,6 +4,10 @@ import type { TicketApplication } from "../types/ticket";
 import { formatDate } from "../utils/dateUtils";
 import {
   canCreateEventRecord,
+  formatTicketPrice,
+  getAppliedQuantity,
+  getPaidQuantity,
+  getWonQuantity,
   isPaymentOverdue,
 } from "../utils/ticketUtils";
 
@@ -31,10 +35,10 @@ export function TicketApplicationCard({
   const ticketNotIssued = application.status === "paid";
   const overdue = isPaymentOverdue(application);
 
-  const priceLabel =
-    typeof application.price === "number"
-      ? `${((application.price ?? 0) * (application.quantity ?? 1)).toLocaleString()} JPY`
-      : t("tickets.priceNotSet");
+  const priceLabel = formatTicketPrice(application);
+  const appliedQuantity = getAppliedQuantity(application);
+  const wonQuantity = getWonQuantity(application);
+  const paidQuantity = getPaidQuantity(application);
 
   return (
     <article className="ticket-application-card">
@@ -63,8 +67,20 @@ export function TicketApplicationCard({
           <dd>{priceLabel}</dd>
         </div>
         <div>
-          <dt>{t("tickets.quantity")}</dt>
-          <dd>{application.quantity ?? 1}</dd>
+          <dt>{t("tickets.appliedQuantity")}</dt>
+          <dd>{appliedQuantity}</dd>
+        </div>
+        <div>
+          <dt>{t("tickets.wonQuantity")}</dt>
+          <dd>{wonQuantity}</dd>
+        </div>
+        <div>
+          <dt>{t("tickets.paidQuantity")}</dt>
+          <dd>{paidQuantity}</dd>
+        </div>
+        <div>
+          <dt>{t("tickets.roundName")}</dt>
+          <dd>{application.roundName || (application.roundType ? t(`roundType.${application.roundType}`) : "-")}</dd>
         </div>
         <div>
           <dt>{t("tickets.companion")}</dt>

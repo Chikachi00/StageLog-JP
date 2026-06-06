@@ -15,6 +15,8 @@ interface TicketManagerProps {
   applications: TicketApplication[];
   venues: Venue[];
   editingApplication: TicketApplication | null;
+  isEditingApplicationLoading?: boolean;
+  isEditingApplicationMissing?: boolean;
   onSave: (values: TicketApplicationFormValues, editingApplication?: TicketApplication | null) => void | Promise<void>;
   onEdit: (application: TicketApplication) => void;
   onCancelEditing: () => void;
@@ -32,6 +34,8 @@ export function TicketManager({
   applications,
   venues,
   editingApplication,
+  isEditingApplicationLoading = false,
+  isEditingApplicationMissing = false,
   onSave,
   onEdit,
   onCancelEditing,
@@ -61,12 +65,22 @@ export function TicketManager({
 
   return (
     <section className="ticket-manager">
-      <TicketApplicationForm
-        editingApplication={editingApplication}
-        venues={venues}
-        onCancel={onCancelEditing}
-        onSave={(values) => void onSave(values, editingApplication)}
-      />
+      {isEditingApplicationLoading ? (
+        <section className="empty-state">
+          <h2>{t("tickets.loadingCloudTickets")}</h2>
+        </section>
+      ) : isEditingApplicationMissing ? (
+        <section className="empty-state">
+          <h2>{t("tickets.notFound")}</h2>
+        </section>
+      ) : (
+        <TicketApplicationForm
+          editingApplication={editingApplication}
+          venues={venues}
+          onCancel={onCancelEditing}
+          onSave={(values) => void onSave(values, editingApplication)}
+        />
+      )}
 
       <div className="section-heading">
         <div>
