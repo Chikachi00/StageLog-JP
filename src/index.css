@@ -1917,7 +1917,7 @@ textarea:focus {
 .analytics-chart {
   width: 100%;
   min-width: 0;
-  height: 310px;
+  min-height: 280px;
 }
 
 .analytics-chart .recharts-wrapper,
@@ -2372,10 +2372,6 @@ textarea:focus {
   .backup-import,
   .backup-summary {
     grid-template-columns: 1fr;
-  }
-
-  .analytics-chart {
-    height: 260px;
   }
 
   .analytics-metric-list p {

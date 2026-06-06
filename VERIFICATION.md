@@ -136,6 +136,10 @@ Verification date: 2026-06-04
 - Empty states are included for missing event, weather, and ticket data.
 - Desktop navigation includes Analytics.
 - Mobile access is available through the existing More drawer, so the bottom nav remains compact.
+- Fix checked: Analytics chart data keys now match utility outputs (`year`, `month`, `name`, `shortName`, `count`, `cumulative`, `temperature`, and `precipitation`).
+- Fix checked: every Recharts `ResponsiveContainer` now receives an explicit numeric height through `CHART_HEIGHT` instead of relying on `height="100%"`.
+- Fix checked: region and ticket status distributions use BarChart rendering for more stable mobile/desktop display.
+- Fix checked: chart axes, grid, tooltip, bars, and lines use explicit visible colors for Sakura / Ocean / Night / Classic themes.
 - Runtime chart rendering and mobile viewport behavior require browser verification.
 
 ## Draft Autosave

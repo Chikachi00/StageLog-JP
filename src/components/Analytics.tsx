@@ -3,17 +3,12 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -48,7 +43,18 @@ interface ChartCardProps {
   children: ReactNode;
 }
 
-const chartColors = ["#e84f7a", "#13a7a0", "#7f56d9", "#f4b942", "#0e7490", "#b08968", "#4f5d75", "#ef8354"];
+const CHART_HEIGHT = 280;
+const AXIS_TICK = { fill: "var(--muted)", fontSize: 12 };
+const GRID_STROKE = "rgba(127, 141, 163, 0.32)";
+const PRIMARY_COLOR = "#e84f7a";
+const SECONDARY_COLOR = "#13a7a0";
+const TERTIARY_COLOR = "#7f56d9";
+const tooltipContentStyle = {
+  background: "var(--paper)",
+  border: "1px solid var(--line)",
+  borderRadius: "8px",
+  color: "var(--ink)",
+};
 
 const formatCurrency = (value: number) => `${Math.round(value).toLocaleString()} JPY`;
 
@@ -79,7 +85,7 @@ const eventLabel = (event: EventRecord | null, fallback: string, unit?: string, 
   }
 
   const suffix = typeof value === "number" && unit ? ` - ${value.toFixed(1)}${unit}` : "";
-  return `${event.title} · ${formatDate(event.date)}${suffix}`;
+  return `${event.title} - ${formatDate(event.date)}${suffix}`;
 };
 
 export function Analytics({ events, ticketApplications, venues }: AnalyticsProps) {
@@ -98,6 +104,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
       Object.entries(ticketStats.byStatus).map(([status, count]) => ({
         name: t(`status.${status}`, { defaultValue: status }),
         count,
+        shortName: truncate(t(`status.${status}`, { defaultValue: status }), 16),
       })),
     [t, ticketStats.byStatus],
   );
@@ -106,8 +113,25 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
       Object.entries(ticketStats.byPlatform).map(([platform, count]) => ({
         name: t(`platform.${platform}`, { defaultValue: platform }),
         count,
+        shortName: truncate(t(`platform.${platform}`, { defaultValue: platform }), 16),
       })),
     [t, ticketStats.byPlatform],
+  );
+  const topArtistChartData = useMemo(
+    () => topArtists.map((item) => ({ ...item, shortName: truncate(item.name) })),
+    [topArtists],
+  );
+  const topVenueChartData = useMemo(
+    () => topVenues.map((item) => ({ ...item, shortName: truncate(item.name) })),
+    [topVenues],
+  );
+  const regionChartData = useMemo(
+    () => regionData.map((item) => ({ ...item, shortName: truncate(item.name, 16) })),
+    [regionData],
+  );
+  const rainfallChartData = useMemo(
+    () => rainfallRanking.map((item) => ({ ...item, shortName: truncate(item.title, 18) })),
+    [rainfallRanking],
   );
 
   return (
@@ -137,7 +161,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           <strong>
             {weatherSummary.averageTemperature === null
               ? t("common.noData")
-              : `${weatherSummary.averageTemperature.toFixed(1)}°C`}
+              : `${weatherSummary.averageTemperature.toFixed(1)}\u00b0C`}
           </strong>
         </article>
         <article>
@@ -154,13 +178,13 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           emptyLabel={t("analytics.noEventData")}
           isEmpty={eventsByYear.length === 0}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <BarChart data={eventsByYear}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="year" />
-              <YAxis allowDecimals={false} width={32} />
-              <Tooltip />
-              <Bar dataKey="count" name={t("analytics.monthlyAttendance")} fill="var(--accent)" radius={[6, 6, 0, 0]} />
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="year" tick={AXIS_TICK} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
+              <Tooltip contentStyle={tooltipContentStyle} />
+              <Bar dataKey="count" name={t("analytics.attendanceByYear")} fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -171,50 +195,53 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           emptyLabel={t("analytics.noEventData")}
           isEmpty={cumulativeByMonth.length === 0}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={cumulativeByMonth}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" minTickGap={16} />
-              <YAxis allowDecimals={false} width={32} />
-              <Tooltip />
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <LineChart data={cumulativeByMonth}>
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" minTickGap={16} tick={AXIS_TICK} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
+              <Tooltip contentStyle={tooltipContentStyle} />
               <Legend />
-              <Area
-                dataKey="cumulative"
-                name={t("analytics.cumulativeAttendance")}
-                fill="var(--accent)"
-                fillOpacity={0.16}
-                stroke="var(--accent)"
-                strokeWidth={2}
+              <Line
+                activeDot={{ r: 6 }}
+                dataKey="count"
+                dot={{ r: 4, fill: SECONDARY_COLOR }}
+                name={t("analytics.monthlyAttendance")}
+                stroke={SECONDARY_COLOR}
+                strokeWidth={2.5}
               />
-              <Line dataKey="count" name={t("analytics.monthlyAttendance")} stroke="var(--accent-2)" strokeWidth={2} />
-            </AreaChart>
+              <Line
+                activeDot={{ r: 6 }}
+                dataKey="cumulative"
+                dot={{ r: 4, fill: PRIMARY_COLOR }}
+                name={t("analytics.cumulativeAttendance")}
+                stroke={PRIMARY_COLOR}
+                strokeWidth={2.5}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard
-          title={t("analytics.topArtists")}
-          emptyLabel={t("analytics.noEventData")}
-          isEmpty={topArtists.length === 0}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topArtists.map((item) => ({ ...item, shortName: truncate(item.name) }))} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis allowDecimals={false} type="number" />
-              <YAxis dataKey="shortName" type="category" width={105} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value, _name, item) => [value, item.payload.name]} />
-              <Bar dataKey="count" name={t("analytics.topArtists")} fill="var(--accent)" radius={[0, 6, 6, 0]} />
+        <ChartCard title={t("analytics.topArtists")} emptyLabel={t("analytics.noEventData")} isEmpty={topArtists.length === 0}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <BarChart data={topArtistChartData} layout="vertical">
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" horizontal={false} />
+              <XAxis allowDecimals={false} tick={AXIS_TICK} type="number" />
+              <YAxis dataKey="shortName" tick={AXIS_TICK} type="category" width={108} />
+              <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [value, item.payload.name]} />
+              <Bar dataKey="count" name={t("analytics.topArtists")} fill={PRIMARY_COLOR} radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <ChartCard title={t("analytics.topVenues")} emptyLabel={t("analytics.noEventData")} isEmpty={topVenues.length === 0}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topVenues.map((item) => ({ ...item, shortName: truncate(item.name) }))} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis allowDecimals={false} type="number" />
-              <YAxis dataKey="shortName" type="category" width={105} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value, _name, item) => [value, item.payload.name]} />
-              <Bar dataKey="count" name={t("analytics.topVenues")} fill="var(--accent-2)" radius={[0, 6, 6, 0]} />
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <BarChart data={topVenueChartData} layout="vertical">
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" horizontal={false} />
+              <XAxis allowDecimals={false} tick={AXIS_TICK} type="number" />
+              <YAxis dataKey="shortName" tick={AXIS_TICK} type="category" width={108} />
+              <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [value, item.payload.name]} />
+              <Bar dataKey="count" name={t("analytics.topVenues")} fill={SECONDARY_COLOR} radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -224,16 +251,14 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           emptyLabel={t("analytics.noEventData")}
           isEmpty={regionData.length === 0}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={regionData} dataKey="count" nameKey="name" innerRadius="45%" outerRadius="72%" paddingAngle={2}>
-                {regionData.map((entry, index) => (
-                  <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <BarChart data={regionChartData}>
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="shortName" tick={AXIS_TICK} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
+              <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [value, item.payload.name]} />
+              <Bar dataKey="count" name={t("analytics.regionDistribution")} fill={TERTIARY_COLOR} radius={[6, 6, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
@@ -243,18 +268,19 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           emptyLabel={`${t("analytics.noWeatherData")} ${t("analytics.fetchWeatherFirst")}`}
           isEmpty={temperatureTrend.length === 0}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <LineChart data={temperatureTrend}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" minTickGap={18} />
-              <YAxis width={38} unit="°C" />
-              <Tooltip formatter={(value) => [`${value}°C`, t("analytics.averageTemperature")]} />
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" minTickGap={18} tick={AXIS_TICK} />
+              <YAxis tick={AXIS_TICK} unit="\u00b0C" width={44} />
+              <Tooltip contentStyle={tooltipContentStyle} formatter={(value) => [`${value}\u00b0C`, t("analytics.averageTemperature")]} />
               <Line
+                activeDot={{ r: 6 }}
                 dataKey="temperature"
+                dot={{ r: 4, fill: PRIMARY_COLOR }}
                 name={t("analytics.averageTemperature")}
-                stroke="var(--accent)"
-                strokeWidth={2}
-                dot={{ r: 3 }}
+                stroke={PRIMARY_COLOR}
+                strokeWidth={2.5}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -276,7 +302,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                   {eventLabel(
                     weatherSummary.hottestEvent,
                     t("common.noData"),
-                    "°C",
+                    "\u00b0C",
                     weatherSummary.hottestEvent?.weather?.temperature,
                   )}
                 </strong>
@@ -288,7 +314,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                   {eventLabel(
                     weatherSummary.coldestEvent,
                     t("common.noData"),
-                    "°C",
+                    "\u00b0C",
                     weatherSummary.coldestEvent?.weather?.temperature,
                   )}
                 </strong>
@@ -325,18 +351,14 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           )}
         </article>
 
-        <ChartCard
-          title={t("analytics.rainiestEvent")}
-          emptyLabel={t("analytics.noWeatherData")}
-          isEmpty={rainfallRanking.length === 0}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rainfallRanking.map((item) => ({ ...item, shortName: truncate(item.title, 20) }))}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="shortName" tick={{ fontSize: 11 }} />
-              <YAxis width={38} unit="mm" />
-              <Tooltip formatter={(value, _name, item) => [`${value}mm`, item.payload.title]} />
-              <Bar dataKey="precipitation" name={t("analytics.rainiestEvent")} fill="var(--accent-2)" radius={[6, 6, 0, 0]} />
+        <ChartCard title={t("analytics.rainiestEvent")} emptyLabel={t("analytics.noWeatherData")} isEmpty={rainfallRanking.length === 0}>
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <BarChart data={rainfallChartData}>
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="shortName" tick={AXIS_TICK} />
+              <YAxis tick={AXIS_TICK} unit="mm" width={44} />
+              <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [`${value}mm`, item.payload.title]} />
+              <Bar dataKey="precipitation" name={t("analytics.rainiestEvent")} fill={SECONDARY_COLOR} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -374,16 +396,14 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             emptyLabel={t("analytics.noTicketData")}
             isEmpty={statusData.length === 0}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={statusData} dataKey="count" nameKey="name" outerRadius="72%" paddingAngle={2}>
-                  {statusData.map((entry, index) => (
-                    <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
+            <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <BarChart data={statusData}>
+                <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="shortName" tick={AXIS_TICK} />
+                <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
+                <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [value, item.payload.name]} />
+                <Bar dataKey="count" name={t("analytics.applicationStatus")} fill={TERTIARY_COLOR} radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
@@ -392,13 +412,13 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             emptyLabel={t("analytics.noTicketData")}
             isEmpty={platformData.length === 0}
           >
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
               <BarChart data={platformData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} width={32} />
-                <Tooltip />
-                <Bar dataKey="count" name={t("analytics.platformDistribution")} fill="var(--accent)" radius={[6, 6, 0, 0]} />
+                <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="shortName" tick={AXIS_TICK} />
+                <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
+                <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [value, item.payload.name]} />
+                <Bar dataKey="count" name={t("analytics.platformDistribution")} fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
