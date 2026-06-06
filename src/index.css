@@ -652,6 +652,7 @@ textarea:focus {
 
 .form-panel,
 .statistics-page,
+.analytics-page,
 .weather-ranking {
   padding: clamp(1rem, 3vw, 1.4rem);
   border: 1px solid var(--line);
@@ -847,6 +848,7 @@ textarea:focus {
 .app-shell[data-theme="night"] .filter-bar,
 .app-shell[data-theme="night"] .form-panel,
 .app-shell[data-theme="night"] .statistics-page,
+.app-shell[data-theme="night"] .analytics-page,
 .app-shell[data-theme="night"] .weather-ranking,
 .app-shell[data-theme="night"] .ticket-card,
 .app-shell[data-theme="night"] .ticket-application-card,
@@ -867,6 +869,8 @@ textarea:focus {
 .app-shell[data-theme="night"] .ghost-button,
 .app-shell[data-theme="night"] .icon-button,
 .app-shell[data-theme="night"] .stat-grid article,
+.app-shell[data-theme="night"] .analytics-overview-grid article,
+.app-shell[data-theme="night"] .analytics-card,
 .app-shell[data-theme="night"] .distribution-card,
 .app-shell[data-theme="night"] .ranking-list article {
   background: #111d2f;
@@ -1832,6 +1836,126 @@ textarea:focus {
   font-weight: 800;
 }
 
+.analytics-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.analytics-overview-grid,
+.analytics-grid,
+.analytics-insight-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.analytics-overview-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analytics-overview-grid article,
+.analytics-card {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  box-shadow: 0 12px 30px rgba(37, 48, 73, 0.08);
+}
+
+.analytics-overview-grid article {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 118px;
+  padding: 1rem;
+}
+
+.analytics-overview-grid svg {
+  color: var(--accent);
+}
+
+.analytics-overview-grid span,
+.analytics-card__heading p,
+.analytics-metric-list span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.analytics-overview-grid strong {
+  overflow-wrap: anywhere;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.analytics-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analytics-grid--compact {
+  margin-top: 1rem;
+}
+
+.analytics-insight-grid {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+}
+
+.analytics-card {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+  padding: 1rem;
+}
+
+.analytics-card__heading h3,
+.analytics-card__heading p {
+  margin: 0;
+}
+
+.analytics-card__heading h3 {
+  font-size: 1rem;
+}
+
+.analytics-chart {
+  width: 100%;
+  min-width: 0;
+  height: 310px;
+}
+
+.analytics-chart .recharts-wrapper,
+.analytics-chart svg {
+  max-width: 100%;
+}
+
+.analytics-metric-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.analytics-metric-list p {
+  display: grid;
+  grid-template-columns: auto minmax(110px, 0.25fr) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--soft);
+}
+
+.analytics-metric-list svg {
+  color: var(--accent);
+}
+
+.analytics-metric-list strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.analytics-ticket-section {
+  display: grid;
+  gap: 1rem;
+}
+
 .ticket-filter-bar {
   grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
 }
@@ -1970,6 +2094,9 @@ textarea:focus {
   .event-form,
   .stat-grid,
   .venue-detail-grid,
+  .analytics-overview-grid,
+  .analytics-grid,
+  .analytics-insight-grid,
   .timeline-year,
   .timeline-item,
   .ticket-filter-bar {
@@ -2245,6 +2372,18 @@ textarea:focus {
   .backup-import,
   .backup-summary {
     grid-template-columns: 1fr;
+  }
+
+  .analytics-chart {
+    height: 260px;
+  }
+
+  .analytics-metric-list p {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .analytics-metric-list strong {
+    grid-column: 2;
   }
 }
 

@@ -12,7 +12,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
-export type AppView = "events" | "timeline" | "venues" | "statistics" | "tickets" | "add";
+export type AppView = "events" | "timeline" | "venues" | "statistics" | "analytics" | "tickets" | "add";
 
 interface HeaderProps {
   activeView: AppView;
@@ -40,6 +40,7 @@ const navItems: Array<{ view: AppView; labelKey: string; icon: LucideIcon }> = [
   { view: "timeline", labelKey: "nav.timeline", icon: CalendarDays },
   { view: "venues", labelKey: "nav.venues", icon: MapPinned },
   { view: "statistics", labelKey: "nav.statistics", icon: BarChart3 },
+  { view: "analytics", labelKey: "nav.analytics", icon: BarChart3 },
   { view: "tickets", labelKey: "nav.tickets", icon: ReceiptText },
   { view: "add", labelKey: "nav.add", icon: Plus },
 ];
@@ -139,6 +140,7 @@ export function Header({
         onImportBackup={onImportBackup}
         onImportLocalEvents={onImportLocalEvents}
         onImportLocalTickets={onImportLocalTickets}
+        onNavigate={onNavigate}
         onThemeChange={onThemeChange}
       />
     </header>

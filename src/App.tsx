@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { EventForm } from "./components/EventForm";
 import { EventList } from "./components/EventList";
 import { FilterBar } from "./components/FilterBar";
+import { Analytics } from "./components/Analytics";
 import { Header } from "./components/Header";
 import { BackupPanel } from "./components/BackupPanel";
 import { FloatingAddButton } from "./components/FloatingAddButton";
@@ -1241,6 +1242,10 @@ function App() {
 
         {activeView === "statistics" ? (
           <Statistics events={events} ticketApplications={ticketApplications} />
+        ) : null}
+
+        {activeView === "analytics" ? (
+          <Analytics events={events} ticketApplications={ticketApplications} venues={venues} />
         ) : null}
 
         {activeView === "tickets" ? (

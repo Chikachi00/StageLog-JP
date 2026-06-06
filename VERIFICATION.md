@@ -126,6 +126,18 @@ Verification date: 2026-06-04
 - No duplicate mobile-only business pages such as `MobileEventsPage`, `MobileTicketsPage`, or `MobileVenuesPage` were added.
 - Runtime mobile viewport behavior requires browser/device verification.
 
+## Analytics Dashboard
+
+- Code added and checked: `src/components/Analytics.tsx` and `src/utils/analyticsUtils.ts`.
+- Dependency added: `recharts`.
+- Analytics uses the existing App-loaded `events`, `ticketApplications`, and `venues` arrays.
+- No new Supabase requests, localStorage reads, or duplicate data-loading paths were added for Analytics.
+- Added charts for attendance by year, monthly/cumulative attendance, top artists, top venues, region distribution, temperature trend, rainfall ranking, ticket status distribution, and ticket platform distribution.
+- Empty states are included for missing event, weather, and ticket data.
+- Desktop navigation includes Analytics.
+- Mobile access is available through the existing More drawer, so the bottom nav remains compact.
+- Runtime chart rendering and mobile viewport behavior require browser verification.
+
 ## Draft Autosave
 
 - Code added and checked: `src/services/draftStorage.ts`, `src/components/EventForm.tsx`, `src/components/TicketApplicationForm.tsx`, `src/App.tsx`, and `src/index.css`.
@@ -198,6 +210,10 @@ Verification date: 2026-06-04
 - Confirm mobile bottom navigation switches Events / Timeline / Venues / Statistics / Tickets using the same app state.
 - Confirm the mobile floating Add button opens the existing EventForm.
 - Confirm the mobile More drawer opens and closes, and account/theme/language/backup controls still work there.
+- Open Analytics from desktop navigation and confirm charts render from the current event/ticket/venue data.
+- Open Analytics from the mobile More drawer and confirm charts remain inside the viewport without horizontal overflow.
+- Confirm Analytics empty states display correctly when events, weather, or tickets are missing.
+- Confirm switching language/theme updates Analytics labels and keeps chart cards readable.
 - Confirm bottom navigation does not cover TicketCard action buttons or page bottom content.
 - In Add Event, type a title, refresh, and confirm the event draft restore prompt appears.
 - Restore and discard an event draft and confirm both flows behave correctly.

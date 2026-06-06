@@ -23,6 +23,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - Events / Tickets / Profile / Theme / Language 多模块数据管理
 - Supabase Storage 私有图片上传
 - 日本 Live 会场数据库与座位图系统
+- Analytics 数据分析仪表盘
 - 中英文 UI 切换与主题切换
 - Vercel 部署
 
@@ -91,6 +92,14 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
   - 最热 / 最冷 / 最大雨量 / 最大风速 Live
   - 年份、艺人、会场、票种分布
 
+### 数据分析
+
+- Analytics 页面提供完整数据分析仪表盘
+- 参战趋势可视化：年度参战数、月度参战数、累计参战数
+- 艺人 / 会场 / 地区统计图表
+- 天气分析：平均气温、最热参战、最冷参战、雨量最大、风最大和气温趋势
+- 票务分析：申请状态、平台分布、当选率、已支付总额和平均票价
+
 ### 票务抽选管理
 
 - 独立的 TicketApplication 数据模型
@@ -127,6 +136,7 @@ StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参
 - Supabase Database + Row Level Security
 - Supabase Storage
 - Open-Meteo Archive API
+- Recharts
 - Browser `localStorage`
 - Vercel
 
@@ -223,6 +233,7 @@ The first version includes:
 - Events / Tickets / Profile / Theme / Language data flows
 - Supabase Storage private image upload
 - Japanese live venue database and seat map system
+- Analytics dashboard
 - English / Chinese UI switching and theme switching
 - Vercel deployment
 
@@ -291,6 +302,14 @@ The first version includes:
   - Hottest / coldest / rainiest / windiest live events
   - Distribution by year, artist, venue, and ticket type
 
+### Analytics
+
+- Dedicated Analytics dashboard for visual insights
+- Attendance trend visualization with yearly, monthly, and cumulative charts
+- Artist / venue / region charts
+- Weather analytics for average temperature, hottest, coldest, rainiest, windiest events, and temperature trends
+- Ticket analytics for application status, platform distribution, win rate, total paid amount, and average ticket price
+
 ### Ticket Lottery Management
 
 - Separate `TicketApplication` model
@@ -327,6 +346,7 @@ The first version includes:
 - Supabase Database + Row Level Security
 - Supabase Storage
 - Open-Meteo Archive API
+- Recharts
 - Browser `localStorage`
 - Vercel
 

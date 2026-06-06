@@ -1,4 +1,4 @@
-import { Cloud, Palette, Settings, X } from "lucide-react";
+import { BarChart3, Cloud, Palette, Settings, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "../types/backup";
@@ -10,6 +10,7 @@ import { AuthPanel } from "./AuthPanel";
 import { BackupPanel } from "./BackupPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import type { AppView } from "./Header";
 
 interface MobileMenuDrawerProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ interface MobileMenuDrawerProps {
   onImportLocalEvents?: () => void | Promise<void>;
   onImportLocalTickets?: () => void | Promise<void>;
   onImportBackup: (backup: StageLogBackup, importMode: BackupImportMode) => Promise<BackupImportResult>;
+  onNavigate: (view: AppView) => void;
 }
 
 export function MobileMenuDrawer({
@@ -56,6 +58,7 @@ export function MobileMenuDrawer({
   onImportLocalEvents,
   onImportLocalTickets,
   onImportBackup,
+  onNavigate,
 }: MobileMenuDrawerProps) {
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -125,6 +128,24 @@ export function MobileMenuDrawer({
             {t("mobile.language")}
           </h2>
           <LanguageSwitcher />
+        </section>
+
+        <section className="mobile-drawer__section">
+          <h2>
+            <BarChart3 size={16} aria-hidden="true" />
+            {t("analytics.title")}
+          </h2>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => {
+              onNavigate("analytics");
+              onClose();
+            }}
+          >
+            <BarChart3 size={16} aria-hidden="true" />
+            {t("nav.analytics")}
+          </button>
         </section>
 
         <BackupPanel
