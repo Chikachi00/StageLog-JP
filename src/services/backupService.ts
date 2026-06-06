@@ -1,7 +1,23 @@
 import type { StageLogBackup } from "../types/backup";
 import type { EventRecord, SeatInfo, WeatherInfo } from "../types/event";
 import type { AppLanguage, UserProfile } from "../types/profile";
-import type { TicketApplication, TicketApplicationStatus, TicketPlatform } from "../types/ticket";
+import type {
+  CurrencyCode,
+  TicketApplication,
+  TicketApplicationStatus,
+  TicketPlatform,
+  TicketRoundType,
+} from "../types/ticket";
+import {
+  currencyOptions,
+  getAppliedQuantity,
+  getTicketAmountDisplay,
+  getTicketAmountOriginal,
+  getWonQuantity,
+  getPaidQuantity,
+  normalizeTicketGroupKey,
+  roundTypeOptions,
+} from "../utils/ticketUtils";
 
 const SUPPORTED_VERSION = 1;
 
@@ -130,11 +146,20 @@ const normalizeStatus = (value: unknown): TicketApplicationStatus => {
   return options.includes(status as TicketApplicationStatus) ? (status as TicketApplicationStatus) : "planned";
 };
 
+const normalizeCurrency = (value: unknown): CurrencyCode => {
+  const currency = asString(value);
+  return currencyOptions.includes(currency as CurrencyCode) ? (currency as CurrencyCode) : "CNY";
+};
+
+const normalizeRoundType = (value: unknown): TicketRoundType | undefined => {
+  const roundType = asString(value);
+  return roundTypeOptions.includes(roundType as TicketRoundType) ? (roundType as TicketRoundType) : undefined;
+};
+
 export const normalizeBackupTicketApplication = (value: unknown): TicketApplication => {
   const now = new Date().toISOString();
   const application = isObject(value) ? value : {};
-
-  return {
+  const baseApplication: TicketApplication = {
     id: asOptionalString(application.id) ?? createId(),
     eventTitle: asString(application.eventTitle),
     artist: asString(application.artist),
@@ -156,8 +181,31 @@ export const normalizeBackupTicketApplication = (value: unknown): TicketApplicat
     companionContact: asOptionalString(application.companionContact),
     memo: asOptionalString(application.memo),
     linkedEventId: asOptionalString(application.linkedEventId),
+    ticketGroupKey: asOptionalString(application.ticketGroupKey),
+    roundName: asOptionalString(application.roundName),
+    roundType: normalizeRoundType(application.roundType),
+    appliedQuantity: asNumber(application.appliedQuantity),
+    wonQuantity: asNumber(application.wonQuantity),
+    paidQuantity: asNumber(application.paidQuantity),
+    currency: normalizeCurrency(application.currency),
+    displayCurrency: normalizeCurrency(application.displayCurrency),
+    amountOriginal: asNumber(application.amountOriginal),
+    exchangeRateToDisplay: asNumber(application.exchangeRateToDisplay),
+    amountDisplay: asNumber(application.amountDisplay),
+    unitPriceOriginal: asNumber(application.unitPriceOriginal),
     createdAt: asOptionalString(application.createdAt) ?? now,
     updatedAt: asOptionalString(application.updatedAt) ?? now,
+  };
+
+  return {
+    ...baseApplication,
+    ticketGroupKey: baseApplication.ticketGroupKey ?? normalizeTicketGroupKey(baseApplication),
+    appliedQuantity: getAppliedQuantity(baseApplication),
+    wonQuantity: getWonQuantity(baseApplication),
+    paidQuantity: getPaidQuantity(baseApplication),
+    amountOriginal: getTicketAmountOriginal(baseApplication),
+    amountDisplay: getTicketAmountDisplay(baseApplication),
+    unitPriceOriginal: baseApplication.unitPriceOriginal ?? baseApplication.price,
   };
 };
 
@@ -283,6 +331,15 @@ export const getEventBackupKey = (event: EventRecord) =>
   [event.title, event.artist, event.date, event.venueId].join("::").toLocaleLowerCase();
 
 export const getTicketBackupKey = (application: TicketApplication) =>
-  [application.eventTitle, application.artist, application.eventDate ?? "", application.platform]
+  [
+    application.ticketGroupKey ?? normalizeTicketGroupKey(application),
+    application.roundName ?? application.roundType ?? "",
+    application.platform,
+    application.applicationDate ?? "",
+    application.eventTitle,
+    application.artist,
+    application.eventDate ?? "",
+    application.venueId ?? application.venueName ?? "",
+  ]
     .join("::")
     .toLocaleLowerCase();

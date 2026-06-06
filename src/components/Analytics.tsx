@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import type { EventRecord, Venue } from "../types/event";
-import type { TicketApplication } from "../types/ticket";
+import type { CurrencyCode, TicketApplication } from "../types/ticket";
 import {
   getAverageTemperatureByMonth,
   getAverageTicketPriceByPlatform,
@@ -39,6 +39,7 @@ import {
   getWindSpeedRanking,
 } from "../utils/analyticsUtils";
 import { formatDate } from "../utils/dateUtils";
+import { formatCurrencyAmount } from "../utils/ticketUtils";
 
 interface AnalyticsProps {
   events: EventRecord[];
@@ -84,7 +85,8 @@ const tooltipContentStyle = {
 };
 
 const roundOneDecimal = (value: number) => Math.round(value * 10) / 10;
-const formatCurrency = (value: number) => `${Math.round(value).toLocaleString()} JPY`;
+const formatCurrency = (value: number, currency: CurrencyCode = "CNY") =>
+  formatCurrencyAmount(Math.round(value), currency);
 const formatPercent = (value: number) => `${roundOneDecimal(value)}%`;
 
 const truncate = (value: string, maxLength = 18) =>
@@ -289,6 +291,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
       })),
     [t, averageTicketPriceByPlatform],
   );
+  const ticketCurrency = ticketStats.displayCurrency ?? "CNY";
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -817,16 +820,36 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             <strong>{ticketStats.totalApplications}</strong>
           </article>
           <article>
-            <span>{t("analytics.winRate")}</span>
-            <strong>{ticketStats.winRate === null ? "N/A" : `${ticketStats.winRate}%`}</strong>
+            <span>{t("tickets.totalApplied")}</span>
+            <strong>{ticketStats.totalAppliedQuantity}</strong>
+          </article>
+          <article>
+            <span>{t("tickets.totalWon")}</span>
+            <strong>{ticketStats.totalWonQuantity}</strong>
+          </article>
+          <article>
+            <span>{t("tickets.quantityWinRate")}</span>
+            <strong>{ticketStats.quantityWinRate === null ? "N/A" : formatPercent(ticketStats.quantityWinRate)}</strong>
+          </article>
+          <article>
+            <span>{t("tickets.roundWinRate")}</span>
+            <strong>{ticketStats.roundWinRate === null ? "N/A" : formatPercent(ticketStats.roundWinRate)}</strong>
+          </article>
+          <article>
+            <span>{t("tickets.performanceSuccessRate")}</span>
+            <strong>
+              {ticketStats.performanceSuccessRate === null ? "N/A" : formatPercent(ticketStats.performanceSuccessRate)}
+            </strong>
           </article>
           <article>
             <span>{t("analytics.totalPaidAmount")}</span>
-            <strong>{formatCurrency(ticketStats.totalPaidAmount)}</strong>
+            <strong>{formatCurrency(ticketStats.totalPaidAmount, ticketCurrency)}</strong>
           </article>
           <article>
             <span>{t("analytics.averageTicketPrice")}</span>
-            <strong>{ticketStats.averageTicketPrice === null ? "N/A" : formatCurrency(ticketStats.averageTicketPrice)}</strong>
+            <strong>
+              {ticketStats.averageTicketPrice === null ? "N/A" : formatCurrency(ticketStats.averageTicketPrice, ticketCurrency)}
+            </strong>
           </article>
         </div>
         <section className="analytics-grid analytics-grid--compact">
@@ -925,7 +948,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             title={t("analytics.monthlyTicketSpending")}
             emptyLabel={t("analytics.noSpendingData")}
             fallbackData={ticketSpendingByMonthFallback}
-            fallbackUnit=" JPY"
+            fallbackUnit={` ${ticketCurrency}`}
             isEmpty={ticketSpendingByMonth.length === 0}
           >
             <ChartFrame>
@@ -934,7 +957,10 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                   <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
                   <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={72} />
-                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                  <Tooltip
+                    contentStyle={tooltipContentStyle}
+                    formatter={(value, name, item) => [formatCurrency(Number(value), item.payload.currency ?? ticketCurrency), name]}
+                  />
                   <Legend />
                   <Bar
                     dataKey="paidAmount"
@@ -961,7 +987,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             title={t("analytics.cumulativeTicketSpending")}
             emptyLabel={t("analytics.noSpendingData")}
             fallbackData={cumulativeTicketSpendingFallback}
-            fallbackUnit=" JPY"
+            fallbackUnit={` ${ticketCurrency}`}
             isEmpty={cumulativeTicketSpending.length === 0}
           >
             <ChartFrame>
@@ -970,7 +996,10 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                   <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" minTickGap={18} axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
                   <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={72} />
-                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                  <Tooltip
+                    contentStyle={tooltipContentStyle}
+                    formatter={(value, name, item) => [formatCurrency(Number(value), item.payload.currency ?? ticketCurrency), name]}
+                  />
                   <Legend />
                   <Line
                     activeDot={{ r: 6 }}
@@ -1001,7 +1030,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             title={t("analytics.spendingByPlatform")}
             emptyLabel={t("analytics.noSpendingData")}
             fallbackData={ticketSpendingPlatformChartData}
-            fallbackUnit=" JPY"
+            fallbackUnit={` ${ticketCurrency}`}
             isEmpty={ticketSpendingByPlatform.length === 0}
           >
             <ChartFrame>
@@ -1024,7 +1053,10 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                     type="category"
                     width={108}
                   />
-                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                  <Tooltip
+                    contentStyle={tooltipContentStyle}
+                    formatter={(value, name, item) => [formatCurrency(Number(value), item.payload.currency ?? ticketCurrency), name]}
+                  />
                   <Legend />
                   <Bar
                     dataKey="paidAmount"
@@ -1051,7 +1083,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
             title={t("analytics.averageTicketPriceByPlatform")}
             emptyLabel={t("analytics.noTicketPriceData")}
             fallbackData={averageTicketPricePlatformChartData}
-            fallbackUnit=" JPY"
+            fallbackUnit={` ${ticketCurrency}`}
             isEmpty={averageTicketPriceByPlatform.length === 0}
           >
             <ChartFrame>
@@ -1060,7 +1092,13 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
                   <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="shortName" axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} />
                   <YAxis axisLine={{ stroke: AXIS_STROKE }} tick={axisTick} tickLine={{ stroke: AXIS_STROKE }} width={72} />
-                  <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [formatCurrency(Number(value)), item.payload.name]} />
+                  <Tooltip
+                    contentStyle={tooltipContentStyle}
+                    formatter={(value, _name, item) => [
+                      formatCurrency(Number(value), item.payload.currency ?? ticketCurrency),
+                      item.payload.name,
+                    ]}
+                  />
                   <Bar
                     dataKey="count"
                     fill={TERTIARY_COLOR}

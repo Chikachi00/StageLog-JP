@@ -192,6 +192,141 @@ export const formatCurrencyAmount = (value: number, currency: CurrencyCode = "CN
 
 export const formatCurrency = formatCurrencyAmount;
 
+export const isResolvedTicketRound = (application: TicketApplication) =>
+  resolvedStatuses.includes(application.status);
+
+export const isWonTicketRound = (application: TicketApplication) =>
+  getWonQuantity(application) > 0 || winningStatuses.includes(application.status);
+
+export const getTicketSpendingCurrency = (application: TicketApplication): CurrencyCode =>
+  getTicketDisplayCurrency(application);
+
+export const getTicketDisplayAmountForStats = (application: TicketApplication) => {
+  const amountDisplay = getTicketAmountDisplay(application);
+  return typeof amountDisplay === "number" && Number.isFinite(amountDisplay) && amountDisplay > 0
+    ? amountDisplay
+    : undefined;
+};
+
+const roundPercent = (numerator: number, denominator: number) =>
+  denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : null;
+
+export const getQuantityWinRate = (applications: TicketApplication[]) => {
+  const totalAppliedQuantity = applications.reduce((sum, application) => sum + getAppliedQuantity(application), 0);
+  const totalWonQuantity = applications.reduce((sum, application) => sum + getWonQuantity(application), 0);
+
+  return roundPercent(totalWonQuantity, totalAppliedQuantity);
+};
+
+export const getRoundWinRate = (applications: TicketApplication[]) => {
+  const resolvedApplications = applications.filter(isResolvedTicketRound);
+  const wonRounds = resolvedApplications.filter(isWonTicketRound).length;
+
+  return roundPercent(wonRounds, resolvedApplications.length);
+};
+
+export const getPerformanceSuccessRate = (applications: TicketApplication[]) => {
+  const groups = groupTicketApplications(applications);
+  const resolvedGroups = groups.filter((group) => group.resolvedRounds > 0);
+  const successfulGroups = resolvedGroups.filter((group) => group.hasWonRound).length;
+
+  return roundPercent(successfulGroups, resolvedGroups.length);
+};
+
+export interface TicketGroupSummary {
+  key: string;
+  eventTitle: string;
+  artist: string;
+  eventDate?: string;
+  venueName?: string;
+  venueId?: string;
+  applications: TicketApplication[];
+  totalAppliedQuantity: number;
+  totalWonQuantity: number;
+  paidQuantity: number;
+  resolvedRounds: number;
+  wonRounds: number;
+  quantityWinRate: number | null;
+  roundWinRate: number | null;
+  hasWonRound: boolean;
+  displayCurrency: CurrencyCode;
+  totalPaidAmount: number;
+  totalPlannedAmount: number;
+}
+
+const sortTicketsByRound = (first: TicketApplication, second: TicketApplication) =>
+  (first.applicationDate ?? first.resultDate ?? first.createdAt).localeCompare(
+    second.applicationDate ?? second.resultDate ?? second.createdAt,
+  ) || first.eventTitle.localeCompare(second.eventTitle);
+
+export const getTicketApplicationGroupKey = (application: TicketApplication) =>
+  application.ticketGroupKey || normalizeTicketGroupKey(application);
+
+export const groupTicketApplications = (applications: TicketApplication[]): TicketGroupSummary[] => {
+  const grouped = applications.reduce<Record<string, TicketApplication[]>>((result, application) => {
+    const key = getTicketApplicationGroupKey(application);
+    result[key] = [...(result[key] ?? []), application];
+    return result;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([key, groupApplications]) => {
+      const sortedApplications = [...groupApplications].sort(sortTicketsByRound);
+      const firstApplication = sortedApplications[0];
+      const totalAppliedQuantity = sortedApplications.reduce(
+        (sum, application) => sum + getAppliedQuantity(application),
+        0,
+      );
+      const totalWonQuantity = sortedApplications.reduce((sum, application) => sum + getWonQuantity(application), 0);
+      const paidQuantity = sortedApplications.reduce((sum, application) => sum + getPaidQuantity(application), 0);
+      const resolvedApplications = sortedApplications.filter(isResolvedTicketRound);
+      const wonRounds = resolvedApplications.filter(isWonTicketRound).length;
+      const displayCurrency = getTicketDisplayCurrency(firstApplication);
+      const totalPaidAmount = sortedApplications
+        .filter((application) => paidStatuses.includes(application.status))
+        .reduce((sum, application) => {
+          const amount = getTicketDisplayAmountForStats(application);
+          return amount !== undefined && getTicketDisplayCurrency(application) === displayCurrency
+            ? sum + amount
+            : sum;
+        }, 0);
+      const totalPlannedAmount = sortedApplications
+        .filter((application) => !["lost", "cancelled"].includes(application.status))
+        .reduce((sum, application) => {
+          const amount = getTicketDisplayAmountForStats(application);
+          return amount !== undefined && getTicketDisplayCurrency(application) === displayCurrency
+            ? sum + amount
+            : sum;
+        }, 0);
+
+      return {
+        key,
+        eventTitle: firstApplication.eventTitle,
+        artist: firstApplication.artist,
+        eventDate: firstApplication.eventDate,
+        venueName: firstApplication.venueName,
+        venueId: firstApplication.venueId,
+        applications: sortedApplications,
+        totalAppliedQuantity,
+        totalWonQuantity,
+        paidQuantity,
+        resolvedRounds: resolvedApplications.length,
+        wonRounds,
+        quantityWinRate: roundPercent(totalWonQuantity, totalAppliedQuantity),
+        roundWinRate: roundPercent(wonRounds, resolvedApplications.length),
+        hasWonRound: wonRounds > 0,
+        displayCurrency,
+        totalPaidAmount,
+        totalPlannedAmount,
+      };
+    })
+    .sort((first, second) => {
+      const firstDate = first.eventDate ?? "";
+      const secondDate = second.eventDate ?? "";
+      return secondDate.localeCompare(firstDate) || first.eventTitle.localeCompare(second.eventTitle);
+    });
+};
+
 export const formatTicketPrice = (application: TicketApplication) => {
   const amountDisplay = getTicketAmountDisplay(application);
 

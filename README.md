@@ -1,5 +1,16 @@
 # StageLog JP
 
+## Ticket Management V2 / 票务管理 V2
+
+- 中文：支持同一公演多轮抽选分组，通过 `ticketGroupKey` 在 `ticket_applications` 单表中归类，不新增 `ticket_groups` 表。
+- 中文：支持申请 / 中选 / 付款张数记录，票务当选率会区分张数当选率、轮次当选率和公演获得率。
+- 中文：支持手动汇率与货币折算，默认展示货币为人民币 CNY，不会自动联网换汇。
+- 中文：Analytics 票务分析已适配新模型，支出和平均票价按展示货币显示。
+- English: Ticket Management V2 groups multiple lottery rounds per performance through `ticketGroupKey` on the single `ticket_applications` table.
+- English: Applied / won / paid quantity tracking powers quantity win rate, round win rate, and performance success rate.
+- English: Manual currency conversion is supported with CNY as the default display currency; no automatic exchange-rate API is used.
+- English: Ticket win rate and spending analytics now use the V2 ticket model.
+
 <details open>
 <summary><strong>中文（默认展开）</strong></summary>
 

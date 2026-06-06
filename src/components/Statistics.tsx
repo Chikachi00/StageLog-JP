@@ -4,6 +4,7 @@ import type { EventRecord } from "../types/event";
 import type { TicketApplication } from "../types/ticket";
 import { formatDate, getCurrentYear } from "../utils/dateUtils";
 import { countByValue, getAverageTemperature, getTicketApplicationStats } from "../utils/statisticsUtils";
+import { formatCurrencyAmount } from "../utils/ticketUtils";
 
 interface StatisticsProps {
   events: EventRecord[];
@@ -209,18 +210,18 @@ export function Statistics({ events, ticketApplications }: StatisticsProps) {
           </article>
           <article>
             <span>{t("stats.totalPlannedSpending")}</span>
-            <strong>{ticketStats.totalPlannedSpending.toLocaleString()} JPY</strong>
+            <strong>{formatCurrencyAmount(ticketStats.totalPlannedSpending, ticketStats.displayCurrency)}</strong>
           </article>
           <article>
             <span>{t("stats.totalPaidAmount")}</span>
-            <strong>{ticketStats.totalPaidAmount.toLocaleString()} JPY</strong>
+            <strong>{formatCurrencyAmount(ticketStats.totalPaidAmount, ticketStats.displayCurrency)}</strong>
           </article>
           <article>
             <span>{t("stats.averageTicketPrice")}</span>
             <strong>
               {ticketStats.averageTicketPrice === null
                 ? "N/A"
-                : `${ticketStats.averageTicketPrice.toLocaleString()} JPY`}
+                : formatCurrencyAmount(ticketStats.averageTicketPrice, ticketStats.displayCurrency)}
             </strong>
           </article>
         </div>

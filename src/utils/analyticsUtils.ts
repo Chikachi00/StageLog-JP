@@ -1,7 +1,16 @@
 import type { EventRecord, Venue } from "../types/event";
-import type { TicketApplication, TicketPlatform } from "../types/ticket";
+import type { CurrencyCode, TicketApplication, TicketPlatform } from "../types/ticket";
 import { countByValue, getTicketApplicationStats } from "./statisticsUtils";
-import { paidStatuses, winningStatuses } from "./ticketUtils";
+import {
+  getAppliedQuantity,
+  getTicketAmountDisplay,
+  getTicketDisplayAmountForStats,
+  getTicketDisplayCurrency,
+  getWonQuantity,
+  isResolvedTicketRound,
+  isWonTicketRound,
+  paidStatuses,
+} from "./ticketUtils";
 
 export interface CountDatum {
   name: string;
@@ -45,11 +54,16 @@ export interface TicketWinRateDatum extends CountDatum {
   lost: number;
   resolved: number;
   winRate: number;
+  appliedQuantity: number;
+  wonQuantity: number;
+  quantityWinRate: number;
+  roundWinRate: number;
 }
 
 export interface TicketSpendingDatum extends CountDatum {
   month?: string;
   platform?: string;
+  currency: CurrencyCode;
   paidAmount: number;
   plannedAmount: number;
 }
@@ -62,6 +76,7 @@ export interface CumulativeTicketSpendingDatum extends TicketSpendingDatum {
 
 export interface AverageTicketPriceDatum extends CountDatum {
   platform: string;
+  currency: CurrencyCode;
   averagePrice: number;
 }
 
@@ -340,52 +355,83 @@ export const getTicketPlatformDistribution = (ticketApplications: TicketApplicat
 
 export const getTicketWinRateByPlatform = (ticketApplications: TicketApplication[]): TicketWinRateDatum[] => {
   const grouped = ticketApplications.reduce<
-    Record<TicketPlatform, { applications: number; won: number; lost: number }>
+    Record<
+      TicketPlatform,
+      {
+        applications: number;
+        won: number;
+        lost: number;
+        resolved: number;
+        appliedQuantity: number;
+        wonQuantity: number;
+        wonRounds: number;
+      }
+    >
   >((result, application) => {
     const platform = application.platform;
-    const current = result[platform] ?? { applications: 0, won: 0, lost: 0 };
+    const current = result[platform] ?? {
+      applications: 0,
+      won: 0,
+      lost: 0,
+      resolved: 0,
+      appliedQuantity: 0,
+      wonQuantity: 0,
+      wonRounds: 0,
+    };
     current.applications += 1;
-    if (winningStatuses.includes(application.status)) {
+    current.appliedQuantity += getAppliedQuantity(application);
+    current.wonQuantity += getWonQuantity(application);
+    if (isResolvedTicketRound(application)) {
+      current.resolved += 1;
+    }
+    if (isWonTicketRound(application)) {
       current.won += 1;
+      current.wonRounds += isResolvedTicketRound(application) ? 1 : 0;
     }
     if (application.status === "lost") {
       current.lost += 1;
     }
     result[platform] = current;
     return result;
-  }, {} as Record<TicketPlatform, { applications: number; won: number; lost: number }>);
+  }, {} as Record<TicketPlatform, { applications: number; won: number; lost: number; resolved: number; appliedQuantity: number; wonQuantity: number; wonRounds: number }>);
 
   return Object.entries(grouped)
     .map(([platform, value]) => {
-      const resolved = value.won + value.lost;
-      const winRate = resolved > 0 ? roundOneDecimal((value.won / resolved) * 100) : 0;
+      const quantityWinRate =
+        value.appliedQuantity > 0 ? roundOneDecimal((value.wonQuantity / value.appliedQuantity) * 100) : 0;
+      const roundWinRate = value.resolved > 0 ? roundOneDecimal((value.wonRounds / value.resolved) * 100) : 0;
       return {
         name: platform,
         platform,
         applications: value.applications,
         won: value.won,
         lost: value.lost,
-        resolved,
-        count: winRate,
-        winRate,
+        resolved: value.resolved,
+        count: quantityWinRate,
+        winRate: quantityWinRate,
+        appliedQuantity: value.appliedQuantity,
+        wonQuantity: value.wonQuantity,
+        quantityWinRate,
+        roundWinRate,
       };
     })
-    .sort((first, second) => second.winRate - first.winRate || first.name.localeCompare(second.name));
+    .sort((first, second) => second.quantityWinRate - first.quantityWinRate || first.name.localeCompare(second.name));
 };
-
-const getTicketAmount = (application: TicketApplication) =>
-  typeof application.price === "number" ? application.price * (application.quantity ?? 1) : 0;
 
 const shouldCountPlannedSpending = (application: TicketApplication) =>
   !["lost", "cancelled"].includes(application.status);
 
+const getPrimaryDisplayCurrency = (ticketApplications: TicketApplication[]): CurrencyCode =>
+  ticketApplications[0] ? getTicketDisplayCurrency(ticketApplications[0]) : "CNY";
+
 export const getTicketSpendingByMonth = (ticketApplications: TicketApplication[]): TicketSpendingDatum[] => {
+  const primaryCurrency = getPrimaryDisplayCurrency(ticketApplications);
   const grouped = ticketApplications.reduce<Record<string, { paidAmount: number; plannedAmount: number }>>(
     (result, application) => {
       const month = getValidMonth(application.eventDate) ?? getValidMonth(application.applicationDate);
-      const amount = getTicketAmount(application);
+      const amount = getTicketDisplayAmountForStats(application);
 
-      if (!month || amount <= 0) {
+      if (!month || amount === undefined || getTicketDisplayCurrency(application) !== primaryCurrency) {
         return result;
       }
 
@@ -406,6 +452,7 @@ export const getTicketSpendingByMonth = (ticketApplications: TicketApplication[]
     .map(([month, value]) => ({
       name: month,
       month,
+      currency: primaryCurrency,
       paidAmount: value.paidAmount,
       plannedAmount: value.plannedAmount,
       count: value.paidAmount,
@@ -433,11 +480,12 @@ export const getCumulativeTicketSpendingByMonth = (
 };
 
 export const getTicketSpendingByPlatform = (ticketApplications: TicketApplication[]): TicketSpendingDatum[] => {
+  const primaryCurrency = getPrimaryDisplayCurrency(ticketApplications);
   const grouped = ticketApplications.reduce<Record<string, { paidAmount: number; plannedAmount: number }>>(
     (result, application) => {
-      const amount = getTicketAmount(application);
+      const amount = getTicketDisplayAmountForStats(application);
 
-      if (amount <= 0) {
+      if (amount === undefined || getTicketDisplayCurrency(application) !== primaryCurrency) {
         return result;
       }
 
@@ -459,6 +507,7 @@ export const getTicketSpendingByPlatform = (ticketApplications: TicketApplicatio
     .map(([platform, value]) => ({
       name: platform,
       platform,
+      currency: primaryCurrency,
       paidAmount: value.paidAmount,
       plannedAmount: value.plannedAmount,
       count: value.paidAmount,
@@ -469,14 +518,25 @@ export const getTicketSpendingByPlatform = (ticketApplications: TicketApplicatio
 export const getAverageTicketPriceByPlatform = (
   ticketApplications: TicketApplication[],
 ): AverageTicketPriceDatum[] => {
+  const primaryCurrency = getPrimaryDisplayCurrency(ticketApplications);
   const grouped = ticketApplications.reduce<Record<string, { total: number; count: number }>>((result, application) => {
-    if (typeof application.price !== "number") {
+    const amount =
+      typeof application.unitPriceOriginal === "number" && getTicketDisplayCurrency(application) === primaryCurrency
+        ? application.unitPriceOriginal
+        : typeof application.price === "number" && getTicketDisplayCurrency(application) === primaryCurrency
+          ? application.price
+          : typeof getTicketAmountDisplay(application) === "number" && getTicketDisplayCurrency(application) === primaryCurrency
+            ? (getTicketAmountDisplay(application) ?? 0) /
+              Math.max(getWonQuantity(application) || getAppliedQuantity(application) || application.quantity || 1, 1)
+            : undefined;
+
+    if (typeof amount !== "number" || !Number.isFinite(amount)) {
       return result;
     }
 
     const platform = application.platform;
     const current = result[platform] ?? { total: 0, count: 0 };
-    current.total += application.price;
+    current.total += amount;
     current.count += 1;
     result[platform] = current;
     return result;
@@ -488,6 +548,7 @@ export const getAverageTicketPriceByPlatform = (
       return {
         name: platform,
         platform,
+        currency: primaryCurrency,
         averagePrice,
         count: averagePrice,
       };

@@ -1,4 +1,4 @@
-import { Search, TicketCheck } from "lucide-react";
+import { Pencil, PlusCircle, Search, TicketCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Venue } from "../types/event";
@@ -7,8 +7,18 @@ import type {
   TicketApplicationFilters,
   TicketApplicationFormValues,
 } from "../types/ticket";
-import { platformOptions, statusOptions } from "../utils/ticketUtils";
-import { TicketApplicationCard } from "./TicketApplicationCard";
+import { formatDate } from "../utils/dateUtils";
+import {
+  canCreateEventRecord,
+  formatCurrencyAmount,
+  formatTicketPrice,
+  getAppliedQuantity,
+  getTicketDisplayCurrency,
+  getWonQuantity,
+  groupTicketApplications,
+  platformOptions,
+  statusOptions,
+} from "../utils/ticketUtils";
 import { TicketApplicationForm } from "./TicketApplicationForm";
 
 interface TicketManagerProps {
@@ -29,6 +39,8 @@ const defaultFilters: TicketApplicationFilters = {
   platform: "all",
   search: "",
 };
+
+const formatRate = (rate: number | null) => (rate === null ? "N/A" : `${rate}%`);
 
 export function TicketManager({
   applications,
@@ -62,6 +74,7 @@ export function TicketManager({
       return matchesStatus && matchesPlatform && matchesSearch;
     });
   }, [applications, filters]);
+  const groupedApplications = useMemo(() => groupTicketApplications(filteredApplications), [filteredApplications]);
 
   return (
     <section className="ticket-manager">
@@ -134,16 +147,102 @@ export function TicketManager({
         </label>
       </section>
 
-      {filteredApplications.length > 0 ? (
-        <section className="ticket-application-grid" aria-label={t("tickets.manager")}>
-          {filteredApplications.map((application) => (
-            <TicketApplicationCard
-              application={application}
-              key={application.id}
-              onCreateEventRecord={onCreateEventRecord}
-              onDelete={onDelete}
-              onEdit={onEdit}
-            />
+      {groupedApplications.length > 0 ? (
+        <section className="ticket-group-grid" aria-label={t("tickets.manager")}>
+          {groupedApplications.map((group) => (
+            <article className="ticket-group-card" key={group.key}>
+              <div className="ticket-group-card__header">
+                <div>
+                  <span className="eyebrow">{t("tickets.ticketGroup")}</span>
+                  <h3>{group.eventTitle || t("tickets.noApplications")}</h3>
+                  <p>
+                    {group.artist}
+                    {group.eventDate ? ` / ${formatDate(group.eventDate)}` : ""}
+                    {group.venueName ? ` / ${group.venueName}` : ""}
+                  </p>
+                </div>
+                {group.applications.length > 1 ? (
+                  <span className="linked-event-badge">{t("tickets.multipleRounds")}</span>
+                ) : null}
+              </div>
+
+              <dl className="ticket-group-card__summary">
+                <div>
+                  <dt>{t("tickets.totalApplied")}</dt>
+                  <dd>{group.totalAppliedQuantity}</dd>
+                </div>
+                <div>
+                  <dt>{t("tickets.totalWon")}</dt>
+                  <dd>{group.totalWonQuantity}</dd>
+                </div>
+                <div>
+                  <dt>{t("tickets.resolvedRounds")}</dt>
+                  <dd>
+                    {group.wonRounds} / {group.resolvedRounds}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t("tickets.quantityWinRate")}</dt>
+                  <dd>{formatRate(group.quantityWinRate)}</dd>
+                </div>
+                <div>
+                  <dt>{t("tickets.roundWinRate")}</dt>
+                  <dd>{formatRate(group.roundWinRate)}</dd>
+                </div>
+                <div>
+                  <dt>{t("analytics.totalPaidAmount")}</dt>
+                  <dd>{formatCurrencyAmount(group.totalPaidAmount, group.displayCurrency)}</dd>
+                </div>
+              </dl>
+
+              <div className="ticket-round-list">
+                {group.applications.map((application) => (
+                  <article className="ticket-round-row" key={application.id}>
+                    <div className="ticket-round-row__main">
+                      <span className={`status-badge status-badge--${application.status}`}>
+                        {t(`status.${application.status}`)}
+                      </span>
+                      <strong>
+                        {application.roundName ||
+                          (application.roundType ? t(`roundType.${application.roundType}`) : t("tickets.lotteryRound"))}
+                      </strong>
+                      <span>
+                        {t(`platform.${application.platform}`)} / {t("tickets.appliedQuantity")}{" "}
+                        {getAppliedQuantity(application)} / {t("tickets.wonQuantity")} {getWonQuantity(application)}
+                      </span>
+                      <span>
+                        {formatTicketPrice(application)}
+                        {getTicketDisplayCurrency(application) !== group.displayCurrency
+                          ? ` (${getTicketDisplayCurrency(application)})`
+                          : ""}
+                      </span>
+                    </div>
+                    <div className="ticket-round-row__actions">
+                      <button className="icon-button" type="button" onClick={() => onEdit(application)}>
+                        <Pencil size={16} aria-hidden="true" />
+                        {t("common.edit")}
+                      </button>
+                      <button className="icon-button" type="button" onClick={() => void onDelete(application.id)}>
+                        <Trash2 size={16} aria-hidden="true" />
+                        {t("common.delete")}
+                      </button>
+                      {application.linkedEventId ? (
+                        <span className="linked-event-badge">{t("tickets.alreadyCreated")}</span>
+                      ) : canCreateEventRecord(application) ? (
+                        <button
+                          className="icon-button icon-button--weather"
+                          type="button"
+                          onClick={() => void onCreateEventRecord(application)}
+                        >
+                          <PlusCircle size={16} aria-hidden="true" />
+                          {t("tickets.createEventRecord")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
           ))}
         </section>
       ) : (

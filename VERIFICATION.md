@@ -206,6 +206,29 @@ Verification date: 2026-06-04
 - Saving, cancelling, or deleting an edited ticket clears the matching ticket draft and form session.
 - Runtime cloud save for V2 fields requires manually running `supabase/sql/04_ticket_model_v2.sql` in Supabase first.
 
+## Ticket Management V2 Phase 2
+
+- Commands run for this phase:
+  - `npm install`: passed, 0 vulnerabilities.
+  - `npm.cmd run build`: passed. TypeScript and Vite build completed successfully.
+  - `npm run lint`: script not found in `package.json`.
+  - `npm run test`: script not found in `package.json`.
+- Code added and checked: `src/components/TicketManager.tsx`, `src/utils/ticketUtils.ts`, `src/utils/statisticsUtils.ts`, `src/utils/analyticsUtils.ts`, `src/components/Analytics.tsx`, `src/components/Statistics.tsx`, `src/services/backupService.ts`, `src/index.css`, and `src/i18n/resources.ts`.
+- TicketManager groups applications by `ticketGroupKey`, falling back to normalized artist, event title, event date, and venue id/name.
+- No `ticket_groups` table was added.
+- Group cards show event title, artist, date, venue, total applied quantity, total won quantity, resolved rounds, quantity win rate, round win rate, and paid amount with display currency.
+- Each lottery round remains independently editable and deletable.
+- Quantity win rate is calculated as `totalWonQuantity / totalAppliedQuantity`.
+- Round win rate is calculated as winning resolved rounds divided by resolved rounds.
+- Performance success rate is calculated by grouped performance: any won round makes that performance successful, divided by performances with resolved rounds.
+- Platform win rate now uses applied/won quantities and resolved rounds.
+- Ticket spending analytics use `amountDisplay` and `displayCurrency`, falling back through manual exchange rate or old `price` / `quantity` compatibility.
+- Currency display defaults to CNY and no automatic exchange-rate API was added.
+- Backup import normalization now preserves V2 fields and fills missing old backups with CNY defaults, quantity fallbacks, generated `ticketGroupKey`, and compatible amounts.
+- Backup duplicate keys now include `ticketGroupKey`, round name/type, platform, and application date, with performance fields as fallback context.
+- Mobile CSS was added for ticket group cards and round rows to avoid horizontal overflow.
+- Runtime grouping, cloud import, mobile layout, and analytics chart behavior require browser verification.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.
