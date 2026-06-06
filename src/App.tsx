@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EventForm } from "./components/EventForm";
 import { EventList } from "./components/EventList";
@@ -66,6 +66,114 @@ const defaultFilters: EventFilters = {
   artist: "all",
   venue: "all",
   search: "",
+};
+
+const EVENT_FORM_SESSION_KEY = "stagelog-event-form-session";
+
+type EventFormSession =
+  | {
+      version: 1;
+      mode: "new";
+      currentView: "add";
+      openedAt: string;
+      updatedAt: string;
+    }
+  | {
+      version: 1;
+      mode: "edit";
+      editingEventId: string;
+      currentView: "add";
+      openedAt: string;
+      updatedAt: string;
+    };
+
+const isBrowser = () => typeof window !== "undefined" && Boolean(window.localStorage);
+
+const createNewEventFormSession = (): EventFormSession => {
+  const now = new Date().toISOString();
+
+  return {
+    version: 1,
+    mode: "new",
+    currentView: "add",
+    openedAt: now,
+    updatedAt: now,
+  };
+};
+
+const createEditEventFormSession = (editingEventId: string): EventFormSession => {
+  const now = new Date().toISOString();
+
+  return {
+    version: 1,
+    mode: "edit",
+    editingEventId,
+    currentView: "add",
+    openedAt: now,
+    updatedAt: now,
+  };
+};
+
+const getStoredEventFormSession = (): EventFormSession | null => {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(EVENT_FORM_SESSION_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<EventFormSession>;
+
+    if (parsed.version !== 1 || parsed.currentView !== "add" || !parsed.openedAt) {
+      window.localStorage.removeItem(EVENT_FORM_SESSION_KEY);
+      return null;
+    }
+
+    if (parsed.mode === "new") {
+      return {
+        version: 1,
+        mode: "new",
+        currentView: "add",
+        openedAt: parsed.openedAt,
+        updatedAt: parsed.updatedAt ?? parsed.openedAt,
+      };
+    }
+
+    if (parsed.mode === "edit" && typeof parsed.editingEventId === "string" && parsed.editingEventId) {
+      return {
+        version: 1,
+        mode: "edit",
+        editingEventId: parsed.editingEventId,
+        currentView: "add",
+        openedAt: parsed.openedAt,
+        updatedAt: parsed.updatedAt ?? parsed.openedAt,
+      };
+    }
+  } catch {
+    window.localStorage.removeItem(EVENT_FORM_SESSION_KEY);
+  }
+
+  return null;
+};
+
+const saveEventFormSession = (session: EventFormSession | null) => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  if (!session) {
+    window.localStorage.removeItem(EVENT_FORM_SESSION_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(
+    EVENT_FORM_SESSION_KEY,
+    JSON.stringify({ ...session, updatedAt: new Date().toISOString() }),
+  );
 };
 
 const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null): EventRecord => {
@@ -168,6 +276,7 @@ function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, isSupabaseConfigured } = useAuth();
   const { language, profile, theme, updateLanguageSetting, updateThemeSetting } = useUserSettings();
+  const initialEventFormSession = useMemo(() => getStoredEventFormSession(), []);
   const isCloudMode = Boolean(user && isSupabaseConfigured);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [ticketApplications, setTicketApplications] = useState<TicketApplication[]>(() =>
@@ -181,9 +290,17 @@ function App() {
   const [isImportingLocalEvents, setIsImportingLocalEvents] = useState(false);
   const [isImportingLocalTickets, setIsImportingLocalTickets] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
-  const [activeView, setActiveView] = useState<AppView>("events");
+  const [activeView, setActiveView] = useState<AppView>(() =>
+    initialEventFormSession ? "add" : "events",
+  );
+  const [eventFormSession, setEventFormSession] = useState<EventFormSession | null>(
+    initialEventFormSession,
+  );
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(
+    initialEventFormSession?.mode === "edit" ? initialEventFormSession.editingEventId : null,
+  );
+  const eventFormSessionRef = useRef<EventFormSession | null>(initialEventFormSession);
   const [editingApplication, setEditingApplication] = useState<TicketApplication | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>();
   const [filters, setFilters] = useState<EventFilters>(defaultFilters);
@@ -302,8 +419,6 @@ function App() {
 
   useEffect(() => {
     void refreshEvents();
-    setEditingEvent(null);
-    setEditingEventId(null);
     setFilters(defaultFilters);
   }, [refreshEvents]);
 
@@ -336,11 +451,60 @@ function App() {
     setEditingApplication(null);
   }, [refreshTicketApplications]);
 
+  useEffect(() => {
+    eventFormSessionRef.current = eventFormSession;
+    saveEventFormSession(eventFormSession);
+    setEditingEventId(eventFormSession?.mode === "edit" ? eventFormSession.editingEventId : null);
+  }, [eventFormSession]);
+
+  useEffect(() => {
+    const persistCurrentSession = () => {
+      saveEventFormSession(eventFormSessionRef.current);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        persistCurrentSession();
+      }
+    };
+
+    const handlePageShow = () => {
+      const storedSession = getStoredEventFormSession();
+
+      if (storedSession) {
+        setEventFormSession(storedSession);
+        setActiveView("add");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", persistCurrentSession);
+    window.addEventListener("beforeunload", persistCurrentSession);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", persistCurrentSession);
+      window.removeEventListener("beforeunload", persistCurrentSession);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
+
   const handleThemeChange = (nextTheme: AppTheme) => {
     void updateThemeSetting(nextTheme);
   };
 
   const handleNavigate = (view: AppView) => {
+    if (view === "add") {
+      if (!eventFormSession) {
+        setEventFormSession(createNewEventFormSession());
+      }
+
+      setActiveView("add");
+      setNotice("");
+      return;
+    }
+
     setActiveView(view);
     setNotice("");
   };
@@ -356,12 +520,16 @@ function App() {
         return;
       }
 
-      const record = createRecord(values, editingEvent);
+      const activeEditingEvent =
+        eventFormSession?.mode === "edit"
+          ? events.find((event) => event.id === eventFormSession.editingEventId) ?? editingEvent
+          : null;
+      const record = createRecord(values, activeEditingEvent);
 
       if (isCloudMode && user) {
         let savedRecord = record;
 
-        if (editingEvent) {
+        if (activeEditingEvent) {
           savedRecord = await updateCloudEvent(record, user.id);
           setNotice(t("notice.eventUpdated"));
         } else {
@@ -369,9 +537,9 @@ function App() {
           setNotice(t("notice.eventSaved"));
         }
 
-        if (values.removeImage && editingEvent?.imagePath) {
+        if (values.removeImage && activeEditingEvent?.imagePath) {
           try {
-            await deleteEventImage(editingEvent.imagePath);
+            await deleteEventImage(activeEditingEvent.imagePath);
           } catch (error) {
             console.warn("Failed to delete event image", error);
           }
@@ -391,9 +559,9 @@ function App() {
               user.id,
             );
 
-            if (editingEvent?.imagePath && editingEvent.imagePath !== imagePath) {
+            if (activeEditingEvent?.imagePath && activeEditingEvent.imagePath !== imagePath) {
               try {
-                await deleteEventImage(editingEvent.imagePath);
+                await deleteEventImage(activeEditingEvent.imagePath);
               } catch (error) {
                 console.warn("Failed to delete replaced event image", error);
               }
@@ -425,7 +593,7 @@ function App() {
             setNotice(`${t("storage.uploadFailed")} ${getErrorMessage(error, t("storage.uploadFailed"))}`);
           }
         }
-      } else if (editingEvent) {
+      } else if (activeEditingEvent) {
         updateLocalEvent(record);
         setNotice(t("notice.eventUpdated"));
       } else {
@@ -433,9 +601,10 @@ function App() {
         setNotice(t("notice.eventSaved"));
       }
 
-      clearDraft(getEventDraftKey(editingEvent?.id));
+      clearDraft(getEventDraftKey(eventFormSession?.mode === "edit" ? eventFormSession.editingEventId : undefined));
       setEditingEvent(null);
       setEditingEventId(null);
+      setEventFormSession(null);
       await refreshEvents();
       setActiveView("events");
     } catch (error) {
@@ -477,6 +646,9 @@ function App() {
   };
 
   const handleEdit = (event: EventRecord) => {
+    const session = createEditEventFormSession(event.id);
+    saveEventFormSession(session);
+    setEventFormSession(session);
     setEditingEvent(event);
     setEditingEventId(event.id);
     setActiveView("add");
@@ -517,9 +689,10 @@ function App() {
       return next;
     });
     clearDraft(getEventDraftKey(id));
-    if (editingEvent?.id === id) {
+    if (eventFormSession?.mode === "edit" && eventFormSession.editingEventId === id) {
       setEditingEvent(null);
       setEditingEventId(null);
+      setEventFormSession(null);
     }
     await refreshEvents();
     setNotice(t("notice.eventDeleted"));
@@ -1103,8 +1276,14 @@ function App() {
             useCloudImages={isCloudMode}
             venues={venues}
             onCancelEditing={() => {
+              if (eventFormSession?.mode === "edit") {
+                clearDraft(getEventDraftKey(eventFormSession.editingEventId));
+              } else {
+                clearDraft(getEventDraftKey());
+              }
               setEditingEvent(null);
               setEditingEventId(null);
+              setEventFormSession(null);
               setActiveView("events");
             }}
             onSave={handleSaveEvent}

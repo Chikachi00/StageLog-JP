@@ -146,6 +146,12 @@ Verification date: 2026-06-04
 - Fix checked: navigating back to Add while an event is being edited keeps the current edit state instead of resetting to a new blank event.
 - Fix checked: deleting an event clears only that event's edit draft.
 - Fix checked: EventForm shows a loading state when the edited cloud event is still resolving, and a not-found state when the event is missing.
+- Browser lifecycle fix checked: App-level event form session is persisted in localStorage as `stagelog-event-form-session`.
+- Browser lifecycle fix checked: edit sessions store `mode: "edit"`, `editingEventId`, `currentView: "add"`, and timestamps, so a browser reload or return can reopen the same event form.
+- Browser lifecycle fix checked: `pagehide`, `beforeunload`, `visibilitychange`, and `pageshow` persist or reload the event form session without writing unfinished drafts to Supabase.
+- Browser lifecycle fix checked: returning to the app with an edit session restores the matching event id and lets EventForm auto-apply only `stagelog-event-draft-edit-{eventId}`.
+- Browser lifecycle fix checked: saving, cancelling, or deleting an edited event clears the matching edit draft and `stagelog-event-form-session`.
+- Runtime browser-level navigation recovery requires manual verification by leaving the site/tab/app and returning.
 
 ## Supabase Schema
 
@@ -203,4 +209,6 @@ Verification date: 2026-06-04
 - Restore and discard a ticket draft and confirm status/platform/date fields recover correctly.
 - Save a ticket application and confirm the matching ticket draft localStorage key is cleared.
 - On mobile, start filling EventForm and TicketApplicationForm, switch apps or background the browser, then return and confirm drafts can be recovered.
+- Edit an existing event, change notes without saving, leave StageLog JP for another site/tab/app, return, and confirm the same event edit form opens automatically with the unsaved notes restored.
+- Confirm `stagelog-event-form-session` is present while editing and removed after save/cancel/delete.
 - Log in from a phone or incognito window and confirm the same cloud Events/Tickets/Profile are visible.
