@@ -183,6 +183,7 @@ function App() {
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [activeView, setActiveView] = useState<AppView>("events");
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editingApplication, setEditingApplication] = useState<TicketApplication | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>();
   const [filters, setFilters] = useState<EventFilters>(defaultFilters);
@@ -302,6 +303,7 @@ function App() {
   useEffect(() => {
     void refreshEvents();
     setEditingEvent(null);
+    setEditingEventId(null);
     setFilters(defaultFilters);
   }, [refreshEvents]);
 
@@ -341,10 +343,6 @@ function App() {
   const handleNavigate = (view: AppView) => {
     setActiveView(view);
     setNotice("");
-
-    if (view === "add") {
-      setEditingEvent(null);
-    }
   };
 
   const handleSaveEvent = async (values: EventFormValues) => {
@@ -437,6 +435,7 @@ function App() {
 
       clearDraft(getEventDraftKey(editingEvent?.id));
       setEditingEvent(null);
+      setEditingEventId(null);
       await refreshEvents();
       setActiveView("events");
     } catch (error) {
@@ -479,6 +478,7 @@ function App() {
 
   const handleEdit = (event: EventRecord) => {
     setEditingEvent(event);
+    setEditingEventId(event.id);
     setActiveView("add");
     setNotice("");
   };
@@ -516,6 +516,11 @@ function App() {
       delete next[id];
       return next;
     });
+    clearDraft(getEventDraftKey(id));
+    if (editingEvent?.id === id) {
+      setEditingEvent(null);
+      setEditingEventId(null);
+    }
     await refreshEvents();
     setNotice(t("notice.eventDeleted"));
   };
@@ -935,6 +940,11 @@ function App() {
   };
 
   const isEventsResolving = authLoading || eventsLoading;
+  const currentEditingEvent = editingEventId
+    ? events.find((event) => event.id === editingEventId) ?? null
+    : null;
+  const isEditingEventLoading = activeView === "add" && Boolean(editingEventId) && isEventsResolving && !currentEditingEvent;
+  const isEditingEventMissing = activeView === "add" && Boolean(editingEventId) && !isEventsResolving && !currentEditingEvent;
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -1073,14 +1083,28 @@ function App() {
           />
         ) : null}
 
-        {activeView === "add" ? (
+        {isEditingEventLoading ? (
+          <section className="empty-state">
+            <h2>{t("auth.loadingCloudEvents")}</h2>
+            <p>{t("auth.cloudModeDescription")}</p>
+          </section>
+        ) : null}
+
+        {isEditingEventMissing ? (
+          <section className="empty-state">
+            <h2>{t("eventForm.notFound")}</h2>
+          </section>
+        ) : null}
+
+        {activeView === "add" && !isEditingEventLoading && !isEditingEventMissing ? (
           <EventForm
-            editingEvent={editingEvent}
+            editingEvent={currentEditingEvent}
             isSaving={isSavingEvent}
             useCloudImages={isCloudMode}
             venues={venues}
             onCancelEditing={() => {
               setEditingEvent(null);
+              setEditingEventId(null);
               setActiveView("events");
             }}
             onSave={handleSaveEvent}

@@ -6,18 +6,19 @@ interface DraftEnvelope<T> {
   updatedAt: string;
   formType: DraftFormType;
   mode: DraftMode;
+  entityId?: string;
   payload: T;
 }
 
 const isBrowser = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
-const getDraftMeta = (key: string): { formType: DraftFormType; mode: DraftMode } | null => {
+const getDraftMeta = (key: string): { formType: DraftFormType; mode: DraftMode; entityId?: string } | null => {
   if (key === "stagelog-event-draft-new") {
     return { formType: "event", mode: "new" };
   }
 
   if (key.startsWith("stagelog-event-draft-edit-")) {
-    return { formType: "event", mode: "edit" };
+    return { formType: "event", mode: "edit", entityId: key.replace("stagelog-event-draft-edit-", "") };
   }
 
   if (key === "stagelog-ticket-draft-new") {
@@ -25,19 +26,30 @@ const getDraftMeta = (key: string): { formType: DraftFormType; mode: DraftMode }
   }
 
   if (key.startsWith("stagelog-ticket-draft-edit-")) {
-    return { formType: "ticket", mode: "edit" };
+    return { formType: "ticket", mode: "edit", entityId: key.replace("stagelog-ticket-draft-edit-", "") };
   }
 
   return null;
 };
 
-const isDraftEnvelope = <T>(value: unknown, meta: { formType: DraftFormType; mode: DraftMode }): value is DraftEnvelope<T> => {
+const isDraftEnvelope = <T>(
+  value: unknown,
+  meta: { formType: DraftFormType; mode: DraftMode; entityId?: string },
+): value is DraftEnvelope<T> => {
   if (!value || typeof value !== "object") {
     return false;
   }
 
   const draft = value as Partial<DraftEnvelope<T>>;
-  return draft.version === 1 && draft.formType === meta.formType && draft.mode === meta.mode && "payload" in draft;
+  if (draft.version !== 1 || draft.formType !== meta.formType || draft.mode !== meta.mode || !("payload" in draft)) {
+    return false;
+  }
+
+  if (meta.mode === "edit") {
+    return draft.entityId === meta.entityId;
+  }
+
+  return !draft.entityId;
 };
 
 export function getDraft<T>(key: string): T | null {
@@ -88,6 +100,7 @@ export function saveDraft<T>(key: string, value: T): void {
     updatedAt: new Date().toISOString(),
     formType: meta.formType,
     mode: meta.mode,
+    entityId: meta.entityId,
     payload: value,
   };
 

@@ -76,7 +76,7 @@ export function EventForm({
   const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
   const [imageError, setImageError] = useState("");
   const [draftStatus, setDraftStatus] = useState("");
-  const [pendingDraft, setPendingDraft] = useState<EventDraftPayload | null>(null);
+  const [hasAutoRestoredDraft, setHasAutoRestoredDraft] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const valuesRef = useRef(values);
   const isDirtyRef = useRef(false);
@@ -84,13 +84,31 @@ export function EventForm({
   const draftKey = useMemo(() => getEventDraftKey(editingEvent?.id), [editingEvent?.id]);
 
   useEffect(() => {
-    setValues(createInitialValues(venues, editingEvent));
+    const initialValues = createInitialValues(venues, editingEvent);
+    const draft = getDraft<EventDraftPayload>(getEventDraftKey(editingEvent?.id));
+
+    if (draft) {
+      setValues({
+        ...initialValues,
+        ...draft,
+        imageFile: undefined,
+        seat: { ...emptySeat, ...(draft.seat ?? {}) },
+      });
+      setImageError(draft.imageFileName ? t("draft.imageReload") : "");
+      setDraftStatus(t("draft.autoRestored"));
+      setHasAutoRestoredDraft(true);
+      setIsDirty(true);
+      isDirtyRef.current = true;
+      return;
+    }
+
+    setValues(initialValues);
     setImageError("");
     setDraftStatus("");
+    setHasAutoRestoredDraft(false);
     setIsDirty(false);
     isDirtyRef.current = false;
-    setPendingDraft(getDraft<EventDraftPayload>(getEventDraftKey(editingEvent?.id)));
-  }, [editingEvent, venues]);
+  }, [editingEvent, t, venues]);
 
   useEffect(() => {
     valuesRef.current = values;
@@ -210,28 +228,12 @@ export function EventForm({
     [saveCurrentDraft],
   );
 
-  const restoreDraft = () => {
-    if (!pendingDraft) {
-      return;
-    }
-
-    setValues({
-      ...createInitialValues(venues, editingEvent),
-      ...pendingDraft,
-      imageFile: undefined,
-      seat: { ...emptySeat, ...(pendingDraft.seat ?? {}) },
-    });
-    setImageError(pendingDraft.imageFileName ? t("draft.imageReload") : "");
-    setPendingDraft(null);
-    setIsDirty(true);
-    isDirtyRef.current = true;
-    setDraftStatus(t("draft.restored"));
-  };
-
   const discardDraft = () => {
     clearDraft(draftKey);
-    setPendingDraft(null);
+    setValues(createInitialValues(venues, editingEvent));
+    setImageError("");
     setDraftStatus(t("draft.discarded"));
+    setHasAutoRestoredDraft(false);
     setIsDirty(false);
     isDirtyRef.current = false;
   };
@@ -334,20 +336,18 @@ export function EventForm({
         ) : null}
       </div>
 
-      {pendingDraft ? (
+      {hasAutoRestoredDraft ? (
         <section className="draft-banner" aria-label={t("draft.eventDraft")}>
-          <strong>{t("draft.found")}</strong>
+          <strong>{draftStatus}</strong>
           <div>
-            <button className="ghost-button" type="button" onClick={restoreDraft}>
-              {t("draft.restore")}
-            </button>
             <button className="ghost-button" type="button" onClick={discardDraft}>
               {t("draft.discard")}
             </button>
           </div>
         </section>
+      ) : draftStatus ? (
+        <p className="draft-status">{draftStatus}</p>
       ) : null}
-      {draftStatus ? <p className="draft-status">{draftStatus}</p> : null}
 
       <form className="event-form" onSubmit={handleSubmit}>
         <label>

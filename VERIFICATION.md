@@ -141,6 +141,11 @@ Verification date: 2026-06-04
 - Drafts do not write to Supabase and do not enter official event/ticket arrays or statistics.
 - Cloud image File objects are not saved to localStorage; users are told to reselect the file after reload.
 - Runtime refresh/background recovery requires browser/mobile verification.
+- Fix checked: edit event drafts now include `entityId` metadata and are ignored/cleared if the entity id does not match the current event id.
+- Fix checked: EventForm edit drafts are applied automatically for the matching event id instead of requiring a restore click.
+- Fix checked: navigating back to Add while an event is being edited keeps the current edit state instead of resetting to a new blank event.
+- Fix checked: deleting an event clears only that event's edit draft.
+- Fix checked: EventForm shows a loading state when the edited cloud event is still resolving, and a not-found state when the event is missing.
 
 ## Supabase Schema
 
