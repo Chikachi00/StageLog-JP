@@ -206,6 +206,36 @@ button:disabled {
   font-weight: 700;
 }
 
+.draft-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(244, 185, 66, 0.42);
+  border-radius: 0.5rem;
+  background: rgba(244, 185, 66, 0.14);
+}
+
+.draft-banner strong {
+  color: var(--ink);
+}
+
+.draft-banner div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.draft-status {
+  margin: -0.45rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .sync-panel {
   display: flex;
   flex-wrap: wrap;

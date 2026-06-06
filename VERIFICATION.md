@@ -126,6 +126,22 @@ Verification date: 2026-06-04
 - No duplicate mobile-only business pages such as `MobileEventsPage`, `MobileTicketsPage`, or `MobileVenuesPage` were added.
 - Runtime mobile viewport behavior requires browser/device verification.
 
+## Draft Autosave
+
+- Code added and checked: `src/services/draftStorage.ts`, `src/components/EventForm.tsx`, `src/components/TicketApplicationForm.tsx`, `src/App.tsx`, and `src/index.css`.
+- Event drafts are stored only in localStorage using `stagelog-event-draft-new` or `stagelog-event-draft-edit-{eventId}`.
+- Ticket drafts are stored only in localStorage using `stagelog-ticket-draft-new` or `stagelog-ticket-draft-edit-{ticketId}`.
+- Draft storage writes a versioned envelope with `version`, `updatedAt`, `formType`, `mode`, and `payload`.
+- Invalid draft JSON is ignored and cleared instead of crashing the app.
+- EventForm autosaves edited fields, seat marker data, notes, existing image metadata, and venue metadata with debounce.
+- TicketApplicationForm autosaves form fields including status, platform, dates, price, quantity, companion, and memo with debounce.
+- `visibilitychange`, `pagehide`, `beforeunload`, and component unmount trigger immediate draft save when the form is dirty.
+- Restore/discard prompt is shown only for the matching new/edit draft key.
+- Save success clears the matching draft in `App.tsx`.
+- Drafts do not write to Supabase and do not enter official event/ticket arrays or statistics.
+- Cloud image File objects are not saved to localStorage; users are told to reselect the file after reload.
+- Runtime refresh/background recovery requires browser/mobile verification.
+
 ## Supabase Schema
 
 - Existing SQL checked: `supabase/sql/02_remaining_cloud_features.sql`.
@@ -172,4 +188,14 @@ Verification date: 2026-06-04
 - Confirm the mobile floating Add button opens the existing EventForm.
 - Confirm the mobile More drawer opens and closes, and account/theme/language/backup controls still work there.
 - Confirm bottom navigation does not cover TicketCard action buttons or page bottom content.
+- In Add Event, type a title, refresh, and confirm the event draft restore prompt appears.
+- Restore and discard an event draft and confirm both flows behave correctly.
+- Save an event and confirm the matching event draft localStorage key is cleared.
+- Edit an event and confirm the `stagelog-event-draft-edit-{eventId}` key is separate from the new event draft.
+- Save and restore a seat marker draft.
+- Select an event image in cloud mode, refresh, and confirm the app does not crash and asks to reselect the file.
+- In Tickets, type an event title, refresh, and confirm the ticket draft restore prompt appears.
+- Restore and discard a ticket draft and confirm status/platform/date fields recover correctly.
+- Save a ticket application and confirm the matching ticket draft localStorage key is cleared.
+- On mobile, start filling EventForm and TicketApplicationForm, switch apps or background the browser, then return and confirm drafts can be recovered.
 - Log in from a phone or incognito window and confirm the same cloud Events/Tickets/Profile are visible.

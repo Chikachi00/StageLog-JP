@@ -1,8 +1,9 @@
 import { Save, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { groupVenuesByRegion } from "../data/venues";
+import { clearDraft, getDraft, getEventDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import { CLOUD_IMAGE_MAX_SIZE_BYTES, CLOUD_IMAGE_MIME_TYPES } from "../services/storageService";
 import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
 import { SeatPicker } from "./SeatPicker";
@@ -25,6 +26,13 @@ const emptySeat: SeatInfo = {
 };
 
 const MAX_IMAGE_SIZE_BYTES = 1.5 * 1024 * 1024;
+
+type EventDraftPayload = EventFormValues & {
+  venueName?: string;
+  city?: string;
+  country?: string;
+  imageFileName?: string;
+};
 
 const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null): EventFormValues => {
   if (editingEvent) {
@@ -67,12 +75,30 @@ export function EventForm({
   const { t } = useTranslation();
   const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
   const [imageError, setImageError] = useState("");
+  const [draftStatus, setDraftStatus] = useState("");
+  const [pendingDraft, setPendingDraft] = useState<EventDraftPayload | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const valuesRef = useRef(values);
+  const isDirtyRef = useRef(false);
   const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
+  const draftKey = useMemo(() => getEventDraftKey(editingEvent?.id), [editingEvent?.id]);
 
   useEffect(() => {
     setValues(createInitialValues(venues, editingEvent));
     setImageError("");
+    setDraftStatus("");
+    setIsDirty(false);
+    isDirtyRef.current = false;
+    setPendingDraft(getDraft<EventDraftPayload>(getEventDraftKey(editingEvent?.id)));
   }, [editingEvent, venues]);
+
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
+
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
 
   const selectedVenue = useMemo(
     () => venues.find((venue) => venue.id === values.venueId),
@@ -80,10 +106,12 @@ export function EventForm({
   );
 
   const updateValue = (field: keyof Omit<EventFormValues, "seat">, value: string) => {
+    setIsDirty(true);
     setValues((current) => ({ ...current, [field]: value }));
   };
 
   const updateSeat = (field: keyof SeatInfo, value: string) => {
+    setIsDirty(true);
     setValues((current) => ({
       ...current,
       seat: {
@@ -94,10 +122,131 @@ export function EventForm({
   };
 
   const updateSeatInfo = (seat: SeatInfo) => {
+    setIsDirty(true);
     setValues((current) => ({
       ...current,
       seat,
     }));
+  };
+
+  const createDraftPayload = useCallback(
+    (currentValues: EventFormValues): EventDraftPayload => {
+      const venue = venues.find((item) => item.id === currentValues.venueId);
+      const imageUrl =
+        currentValues.imageUrl && !currentValues.imageUrl.startsWith("blob:")
+          ? currentValues.imageUrl
+          : undefined;
+
+      return {
+        ...currentValues,
+        imageUrl,
+        imageFile: undefined,
+        imageFileName: currentValues.imageFile?.name,
+        venueName: venue?.name,
+        city: venue?.city,
+        country: venue?.country,
+      };
+    },
+    [venues],
+  );
+
+  const saveCurrentDraft = useCallback(() => {
+    if (!isDirtyRef.current) {
+      return;
+    }
+
+    saveDraft(draftKey, createDraftPayload(valuesRef.current));
+    setDraftStatus(t("draft.saved"));
+  }, [createDraftPayload, draftKey, t]);
+
+  useEffect(() => {
+    if (!isDirty) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      saveCurrentDraft();
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [isDirty, saveCurrentDraft, values]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveCurrentDraft();
+      }
+    };
+
+    const handlePageHide = () => {
+      saveCurrentDraft();
+    };
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirtyRef.current) {
+        return;
+      }
+
+      saveCurrentDraft();
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [saveCurrentDraft]);
+
+  useEffect(
+    () => () => {
+      saveCurrentDraft();
+    },
+    [saveCurrentDraft],
+  );
+
+  const restoreDraft = () => {
+    if (!pendingDraft) {
+      return;
+    }
+
+    setValues({
+      ...createInitialValues(venues, editingEvent),
+      ...pendingDraft,
+      imageFile: undefined,
+      seat: { ...emptySeat, ...(pendingDraft.seat ?? {}) },
+    });
+    setImageError(pendingDraft.imageFileName ? t("draft.imageReload") : "");
+    setPendingDraft(null);
+    setIsDirty(true);
+    isDirtyRef.current = true;
+    setDraftStatus(t("draft.restored"));
+  };
+
+  const discardDraft = () => {
+    clearDraft(draftKey);
+    setPendingDraft(null);
+    setDraftStatus(t("draft.discarded"));
+    setIsDirty(false);
+    isDirtyRef.current = false;
+  };
+
+  const handleCancelEditing = () => {
+    if (isDirty && hasDraft(draftKey)) {
+      const confirmed = window.confirm(`${t("draft.unsavedChanges")}. ${t("draft.saved")}`);
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    clearDraft(draftKey);
+    onCancelEditing();
   };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -125,6 +274,7 @@ export function EventForm({
     if (useCloudImages) {
       updateValue("imageUrl", URL.createObjectURL(file));
       setValues((current) => ({ ...current, imageFile: file, removeImage: false }));
+      setImageError(t("draft.imageReload"));
       return;
     }
 
@@ -146,6 +296,9 @@ export function EventForm({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    saveCurrentDraft();
+    setIsDirty(false);
+    isDirtyRef.current = false;
     void onSave({
       ...values,
       title: values.title.trim(),
@@ -174,12 +327,27 @@ export function EventForm({
           <h2 id="event-form-title">{editingEvent ? t("eventForm.edit") : t("eventForm.add")}</h2>
         </div>
         {editingEvent ? (
-          <button className="ghost-button" type="button" onClick={onCancelEditing}>
+          <button className="ghost-button" type="button" onClick={handleCancelEditing}>
             <X size={16} aria-hidden="true" />
             {t("eventForm.cancelEditing")}
           </button>
         ) : null}
       </div>
+
+      {pendingDraft ? (
+        <section className="draft-banner" aria-label={t("draft.eventDraft")}>
+          <strong>{t("draft.found")}</strong>
+          <div>
+            <button className="ghost-button" type="button" onClick={restoreDraft}>
+              {t("draft.restore")}
+            </button>
+            <button className="ghost-button" type="button" onClick={discardDraft}>
+              {t("draft.discard")}
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {draftStatus ? <p className="draft-status">{draftStatus}</p> : null}
 
       <form className="event-form" onSubmit={handleSubmit}>
         <label>
@@ -300,15 +468,16 @@ export function EventForm({
               <button
                 className="ghost-button"
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  setIsDirty(true);
                   setValues((current) => ({
                     ...current,
                     imageUrl: "",
                     imagePath: undefined,
                     imageFile: undefined,
                     removeImage: true,
-                  }))
-                }
+                  }));
+                }}
               >
                 <X size={16} aria-hidden="true" />
                 {t("eventForm.removeImage")}

@@ -48,6 +48,7 @@ import {
   normalizeBackupEvent,
   normalizeBackupTicketApplication,
 } from "./services/backupService";
+import { clearDraft, getEventDraftKey, getTicketDraftKey } from "./services/draftStorage";
 import {
   deleteEventImage,
   getEventImageSignedUrl,
@@ -434,6 +435,7 @@ function App() {
         setNotice(t("notice.eventSaved"));
       }
 
+      clearDraft(getEventDraftKey(editingEvent?.id));
       setEditingEvent(null);
       await refreshEvents();
       setActiveView("events");
@@ -467,6 +469,7 @@ function App() {
         setNotice(t("notice.ticketSaved"));
       }
 
+      clearDraft(getTicketDraftKey(currentEditingApplication?.id));
       setEditingApplication(null);
       await refreshTicketApplications();
     } catch (error) {

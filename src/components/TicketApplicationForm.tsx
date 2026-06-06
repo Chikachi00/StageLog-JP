@@ -1,8 +1,9 @@
 import { Save, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { groupVenuesByRegion } from "../data/venues";
+import { clearDraft, getDraft, getTicketDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import type { Venue } from "../types/event";
 import type { TicketApplication, TicketApplicationFormValues } from "../types/ticket";
 import { platformOptions, statusOptions } from "../utils/ticketUtils";
@@ -10,9 +11,16 @@ import { platformOptions, statusOptions } from "../utils/ticketUtils";
 interface TicketApplicationFormProps {
   venues: Venue[];
   editingApplication?: TicketApplication | null;
-  onSave: (values: TicketApplicationFormValues) => void;
+  onSave: (values: TicketApplicationFormValues) => void | Promise<void>;
   onCancel: () => void;
 }
+
+type TicketDraftPayload = TicketApplicationFormValues & {
+  venueName?: string;
+  city?: string;
+  country?: string;
+  linkedEventId?: string;
+};
 
 const createInitialValues = (
   editingApplication?: TicketApplication | null,
@@ -46,12 +54,30 @@ export function TicketApplicationForm({
     createInitialValues(editingApplication),
   );
   const [error, setError] = useState("");
+  const [draftStatus, setDraftStatus] = useState("");
+  const [pendingDraft, setPendingDraft] = useState<TicketDraftPayload | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const valuesRef = useRef(values);
+  const isDirtyRef = useRef(false);
   const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
+  const draftKey = useMemo(() => getTicketDraftKey(editingApplication?.id), [editingApplication?.id]);
 
   useEffect(() => {
     setValues(createInitialValues(editingApplication));
     setError("");
+    setDraftStatus("");
+    setIsDirty(false);
+    isDirtyRef.current = false;
+    setPendingDraft(getDraft<TicketDraftPayload>(getTicketDraftKey(editingApplication?.id)));
   }, [editingApplication]);
+
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
+
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
 
   const selectedVenue = useMemo(
     () => venues.find((venue) => venue.id === values.venueId),
@@ -59,7 +85,119 @@ export function TicketApplicationForm({
   );
 
   const updateValue = (field: keyof TicketApplicationFormValues, value: string) => {
+    setIsDirty(true);
     setValues((current) => ({ ...current, [field]: value }));
+  };
+
+  const createDraftPayload = useCallback(
+    (currentValues: TicketApplicationFormValues): TicketDraftPayload => {
+      const venue = venues.find((item) => item.id === currentValues.venueId);
+
+      return {
+        ...currentValues,
+        venueName: venue?.name,
+        city: venue?.city,
+        country: venue?.country,
+        linkedEventId: editingApplication?.linkedEventId,
+      };
+    },
+    [editingApplication?.linkedEventId, venues],
+  );
+
+  const saveCurrentDraft = useCallback(() => {
+    if (!isDirtyRef.current) {
+      return;
+    }
+
+    saveDraft(draftKey, createDraftPayload(valuesRef.current));
+    setDraftStatus(t("draft.saved"));
+  }, [createDraftPayload, draftKey, t]);
+
+  useEffect(() => {
+    if (!isDirty) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      saveCurrentDraft();
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [isDirty, saveCurrentDraft, values]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveCurrentDraft();
+      }
+    };
+
+    const handlePageHide = () => {
+      saveCurrentDraft();
+    };
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirtyRef.current) {
+        return;
+      }
+
+      saveCurrentDraft();
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [saveCurrentDraft]);
+
+  useEffect(
+    () => () => {
+      saveCurrentDraft();
+    },
+    [saveCurrentDraft],
+  );
+
+  const restoreDraft = () => {
+    if (!pendingDraft) {
+      return;
+    }
+
+    setValues({
+      ...createInitialValues(editingApplication),
+      ...pendingDraft,
+    });
+    setPendingDraft(null);
+    setIsDirty(true);
+    isDirtyRef.current = true;
+    setDraftStatus(t("draft.restored"));
+  };
+
+  const discardDraft = () => {
+    clearDraft(draftKey);
+    setPendingDraft(null);
+    setDraftStatus(t("draft.discarded"));
+    setIsDirty(false);
+    isDirtyRef.current = false;
+  };
+
+  const handleCancel = () => {
+    if (isDirty && hasDraft(draftKey)) {
+      const confirmed = window.confirm(`${t("draft.unsavedChanges")}. ${t("draft.saved")}`);
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    clearDraft(draftKey);
+    onCancel();
   };
 
   const validate = () => {
@@ -87,6 +225,9 @@ export function TicketApplicationForm({
       return;
     }
 
+    saveCurrentDraft();
+    setIsDirty(false);
+    isDirtyRef.current = false;
     onSave({
       ...values,
       eventTitle: values.eventTitle.trim(),
@@ -110,12 +251,27 @@ export function TicketApplicationForm({
           <h2 id="ticket-form-title">{editingApplication ? t("tickets.editApplication") : t("tickets.addApplication")}</h2>
         </div>
         {editingApplication ? (
-          <button className="ghost-button" type="button" onClick={onCancel}>
+          <button className="ghost-button" type="button" onClick={handleCancel}>
             <X size={16} aria-hidden="true" />
             {t("tickets.cancel")}
           </button>
         ) : null}
       </div>
+
+      {pendingDraft ? (
+        <section className="draft-banner" aria-label={t("draft.ticketDraft")}>
+          <strong>{t("draft.found")}</strong>
+          <div>
+            <button className="ghost-button" type="button" onClick={restoreDraft}>
+              {t("draft.restore")}
+            </button>
+            <button className="ghost-button" type="button" onClick={discardDraft}>
+              {t("draft.discard")}
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {draftStatus ? <p className="draft-status">{draftStatus}</p> : null}
 
       <form className="event-form" onSubmit={handleSubmit}>
         <label>
