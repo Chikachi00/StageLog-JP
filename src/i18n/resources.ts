@@ -1068,6 +1068,8 @@ export const resources = {
         ticketFormRestored: "票务表单已恢复。",
         boardEyebrow: "抽选看板",
         manager: "票务管理",
+        loadingCloudTickets: "正在加载云端票务...",
+        failedLoadCloudTickets: "云端票务申请加载失败。",
         searchPlaceholder: "搜索活动、艺人、同行者...",
         allPlatforms: "全部平台",
         noApplications: "暂无票务申请",

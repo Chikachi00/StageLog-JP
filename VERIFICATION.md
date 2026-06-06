@@ -16,6 +16,17 @@ Verification date: 2026-06-04
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## Full Regression After Venue UX Integration
+
+- EventForm regression: add/edit flow, draft persistence, image upload path, searchable built-in venues, custom venue save path, seat map fallback, and custom venue weather coordinate handling were reviewed.
+- TicketForm regression: first round creation, add round from a group, save-and-add-next-round, edit/delete paths, quantity validation, CNY default currency, manual exchange behavior, draft persistence, and custom venue inheritance were reviewed.
+- VenueCombobox regression: built-in search covers venue name, alias, city, prefecture, region, country, and category; historical custom venues are inferred from saved events and tickets; mobile list sizing remains constrained.
+- Analytics regression: charts still use `ChartFrame` with `ResizeObserver`; ticket spending uses display currency data with CNY fallback; custom venues fall back through venue/region aggregation without requiring built-in venue ids.
+- Backup regression: export/import keeps events, ticket applications, Ticket V2 fields, venue fields, and `custom:` venue ids; no separate custom venue backup field was added.
+- Mobile regression: bottom navigation spacing, ticket cards, event cards, VenueCombobox lists, analytics chart wrappers, and form bottom padding were reviewed for horizontal overflow risk.
+- i18n regression: VenueCombobox, Ticket V2, Analytics V2, Backup, custom venue weather, and seat map fallback keys are present in English and Chinese resources.
+- Known limitations: custom venues are inferred from saved records, not stored in a separate `custom_venues` table; automatic exchange rates are not supported; custom venue weather requires coordinates.
+
 ## VenueCombobox / Custom Venue Verification
 
 - VenueCombobox verification: `EventForm` and `TicketApplicationForm` use the shared searchable venue combobox with built-in venue search and historical custom venue candidates.

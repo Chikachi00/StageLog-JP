@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
 import { formatDateTime } from "../utils/dateUtils";
+import { isCustomVenueId } from "../utils/venueSearchUtils";
 import { weatherCodeToKey } from "../utils/weatherUtils";
 import { BarcodeDecoration } from "./BarcodeDecoration";
 
@@ -75,6 +76,13 @@ export function TicketCard({
     seat.number ? t("seat.seatPrefix", { value: seat.number }) : "",
   ].filter(Boolean);
   const seatLabel = seatParts.length > 0 ? seatParts.join(" / ") : t("seat.notRecorded");
+  const hasCoordinates =
+    typeof event.latitude === "number" &&
+    Number.isFinite(event.latitude) &&
+    typeof event.longitude === "number" &&
+    Number.isFinite(event.longitude);
+  const customVenueLacksCoordinates =
+    (event.isCustomVenue || isCustomVenueId(event.venueId)) && !hasCoordinates;
   const weatherSummary = event.weather
     ? `${event.weather.temperature.toFixed(1)}°C · ${t(weatherCodeToKey(event.weather.weatherCode))} ${event.weather.precipitation.toFixed(1)}mm · ${t("weather.wind")} ${event.weather.windSpeed.toFixed(1)}km/h`
     : "";
@@ -129,6 +137,9 @@ export function TicketCard({
           </div>
         ) : null}
         {weatherError ? <p className="ticket-card__error">{weatherError}</p> : null}
+        {customVenueLacksCoordinates && !weatherError ? (
+          <p className="ticket-card__error">{t("weather.customVenueMissingCoordinates")}</p>
+        ) : null}
       </div>
 
       <div className="ticket-card__stub">
@@ -145,7 +156,7 @@ export function TicketCard({
           <button
             className="icon-button icon-button--weather"
             type="button"
-            disabled={isFetchingWeather}
+            disabled={isFetchingWeather || customVenueLacksCoordinates}
             onClick={() => onFetchWeather(event)}
           >
             <CloudSun size={16} aria-hidden="true" />
