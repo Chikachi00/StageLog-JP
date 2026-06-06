@@ -140,6 +140,12 @@ Verification date: 2026-06-04
 - Fix checked: every Recharts `ResponsiveContainer` now receives an explicit numeric height through `CHART_HEIGHT` instead of relying on `height="100%"`.
 - Fix checked: region and ticket status distributions use BarChart rendering for more stable mobile/desktop display.
 - Fix checked: chart axes, grid, tooltip, bars, and lines use explicit visible colors for Sakura / Ocean / Night / Classic themes.
+- Follow-up diagnosis: summary cards receiving data indicates App-loaded `events` are reaching Analytics; chart blankness was most likely in chart data shape/container rendering rather than data loading.
+- Follow-up fix checked: analytics chart data now includes consistent `name` and `count` aliases for year, month, cumulative month, weather temperature, and rainfall datasets.
+- Follow-up fix checked: Recharts `dataKey` usage now prefers the shared `name`/`count` shape where possible while preserving detailed labels for tooltips.
+- Follow-up fix checked: chart wrappers now use `.analytics-chart-body` with explicit desktop/mobile heights, avoiding parent-height ambiguity around `ResponsiveContainer`.
+- Follow-up fix checked: non-empty charts render a compact fallback data list beneath the chart so small datasets remain visible even if chart rendering is constrained by the browser.
+- Follow-up check added: development builds log safe aggregate chart data through `[Analytics data]` without Supabase sessions, tokens, keys, or user objects.
 - Runtime chart rendering and mobile viewport behavior require browser verification.
 
 ## Draft Autosave

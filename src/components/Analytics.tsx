@@ -1,5 +1,5 @@
 import { BarChart3, CloudRain, ReceiptText, Thermometer, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -18,6 +18,7 @@ import type { EventRecord, Venue } from "../types/event";
 import type { TicketApplication } from "../types/ticket";
 import {
   getCumulativeEventsByMonth,
+  getEventsByMonth,
   getEventsByRegion,
   getEventsByYear,
   getRainfallRanking,
@@ -40,7 +41,14 @@ interface ChartCardProps {
   description?: string;
   isEmpty?: boolean;
   emptyLabel: string;
+  fallbackData?: ChartDataListItem[];
+  fallbackUnit?: string;
   children: ReactNode;
+}
+
+interface ChartDataListItem {
+  name: string;
+  count?: number;
 }
 
 const CHART_HEIGHT = 280;
@@ -61,7 +69,27 @@ const formatCurrency = (value: number) => `${Math.round(value).toLocaleString()}
 const truncate = (value: string, maxLength = 18) =>
   value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 
-function ChartCard({ title, description, isEmpty, emptyLabel, children }: ChartCardProps) {
+function ChartDataList({ data, unit = "", maxItems = 5 }: { data: ChartDataListItem[]; unit?: string; maxItems?: number }) {
+  if (data.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul className="chart-data-list" aria-label="Chart data preview">
+      {data.slice(0, maxItems).map((item) => (
+        <li key={item.name}>
+          <span>{item.name}</span>
+          <strong>
+            {typeof item.count === "number" ? item.count.toLocaleString() : "N/A"}
+            {unit}
+          </strong>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ChartCard({ title, description, isEmpty, emptyLabel, fallbackData = [], fallbackUnit, children }: ChartCardProps) {
   return (
     <article className="analytics-card">
       <div className="analytics-card__heading">
@@ -73,7 +101,10 @@ function ChartCard({ title, description, isEmpty, emptyLabel, children }: ChartC
           <p>{emptyLabel}</p>
         </div>
       ) : (
-        <div className="analytics-chart">{children}</div>
+        <>
+          <div className="analytics-chart-body">{children}</div>
+          <ChartDataList data={fallbackData} unit={fallbackUnit} />
+        </>
       )}
     </article>
   );
@@ -91,6 +122,7 @@ const eventLabel = (event: EventRecord | null, fallback: string, unit?: string, 
 export function Analytics({ events, ticketApplications, venues }: AnalyticsProps) {
   const { t } = useTranslation();
   const eventsByYear = useMemo(() => getEventsByYear(events), [events]);
+  const monthlyData = useMemo(() => getEventsByMonth(events), [events]);
   const cumulativeByMonth = useMemo(() => getCumulativeEventsByMonth(events), [events]);
   const topArtists = useMemo(() => getTopArtists(events), [events]);
   const topVenues = useMemo(() => getTopVenues(events), [events]);
@@ -130,9 +162,39 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
     [regionData],
   );
   const rainfallChartData = useMemo(
-    () => rainfallRanking.map((item) => ({ ...item, shortName: truncate(item.title, 18) })),
+    () => rainfallRanking.map((item) => ({ ...item, shortName: truncate(item.name, 18) })),
     [rainfallRanking],
   );
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    console.debug("[Analytics data]", {
+      eventsCount: events.length,
+      yearlyData: eventsByYear,
+      monthlyData,
+      cumulativeMonthlyData: cumulativeByMonth,
+      topArtists,
+      topVenues,
+      regionData,
+      temperatureData: temperatureTrend,
+      ticketStatusData: statusData,
+      ticketPlatformData: platformData,
+    });
+  }, [
+    cumulativeByMonth,
+    events.length,
+    eventsByYear,
+    monthlyData,
+    platformData,
+    regionData,
+    statusData,
+    temperatureTrend,
+    topArtists,
+    topVenues,
+  ]);
 
   return (
     <section className="analytics-page">
@@ -176,12 +238,13 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           title={t("analytics.attendanceByYear")}
           description={t("analytics.attendanceTrend")}
           emptyLabel={t("analytics.noEventData")}
+          fallbackData={eventsByYear}
           isEmpty={eventsByYear.length === 0}
         >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <BarChart data={eventsByYear}>
               <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="year" tick={AXIS_TICK} />
+              <XAxis dataKey="name" tick={AXIS_TICK} />
               <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
               <Tooltip contentStyle={tooltipContentStyle} />
               <Bar dataKey="count" name={t("analytics.attendanceByYear")} fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
@@ -193,12 +256,13 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           title={t("analytics.monthlyAttendance")}
           description={t("analytics.cumulativeAttendance")}
           emptyLabel={t("analytics.noEventData")}
+          fallbackData={cumulativeByMonth}
           isEmpty={cumulativeByMonth.length === 0}
         >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <LineChart data={cumulativeByMonth}>
               <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" minTickGap={16} tick={AXIS_TICK} />
+              <XAxis dataKey="name" minTickGap={16} tick={AXIS_TICK} />
               <YAxis allowDecimals={false} tick={AXIS_TICK} width={36} />
               <Tooltip contentStyle={tooltipContentStyle} />
               <Legend />
@@ -222,7 +286,12 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title={t("analytics.topArtists")} emptyLabel={t("analytics.noEventData")} isEmpty={topArtists.length === 0}>
+        <ChartCard
+          title={t("analytics.topArtists")}
+          emptyLabel={t("analytics.noEventData")}
+          fallbackData={topArtists}
+          isEmpty={topArtists.length === 0}
+        >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <BarChart data={topArtistChartData} layout="vertical">
               <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" horizontal={false} />
@@ -234,7 +303,12 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title={t("analytics.topVenues")} emptyLabel={t("analytics.noEventData")} isEmpty={topVenues.length === 0}>
+        <ChartCard
+          title={t("analytics.topVenues")}
+          emptyLabel={t("analytics.noEventData")}
+          fallbackData={topVenues}
+          isEmpty={topVenues.length === 0}
+        >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <BarChart data={topVenueChartData} layout="vertical">
               <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" horizontal={false} />
@@ -249,6 +323,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
         <ChartCard
           title={t("analytics.regionDistribution")}
           emptyLabel={t("analytics.noEventData")}
+          fallbackData={regionData}
           isEmpty={regionData.length === 0}
         >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
@@ -266,17 +341,19 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           title={t("analytics.temperatureTrend")}
           description={t("analytics.weatherAnalytics")}
           emptyLabel={`${t("analytics.noWeatherData")} ${t("analytics.fetchWeatherFirst")}`}
+          fallbackData={temperatureTrend}
+          fallbackUnit="\u00b0C"
           isEmpty={temperatureTrend.length === 0}
         >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <LineChart data={temperatureTrend}>
               <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" minTickGap={18} tick={AXIS_TICK} />
+              <XAxis dataKey="name" minTickGap={18} tick={AXIS_TICK} />
               <YAxis tick={AXIS_TICK} unit="\u00b0C" width={44} />
               <Tooltip contentStyle={tooltipContentStyle} formatter={(value) => [`${value}\u00b0C`, t("analytics.averageTemperature")]} />
               <Line
                 activeDot={{ r: 6 }}
-                dataKey="temperature"
+                dataKey="count"
                 dot={{ r: 4, fill: PRIMARY_COLOR }}
                 name={t("analytics.averageTemperature")}
                 stroke={PRIMARY_COLOR}
@@ -351,14 +428,20 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           )}
         </article>
 
-        <ChartCard title={t("analytics.rainiestEvent")} emptyLabel={t("analytics.noWeatherData")} isEmpty={rainfallRanking.length === 0}>
+        <ChartCard
+          title={t("analytics.rainiestEvent")}
+          emptyLabel={t("analytics.noWeatherData")}
+          fallbackData={rainfallRanking}
+          fallbackUnit="mm"
+          isEmpty={rainfallRanking.length === 0}
+        >
           <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
             <BarChart data={rainfallChartData}>
               <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="shortName" tick={AXIS_TICK} />
               <YAxis tick={AXIS_TICK} unit="mm" width={44} />
               <Tooltip contentStyle={tooltipContentStyle} formatter={(value, _name, item) => [`${value}mm`, item.payload.title]} />
-              <Bar dataKey="precipitation" name={t("analytics.rainiestEvent")} fill={SECONDARY_COLOR} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" name={t("analytics.rainiestEvent")} fill={SECONDARY_COLOR} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -394,6 +477,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           <ChartCard
             title={t("analytics.applicationStatus")}
             emptyLabel={t("analytics.noTicketData")}
+            fallbackData={statusData}
             isEmpty={statusData.length === 0}
           >
             <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
@@ -410,6 +494,7 @@ export function Analytics({ events, ticketApplications, venues }: AnalyticsProps
           <ChartCard
             title={t("analytics.platformDistribution")}
             emptyLabel={t("analytics.noTicketData")}
+            fallbackData={platformData}
             isEmpty={platformData.length === 0}
           >
             <ResponsiveContainer width="100%" height={CHART_HEIGHT}>

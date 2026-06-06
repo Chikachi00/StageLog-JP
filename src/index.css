@@ -1914,15 +1914,46 @@ textarea:focus {
   font-size: 1rem;
 }
 
-.analytics-chart {
+.analytics-chart-body {
   width: 100%;
+  height: 280px;
   min-width: 0;
-  min-height: 280px;
+  min-height: 240px;
 }
 
-.analytics-chart .recharts-wrapper,
-.analytics-chart svg {
+.analytics-chart-body .recharts-wrapper,
+.analytics-chart-body svg {
   max-width: 100%;
+}
+
+.chart-data-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.15rem 0 0;
+  list-style: none;
+}
+
+.chart-data-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.chart-data-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-data-list strong {
+  flex: 0 0 auto;
+  color: var(--ink);
 }
 
 .analytics-metric-list {
@@ -2380,6 +2411,10 @@ textarea:focus {
 
   .analytics-metric-list strong {
     grid-column: 2;
+  }
+
+  .analytics-chart-body {
+    height: 240px;
   }
 }
 

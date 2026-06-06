@@ -7,14 +7,12 @@ export interface CountDatum {
   count: number;
 }
 
-export interface YearDatum {
+export interface YearDatum extends CountDatum {
   year: string;
-  count: number;
 }
 
-export interface MonthDatum {
+export interface MonthDatum extends CountDatum {
   month: string;
-  count: number;
 }
 
 export interface CumulativeMonthDatum extends MonthDatum {
@@ -22,10 +20,12 @@ export interface CumulativeMonthDatum extends MonthDatum {
 }
 
 export interface WeatherEventDatum {
+  name: string;
   date: string;
   title: string;
   artist: string;
   venueName: string;
+  count?: number;
   temperature?: number;
   precipitation?: number;
   windSpeed?: number;
@@ -41,7 +41,13 @@ export interface WeatherSummary {
 }
 
 const countEntries = (items: EventRecord[], getValue: (event: EventRecord) => string | undefined) =>
-  Object.entries(countByValue(items, getValue))
+  Object.entries(
+    items.reduce<Record<string, number>>((result, event) => {
+      const name = getValue(event)?.trim() || "Unknown";
+      result[name] = (result[name] ?? 0) + 1;
+      return result;
+    }, {}),
+  )
     .map(([name, count]) => ({ name, count }))
     .sort((first, second) => second.count - first.count || first.name.localeCompare(second.name));
 
@@ -68,12 +74,12 @@ const minWeatherEvent = (
 
 export const getEventsByYear = (events: EventRecord[]): YearDatum[] =>
   Object.entries(countByValue(events, (event) => getValidDatePrefix(event.date, 4)))
-    .map(([year, count]) => ({ year, count }))
+    .map(([year, count]) => ({ name: year, year, count }))
     .sort((first, second) => first.year.localeCompare(second.year));
 
 export const getEventsByMonth = (events: EventRecord[]): MonthDatum[] =>
   Object.entries(countByValue(events, (event) => getValidDatePrefix(event.date, 7)))
-    .map(([month, count]) => ({ month, count }))
+    .map(([month, count]) => ({ name: month, month, count }))
     .sort((first, second) => first.month.localeCompare(second.month));
 
 export const getCumulativeEventsByMonth = (events: EventRecord[]): CumulativeMonthDatum[] => {
@@ -123,10 +129,12 @@ export const getTemperatureTrend = (events: EventRecord[]): WeatherEventDatum[] 
   events
     .filter((event) => typeof event.weather?.temperature === "number")
     .map((event) => ({
+      name: event.date,
       date: event.date,
       title: event.title,
       artist: event.artist,
       venueName: event.venueName,
+      count: event.weather?.temperature,
       temperature: event.weather?.temperature,
       precipitation: event.weather?.precipitation,
       windSpeed: event.weather?.windSpeed,
@@ -137,10 +145,12 @@ export const getRainfallRanking = (events: EventRecord[], limit = 8): WeatherEve
   events
     .filter((event) => typeof event.weather?.precipitation === "number")
     .map((event) => ({
+      name: event.title || event.date,
       date: event.date,
       title: event.title,
       artist: event.artist,
       venueName: event.venueName,
+      count: event.weather?.precipitation,
       precipitation: event.weather?.precipitation,
     }))
     .sort((first, second) => (second.precipitation ?? 0) - (first.precipitation ?? 0))
