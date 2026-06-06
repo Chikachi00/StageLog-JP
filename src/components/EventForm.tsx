@@ -2,14 +2,16 @@ import { Save, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { groupVenuesByRegion } from "../data/venues";
 import { clearDraft, getDraft, getEventDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import { CLOUD_IMAGE_MAX_SIZE_BYTES, CLOUD_IMAGE_MIME_TYPES } from "../services/storageService";
 import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
+import type { VenueValue } from "../utils/venueSearchUtils";
 import { SeatPicker } from "./SeatPicker";
+import { VenueCombobox } from "./VenueCombobox";
 
 interface EventFormProps {
   venues: Venue[];
+  events?: EventRecord[];
   editingEvent?: EventRecord | null;
   useCloudImages?: boolean;
   isSaving?: boolean;
@@ -28,13 +30,12 @@ const emptySeat: SeatInfo = {
 const MAX_IMAGE_SIZE_BYTES = 1.5 * 1024 * 1024;
 
 type EventDraftPayload = EventFormValues & {
-  venueName?: string;
-  city?: string;
-  country?: string;
   imageFileName?: string;
 };
 
 const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null): EventFormValues => {
+  const defaultVenue = venues[0];
+
   if (editingEvent) {
     return {
       title: editingEvent.title,
@@ -42,6 +43,14 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
       date: editingEvent.date,
       startTime: editingEvent.startTime,
       venueId: editingEvent.venueId,
+      venueName: editingEvent.venueName,
+      city: editingEvent.city,
+      country: editingEvent.country,
+      prefecture: editingEvent.prefecture,
+      region: editingEvent.region,
+      latitude: editingEvent.latitude,
+      longitude: editingEvent.longitude,
+      isCustomVenue: editingEvent.isCustomVenue ?? editingEvent.venueId.startsWith("custom:"),
       ticketType: editingEvent.ticketType,
       seat: { ...emptySeat, ...(editingEvent.seat ?? {}) },
       imageUrl: editingEvent.imageUrl,
@@ -55,7 +64,15 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
     artist: "",
     date: "",
     startTime: "",
-    venueId: venues[0]?.id ?? "",
+    venueId: defaultVenue?.id ?? "",
+    venueName: defaultVenue?.name ?? "",
+    city: defaultVenue?.city ?? "",
+    country: defaultVenue?.country ?? "Japan",
+    prefecture: defaultVenue?.prefecture,
+    region: defaultVenue?.region,
+    latitude: defaultVenue?.latitude,
+    longitude: defaultVenue?.longitude,
+    isCustomVenue: false,
     ticketType: "",
     seat: emptySeat,
     imageUrl: undefined,
@@ -66,6 +83,7 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
 
 export function EventForm({
   venues,
+  events = [],
   editingEvent,
   useCloudImages = false,
   isSaving = false,
@@ -80,7 +98,6 @@ export function EventForm({
   const [isDirty, setIsDirty] = useState(false);
   const valuesRef = useRef(values);
   const isDirtyRef = useRef(false);
-  const venueGroups = useMemo(() => groupVenuesByRegion(venues), [venues]);
   const draftKey = useMemo(() => getEventDraftKey(editingEvent?.id), [editingEvent?.id]);
 
   useEffect(() => {
@@ -147,6 +164,31 @@ export function EventForm({
     }));
   };
 
+  const updateVenue = (venue: VenueValue) => {
+    setIsDirty(true);
+    setValues((current) => ({
+      ...current,
+      venueId: venue.venueId ?? "",
+      venueName: venue.venueName ?? "",
+      city: venue.city ?? "",
+      country: venue.country ?? "Japan",
+      prefecture: venue.prefecture,
+      region: venue.region,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      isCustomVenue: venue.isCustomVenue ?? false,
+      seat: venue.isCustomVenue
+        ? {
+            gate: current.seat.gate,
+            level: current.seat.level,
+            block: current.seat.block,
+            row: current.seat.row,
+            number: current.seat.number,
+          }
+        : current.seat,
+    }));
+  };
+
   const createDraftPayload = useCallback(
     (currentValues: EventFormValues): EventDraftPayload => {
       const venue = venues.find((item) => item.id === currentValues.venueId);
@@ -160,9 +202,9 @@ export function EventForm({
         imageUrl,
         imageFile: undefined,
         imageFileName: currentValues.imageFile?.name,
-        venueName: venue?.name,
-        city: venue?.city,
-        country: venue?.country,
+        venueName: currentValues.venueName || venue?.name || "",
+        city: currentValues.city || venue?.city || "",
+        country: currentValues.country || venue?.country || "Japan",
       };
     },
     [venues],
@@ -389,24 +431,13 @@ export function EventForm({
           />
         </label>
 
-        <label>
-          {t("eventForm.venue")}
-          <select
-            required
-            value={values.venueId}
-            onChange={(event) => updateValue("venueId", event.target.value)}
-          >
-            {venueGroups.map((group) => (
-              <optgroup key={group.region} label={group.region}>
-                {group.venues.map((venue) => (
-                  <option key={venue.id} value={venue.id}>
-                    {venue.nameJa && venue.nameJa !== venue.name ? `${venue.name} / ${venue.nameJa}` : venue.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+        <VenueCombobox
+          events={events}
+          label={t("eventForm.venue")}
+          value={values}
+          venues={venues}
+          onChange={updateVenue}
+        />
 
         <label>
           {t("eventForm.ticketType")}
@@ -424,7 +455,9 @@ export function EventForm({
               ? `${selectedVenue.city}, ${selectedVenue.prefecture ?? selectedVenue.country} · ${
                   selectedVenue.category ? t(`venues.categories.${selectedVenue.category}`) : t("venues.categories.other")
                 }`
-              : t("eventForm.selectVenue")}
+              : values.venueName
+                ? `${values.city || "Unknown"}, ${values.country || "Japan"} / ${t("venueSearch.customVenue")}`
+                : t("eventForm.selectVenue")}
           </strong>
         </div>
 
@@ -452,8 +485,10 @@ export function EventForm({
           </label>
         </fieldset>
 
-        {selectedVenue ? (
+        {selectedVenue?.supportedSeatMap ? (
           <SeatPicker venue={selectedVenue} seat={values.seat} onChange={updateSeatInfo} />
+        ) : selectedVenue || values.venueName ? (
+          <p className="draft-status event-form__wide">{t("venueSearch.seatMapBuiltInOnly")}</p>
         ) : null}
 
         <div className="image-upload">

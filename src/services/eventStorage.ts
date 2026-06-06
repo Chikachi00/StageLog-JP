@@ -18,6 +18,11 @@ const normalizeEvent = (event: Partial<EventRecord>): EventRecord => {
     venueName: event.venueName ?? "",
     city: event.city ?? "",
     country: event.country ?? "",
+    prefecture: event.prefecture,
+    region: event.region,
+    latitude: typeof event.latitude === "number" ? event.latitude : undefined,
+    longitude: typeof event.longitude === "number" ? event.longitude : undefined,
+    isCustomVenue: event.isCustomVenue,
     ticketType: event.ticketType ?? "",
     seat: {
       gate: seat.gate ?? "",

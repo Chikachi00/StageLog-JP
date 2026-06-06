@@ -161,7 +161,7 @@ export const resources = {
         region: "Region",
         latitude: "Latitude",
         longitude: "Longitude",
-        seatMapBuiltInOnly: "Seat maps are available for built-in venues only.",
+        seatMapBuiltInOnly: "Seat map is only available for supported built-in venues",
       },
       seat: {
         map: "Seat map",
@@ -208,6 +208,7 @@ export const resources = {
         unavailableFuture: "Weather data is only available after the event date.",
         venueRequired: "Venue is required to fetch weather.",
         coordinatesRequired: "Venue coordinates are required to fetch weather.",
+        customVenueMissingCoordinates: "Custom venue lacks coordinates, weather cannot be fetched automatically",
         networkError: "Unable to fetch weather right now. Please check your network connection.",
         unreadable: "Weather service returned an unreadable response.",
         noHourly: "No hourly weather data was returned for this event.",
@@ -800,7 +801,7 @@ export const resources = {
         region: "地区",
         latitude: "纬度",
         longitude: "经度",
-        seatMapBuiltInOnly: "座位图仅支持内置场馆。",
+        seatMapBuiltInOnly: "只有支持的内置场馆可以显示座位图",
       },
       seat: {
         map: "座位图",
@@ -847,6 +848,7 @@ export const resources = {
         unavailableFuture: "活动日期之后才可获取天气数据。",
         venueRequired: "需要会场信息才能获取天气。",
         coordinatesRequired: "需要会场坐标才能获取天气。",
+        customVenueMissingCoordinates: "自定义场馆缺少经纬度，无法自动获取天气",
         networkError: "当前无法获取天气，请检查网络连接。",
         unreadable: "天气服务返回了无法读取的数据。",
         noHourly: "该日期没有返回小时级天气数据。",

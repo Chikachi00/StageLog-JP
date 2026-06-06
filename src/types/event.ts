@@ -49,6 +49,11 @@ export interface EventRecord {
   venueName: string;
   city: string;
   country: string;
+  prefecture?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+  isCustomVenue?: boolean;
   ticketType: string;
   seat: SeatInfo;
   imageUrl?: string;
@@ -65,6 +70,14 @@ export interface EventFormValues {
   date: string;
   startTime: string;
   venueId: string;
+  venueName: string;
+  city: string;
+  country: string;
+  prefecture?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+  isCustomVenue?: boolean;
   ticketType: string;
   seat: SeatInfo;
   imageUrl?: string;
