@@ -84,39 +84,154 @@ StageLog-JP/
 
 ##### `App.tsx`
 
-`App.tsx` 是当前项目的全局协调层，不只是普通页面组件。它把页面状态、用户状态、业务数据和 service 调用连接起来，并负责多个模块之间的联动。
+`App.tsx` 是 StageLog JP 当前最重的全局协调文件。它不是单纯的页面组件，而是连接 UI、cloud/local 数据源、表单状态、业务 workflow 和页面渲染的应用级 controller。随着 events、tickets、customVenues、backup、weather、image upload、draft/session 等功能逐步增加，`App.tsx` 成为了多个模块交汇的地方。
 
-它主要协调：
+###### 1. imports 和依赖连接
 
-- 页面 / tab 切换，例如参战记录、时间线、会场、统计、数据分析、票务、新增参战等视图。
-- cloud mode / local mode 的切换和状态管理。
-- Supabase Auth 用户状态和本地模式状态的协调。
-- events state：参战记录加载、新增、编辑、删除、导入、天气更新、图片更新。
-- ticketApplications state：票务抽选记录加载、新增、编辑、删除、`ticketGroupKey` 分组相关操作。
-- customVenues state：自定义场馆库加载、新增、编辑、删除，并传给 `VenueCombobox`、`EventForm` 和 `TicketApplicationForm`。
-- profile / settings：用户 profile、语言、主题、显示设置等状态。
-- backup import/export：把 events、tickets、profile/settings、customVenues 等传给 `BackupPanel` / `backupService`。
-- form preset 和跳转：例如从 ticket 创建 event、ticket round 编辑自动滚动、EventForm / TicketForm 的新增/编辑状态。
-- weather fetch：协调 event/form 中的坐标、built-in venues、customVenues 和 `weatherService`。
-- image upload：协调 `EventForm`、`storageService`、event `image_path` / `imageUrl`。
-- draft/session：配合 `EventForm` / `TicketApplicationForm` 保持浏览器切换、刷新、移动端后台后的表单状态。
-- 把 services 的返回结果统一写回 React state。
+`App.tsx` 顶部 imports 显示了它连接的模块范围：
 
-`App.tsx` 的典型数据流是：
+- components：`EventForm`、`EventList`、`FilterBar`、`Analytics`、`Header`、`BackupPanel`、`FloatingAddButton`、`MobileBottomNav`、`Statistics`、`TicketManager`、`Timeline`、`VenuesPage`。
+- context：`useAuth`、`useUserSettings`。
+- data：`createSampleEvents`、`venues`、`getVenueById`。
+- services：`cloudEventService`、`cloudTicketService`、`customVenueService`、`eventStorage`、`ticketStorage`、`backupService`、`draftStorage`、`storageService`、`weatherService`。
+- types：`EventRecord`、`EventFormValues`、`TicketApplication`、`TicketApplicationFormValues`、`StageLogBackup`、`CustomVenue`、`AppTheme`。
+- utils：`dateUtils`、`ticketUtils`、`venueSearchUtils`。
 
-```text
-UI 组件触发操作
-  ↓
-App.tsx handler
-  ↓
-根据 cloud/local mode 调用 Supabase service 或 localStorage fallback
-  ↓
-返回结果写回统一 state
-  ↓
-Timeline / Cards / Analytics / Backup 重新读取 state 渲染
-```
+这些 imports 本身就说明 `App.tsx` 是项目的模块汇合点。它不直接实现所有 UI，也不直接承担所有持久化细节；它负责把 UI、service 和数据模型连接起来。
 
-`App.tsx` 当前职责比较重，这是项目从单页应用持续演进形成的“应用协调层”。它的好处是方便协调 Event、Ticket、Venue、Backup、Weather、Auth 等模块之间的联动。未来如果继续扩大，可以考虑拆分为 `useEventsController`、`useTicketsController`、`useCustomVenuesController`、`useBackupController`、`useWeatherController` 和 route/view state controller，但这些目前只是可选重构方向，并不是已经实现的结构。
+###### 2. 顶部常量和 form session model
+
+组件函数外部定义了 `defaultFilters`、`EVENT_FORM_SESSION_KEY`、`TICKET_FORM_SESSION_KEY`、`EventFormSession`、`TicketFormSession`、`isBrowser`，以及创建、读取、保存 event/ticket form session 的 helper。
+
+这些逻辑放在 `App.tsx` 顶部，是因为 EventForm / TicketApplicationForm 的打开状态、编辑状态、source ticket 和浏览器生命周期恢复都需要和 App-level `activeView` 协调。它们不是正式业务记录，而是 UI session：保存“用户当前正在编辑哪个表单”，不是保存 event/ticket 本体。
+
+- `EventFormSession` 区分 `new` 和 `edit`；new session 可以带 `sourceTicketId`，用于从 ticket 创建 event。
+- `TicketFormSession` 区分 new ticket 和 edit ticket。
+- session key 存在 localStorage，用于刷新、切 tab、移动端后台后恢复表单入口。
+- session 和 `draftStorage` 配合，但不是同一个东西：session 记录表单打开状态，draft 记录表单字段内容。
+
+###### 3. 数据构造 helper：`createRecord` 和 `createTicketApplication`
+
+`createRecord` 负责把 `EventFormValues` 转成正式 `EventRecord`。它判断 `venueId` 是否属于内置场馆；内置场馆从 `venues` 数据取 name/city/country/prefecture/region/latitude/longitude；自定义场馆使用用户输入的 venueName/city/country，并构造或保留 `custom:` venue id。它还写入 `doorsOpenTime` / `startTime`、保留 imageUrl/imagePath、保留编辑中 event 的 `createdAt`、weather、imagePath 等旧信息，并在创建新记录时生成 `crypto.randomUUID()`。
+
+`createTicketApplication` 负责把 `TicketApplicationFormValues` 转成正式 `TicketApplication`。它处理 built-in venue 和 custom venue、eventTitle / artist / eventDate / platform / status / ticketType，并写入 Ticket Management V2 字段：`roundName`、`roundType`、`appliedQuantity`、`wonQuantity`、`paidQuantity`、`currency`、`displayCurrency`、`amountOriginal`、`exchangeRateToDisplay`、`amountDisplay`、`unitPriceOriginal`。它用 `normalizeTicketGroupKey` 生成或保留 `ticketGroupKey`，用 `getTicketAmountOriginal` / `getTicketAmountDisplay` 做金额 fallback，编辑时保留 `linkedEventId` 和 `createdAt`。
+
+这两个 helper 是 `App.tsx` 里非常关键的数据边界：组件收集的是表单字符串和 UI 状态，helper 输出的是应用内部统一数据模型。
+
+###### 4. import / backup / preset helper
+
+`App.tsx` 还定义了 `getUniqueSorted`、`getEventImportKey`、`getTicketImportKey`、`createTicketRoundPreset` 和 `getErrorMessage`。
+
+- `getEventImportKey` / `getTicketImportKey` 用于 backup 或 local-to-cloud import 的去重。
+- `createTicketRoundPreset` 用于“新增这一场的抽选轮次”，从已有 ticket application 提取公演级字段，例如 `ticketGroupKey`、eventTitle、artist、eventDate、venue snapshot、displayCurrency。
+- `getErrorMessage` 从 Error 或 Supabase-style error object 中提取 message/details/hint/code，避免错误信息被吞掉。
+
+###### 5. App 内部 state 分组
+
+`App.tsx` 的 `useState` 可以按职责分为几组：
+
+- 业务数据 state：`events`、`ticketApplications`、`customVenues`。
+- loading / error state：`eventsLoading`、`ticketsLoading`、`customVenuesLoading`、`customVenueError`、`cloudError`、`isSavingEvent`、`fetchingWeatherId`、`weatherErrors`。
+- cloud/local import state：`localEventCount`、`localTicketCount`、`isImportingLocalEvents`、`isImportingLocalTickets`。
+- view / navigation state：`activeView`、`selectedVenueId`、`filters`、`notice`。
+- EventForm state：`eventFormSession`、`editingEvent`、`editingEventId`、`eventFormPreset`、`eventFormFocusRequestId`、`eventFormRef`。
+- TicketForm state：`editingApplication`、`ticketFormSession`、`editingTicketId`、`ticketRoundPreset`。
+
+这些 state 让 `App.tsx` 成为全局协调层。子组件大多是受控或半受控的业务 UI，核心数据仍从 App state 传入。
+
+###### 6. derived data：filter options 和 editing record
+
+`App.tsx` 用 `useMemo` 和普通派生变量计算不会单独存 state 的数据，例如 `filterOptions`、`filteredEvents`、`eventSourceTicketId`、`currentEditingEvent`、`currentEditingApplication`、`isEditingEventLoading`、`isEditingEventMissing`、`isEditingTicketLoading`、`isEditingTicketMissing`。
+
+这些值依赖 `events`、`ticketApplications`、`filters`、`editingEventId`、`editingTicketId` 等源数据。它们不应该单独长期存 state，否则容易和源数组不同步。
+
+###### 7. refresh / load：cloud/local 双模式加载
+
+`refreshEvents`、`refreshTicketApplications`、`refreshCustomVenues` 是 cloud/local 双模式在 `App.tsx` 中最核心的读取入口。
+
+- cloud mode 下分别调用 Supabase service：`getCloudEvents`、`getCloudTicketApplications`、`listCustomVenues`。
+- local mode 下读取 localStorage fallback：`getLocalEvents`、`getTicketApplications`、`getLocalCustomVenues`。
+- events cloud load 会为带 `imagePath` 的记录请求 signed URL。
+- 加载时更新 loading/error state。
+- `localEventCount` / `localTicketCount` 用于提示用户可以把本地数据导入云端。
+- customVenues cloud mode 走 `customVenueService`，local mode 走 `stagelog-custom-venues` fallback。
+
+###### 8. useEffect：同步、恢复和浏览器生命周期
+
+`App.tsx` 的 effects 主要处理几类同步：
+
+- 根据 auth / cloud mode 刷新 events、tickets、customVenues。
+- 同步 `eventFormSessionRef` / `ticketFormSessionRef`。
+- 保存 EventForm / TicketForm session 到 localStorage。
+- 监听 `visibilitychange`、`pagehide`、`beforeunload`、`pageshow`，避免表单入口状态丢失。
+- 页面恢复时，如果存在 stored EventFormSession，就切到 `add` view；如果存在 TicketFormSession，就切到 `tickets` view。
+
+这些 effect 是解决浏览器切换页面、移动端后台、刷新后表单入口变空的关键部分。字段内容本身由 `draftStorage` 和表单组件负责，App session 负责“哪个表单应该打开”。
+
+###### 9. Event workflow handlers
+
+event 相关 handler 包括 `handleNavigate`、`handleSaveEvent`、`handleEdit`、`handleDelete`、`handleLoadSampleData`、`handleFetchWeather`、`handleViewVenueMap`。
+
+`handleSaveEvent` 的流程是：先 `validateEventValues`，再调用 `createRecord` 生成 `EventRecord`；cloud mode 下调用 `addCloudEvent` / `updateCloudEvent`，local mode 下调用 `addLocalEvent` / `updateLocalEvent`；图片删除和上传通过 `storageService` 额外处理；保存成功后更新 events state。如果 event 来源于 ticket 且 source ticket 没有 `linkedEventId`，保存后会尝试把 ticket 关联回新 event。最后清理 draft/session，刷新 events，必要时刷新 tickets，并回到 events view。
+
+`handleFetchWeather` 的流程是：先通过 `resolveVenueCoordinates` 获取坐标，坐标来源可能是 event snapshot、built-in venues、customVenues id、customVenues name+city 或 recent inferred venues；然后调用 `fetchWeatherForEvent`。`weatherService` 只负责请求天气，不负责查 venue。成功后 weather snapshot 写回 event，并按 cloud/local mode 更新 Supabase 或 localStorage。
+
+###### 10. Ticket workflow handlers
+
+ticket 相关 handler 包括 `handleSaveTicketApplication`、`handleEditTicketApplication`、`handleStartNewTicketApplication`、`handleAddTicketRoundToGroup`、`handleCancelTicketEditing`、`handleDeleteTicketApplication`、`handleCreateEventFromApplication`。
+
+`handleSaveTicketApplication` 调 `createTicketApplication`，再按 cloud/local mode 调 `addCloudTicketApplication` / `updateCloudTicketApplication` 或 local ticket storage。保存并新增下一轮时，它通过 `createTicketRoundPreset` 保留公演级字段和 `ticketGroupKey`，同时让 TicketForm 重置轮次字段。
+
+`handleEditTicketApplication` 创建 edit ticket session，设置 editing application/id，并切到 tickets view。`handleAddTicketRoundToGroup` 从已有 group preset 打开 new ticket session。`handleCreateEventFromApplication` 把 ticket 信息转成 `EventFormPreset`，切换到 add view，预填 EventForm，并在已有 `linkedEventId` 时避免重复创建 event。
+
+###### 11. CustomVenue workflow handlers
+
+custom venue 相关 handler 包括 `handleCreateCustomVenue`、`handleUpdateCustomVenue`、`handleDeleteCustomVenue`。
+
+- cloud mode 下调用 `customVenueService` 的 Supabase CRUD。
+- local mode 下使用 `stagelog-custom-venues` localStorage fallback。
+- create/update 成功后立即更新 `customVenues` state，不依赖刷新页面。
+- update 会保留 service 层清洗后的合法 latitude / longitude / capacity。
+- delete 只删除 custom venue library 条目，不删除历史 events/tickets。
+- Event/Ticket 通过 venue snapshot 保证历史显示安全。
+- `customVenues` state 会传给 `VenueCombobox`、`EventForm`、`TicketApplicationForm` 和 `VenuesPage` / `CustomVenuesManager`。
+
+###### 12. Backup import/export 和 local-to-cloud import
+
+`handleImportLocalDataToCloud` 和 `handleImportLocalTicketsToCloud` 用于把 localStorage events/tickets 导入 Supabase。它们用 import key 去重，避免重复 event/ticket。
+
+`handleImportBackup` 支持 local/cloud backup import。cloud import 不能使用 backup 里的旧 `userId`，必须使用当前登录用户；local replace 会重写 localStorage；local merge 会生成缺失或冲突的 id。导入时会保留 customVenues、`ticketGroupKey`、venue snapshot、`doorsOpenTime` 和 settings。App 负责把 `backupService` 归一化后的结果写回 events、ticketApplications、customVenues、profile/settings。
+
+###### 13. render tree：state 和 handlers 如何传给页面组件
+
+`App.tsx` 的 return 部分不是复杂 UI 细节本身，而是把统一 state 和 handlers 分发给页面组件：
+
+- `Header` 接收 `activeView`、cloud/local 状态、theme/language、profile、events、tickets、customVenues 和 import/backup handlers。
+- `EventList` 接收 `filteredEvents`、customVenues、weather 状态，以及 edit/delete/weather/load sample/view venue handlers。
+- `Timeline` 接收 events 和 edit handler。
+- `VenuesPage` 接收 venues 相关数据、events、ticketApplications、customVenues 和 custom venue CRUD handlers。
+- `Statistics` / `Analytics` 接收 events、ticketApplications、venues。
+- `TicketManager` 接收 ticketApplications、events、venues、customVenues、editingApplication、roundPreset 和 ticket handlers。
+- `EventForm` 只在 `activeView === "add"` 且编辑记录可用时渲染，接收 editingEvent、eventPreset、customVenues、draftKeyOverride、focusRequestId、onCreateCustomVenue、onSave、onCancelEditing 等。
+- `MobileBottomNav`、`FloatingAddButton` 等导航组件围绕 `activeView` 工作。
+
+###### 14. 为什么 `App.tsx` 变重，以及未来拆分方向
+
+`App.tsx` 变重不是因为某一个功能写坏，而是因为 StageLog JP 从简单 event list 演进成包含 cloud/local、Ticket V2、Custom Venues B-lite、Backup、Weather、Image、Timeline、Analytics 的单页应用。很多 workflow 横跨多个模块，所以被集中到 `App.tsx` 协调。
+
+当前集中在 `App.tsx` 的优点是：单页应用状态流清楚；Event/Ticket/Venue/Backup/Weather/Auth 的交互点在一个地方；适合快速迭代和排查跨模块 bug。缺点是：文件接近 2000 行，可读性下降；handler 很多，新功能容易继续堆到 `App.tsx`；不利于单元测试每个 workflow；未来重构成本会上升。
+
+未来可选拆分方向包括：
+
+- `useEventsController`：events load/save/delete/weather/image。
+- `useTicketsController`：ticket save/edit/delete/group/preset。
+- `useCustomVenuesController`：custom venue cloud/local CRUD。
+- `useBackupController`：backup import/export/local-to-cloud import。
+- `useFormSessionController`：event/ticket session 和 browser lifecycle。
+- `useViewController`：activeView、navigation、scroll/focus。
+- `useWeatherController`：coordinate resolution + fetch + update。
+
+这些 hook/controller 目前不是已实现结构，只是未来重构方向。当前文档是在解释现状，不是声称已经完成重构。
 
 ##### `index.css`
 
@@ -737,39 +852,150 @@ Its responsibility should stay small: start React, attach global providers, and 
 
 ##### `App.tsx`
 
-`App.tsx` is the current application coordination layer, not just a normal UI component. It connects view state, user state, business data, and service calls across modules.
+`App.tsx` is the heaviest coordination file in the current codebase. It is not just a page component; it acts as an application-level controller connecting UI, cloud/local data sources, form state, business workflows, and page rendering. As events, tickets, customVenues, backup, weather, image upload, and draft/session behavior were added, `App.tsx` became the place where these modules meet.
 
-It coordinates:
+###### 1. Imports and Dependency Boundaries
 
-- view/tab switching for events, timeline, venues, statistics, analytics, tickets, and new-event flows,
-- cloud mode / local mode state,
-- Supabase Auth user state and local-mode state,
-- events state: loading, create, edit, delete, import, weather updates, and image updates,
-- ticketApplications state: loading, create, edit, delete, and `ticketGroupKey` grouping workflows,
-- customVenues state: loading, create, edit, delete, and passing custom venues into `VenueCombobox`, `EventForm`, and `TicketApplicationForm`,
-- profile / settings state such as profile data, language, theme, and display settings,
-- backup import/export by passing events, tickets, profile/settings, and customVenues into `BackupPanel` / `backupService`,
-- form presets and navigation, such as create-event-from-ticket, ticket round edit scrolling, and EventForm / TicketForm new/edit state,
-- weather fetch coordination across event/form coordinates, built-in venues, customVenues, and `weatherService`,
-- image upload coordination between `EventForm`, `storageService`, event `image_path`, and `imageUrl`,
-- draft/session behavior for `EventForm` and `TicketApplicationForm` across refresh, tab switching, and mobile backgrounding,
-- writing service return values back into shared React state.
+The imports at the top of `App.tsx` show the file's coordination scope:
 
-The typical data flow is:
+- components: `EventForm`, `EventList`, `FilterBar`, `Analytics`, `Header`, `BackupPanel`, `FloatingAddButton`, `MobileBottomNav`, `Statistics`, `TicketManager`, `Timeline`, `VenuesPage`.
+- context: `useAuth`, `useUserSettings`.
+- data: `createSampleEvents`, `venues`, `getVenueById`.
+- services: cloud event/ticket services, `customVenueService`, event/ticket local storage, `backupService`, `draftStorage`, `storageService`, and `weatherService`.
+- types: event, ticket, backup, custom venue, and theme models.
+- utils: date, ticket, and venue search helpers.
 
-```text
-UI component action
-  ↓
-App.tsx handler
-  ↓
-Supabase service or localStorage fallback, depending on cloud/local mode
-  ↓
-Returned record is written back into shared state
-  ↓
-Timeline / Cards / Analytics / Backup re-render from that state
-```
+These imports make `App.tsx` the module junction. It does not implement every UI and it is not the persistence layer itself; it wires UI components, services, and shared data models together.
 
-`App.tsx` is heavy because the app evolved as a single-page application with many cross-module workflows. Keeping this coordination in one place makes Event, Ticket, Venue, Backup, Weather, and Auth interactions easier to reason about. If the app grows further, optional refactoring targets include `useEventsController`, `useTicketsController`, `useCustomVenuesController`, `useBackupController`, `useWeatherController`, and a route/view state controller. Those controllers are future options, not current implemented modules.
+###### 2. Top-Level Constants and Form Session Model
+
+Outside the component function, `App.tsx` defines `defaultFilters`, event/ticket form session keys, `EventFormSession`, `TicketFormSession`, `isBrowser`, and helpers for creating, reading, and saving form sessions.
+
+These are App-level concerns because EventForm / TicketApplicationForm open state, edit state, source-ticket state, and browser lifecycle recovery all need to coordinate with `activeView`. They are UI sessions, not official business records. A session stores which form is currently open; a draft stores field values.
+
+- `EventFormSession` distinguishes new and edit mode. New event sessions can include `sourceTicketId` for create-event-from-ticket.
+- `TicketFormSession` distinguishes new ticket and edit ticket mode.
+- Sessions are stored in localStorage so refreshes, tab switches, and mobile backgrounding can recover the form entry point.
+- Sessions work with `draftStorage`, but they are not the same data.
+
+###### 3. Record Factory Helpers: `createRecord` and `createTicketApplication`
+
+`createRecord` converts `EventFormValues` into an `EventRecord`. It resolves built-in venue data from `venues`, keeps custom venue snapshots from form input, builds or preserves `custom:` venue ids, writes `doorsOpenTime` / `startTime`, preserves image fields, carries over existing weather and `createdAt` during edits, and generates `crypto.randomUUID()` for new records.
+
+`createTicketApplication` converts `TicketApplicationFormValues` into a `TicketApplication`. It handles built-in/custom venues, event title, artist, date, platform, status, ticket type, and Ticket Management V2 fields such as `roundName`, `roundType`, `appliedQuantity`, `wonQuantity`, `paidQuantity`, `currency`, `displayCurrency`, `amountOriginal`, `exchangeRateToDisplay`, `amountDisplay`, and `unitPriceOriginal`. It generates or preserves `ticketGroupKey` through `normalizeTicketGroupKey`, uses amount fallback helpers, and preserves `linkedEventId` / `createdAt` while editing.
+
+These helpers are important data boundaries. Components collect form strings and UI state; these helpers produce the unified application models.
+
+###### 4. Import / Backup / Preset Helpers
+
+`App.tsx` also defines `getUniqueSorted`, `getEventImportKey`, `getTicketImportKey`, `createTicketRoundPreset`, and `getErrorMessage`.
+
+- Import keys support backup import and local-to-cloud deduplication.
+- `createTicketRoundPreset` extracts performance-level fields from a saved ticket application for "add another lottery round", including `ticketGroupKey`, title, artist, event date, venue snapshot, coordinates, and display currency.
+- `getErrorMessage` preserves Error and Supabase-style message/details/hint/code information.
+
+###### 5. App State Groups
+
+The internal state can be grouped by responsibility:
+
+- business data: `events`, `ticketApplications`, `customVenues`;
+- loading/error state: `eventsLoading`, `ticketsLoading`, `customVenuesLoading`, `customVenueError`, `cloudError`, `isSavingEvent`, `fetchingWeatherId`, `weatherErrors`;
+- local-to-cloud import state: `localEventCount`, `localTicketCount`, `isImportingLocalEvents`, `isImportingLocalTickets`;
+- view/navigation state: `activeView`, `selectedVenueId`, `filters`, `notice`;
+- EventForm state: `eventFormSession`, `editingEvent`, `editingEventId`, `eventFormPreset`, `eventFormFocusRequestId`, `eventFormRef`;
+- TicketForm state: `editingApplication`, `ticketFormSession`, `editingTicketId`, `ticketRoundPreset`.
+
+Most child components receive data from this shared App state and report user actions back through handlers.
+
+###### 6. Derived Data
+
+`App.tsx` uses derived values instead of storing redundant state where possible. Examples include `filterOptions`, `filteredEvents`, `eventSourceTicketId`, `currentEditingEvent`, `currentEditingApplication`, and loading/missing flags for edit forms.
+
+This keeps the source of truth in `events`, `ticketApplications`, `customVenues`, filters, and editing ids.
+
+###### 7. Refresh / Load: Cloud and Local Mode
+
+`refreshEvents`, `refreshTicketApplications`, and `refreshCustomVenues` are the central read paths for cloud/local mode.
+
+- Cloud mode calls Supabase services: `getCloudEvents`, `getCloudTicketApplications`, and `listCustomVenues`.
+- Local mode reads localStorage fallbacks: `getLocalEvents`, `getTicketApplications`, and `getLocalCustomVenues`.
+- Event cloud loading also resolves signed URLs for records with `imagePath`.
+- Loading and error state are updated in these refresh paths.
+- `localEventCount` and `localTicketCount` allow the UI to offer local-to-cloud import.
+- customVenues use `customVenueService` in cloud mode and `stagelog-custom-venues` local fallback in local mode.
+
+###### 8. Effects: Synchronization and Browser Lifecycle
+
+The effects in `App.tsx` handle:
+
+- refreshing events, tickets, and customVenues when auth/cloud mode changes,
+- keeping event/ticket session refs synchronized,
+- saving form sessions into localStorage,
+- listening for `visibilitychange`, `pagehide`, `beforeunload`, and `pageshow`,
+- restoring the add view or tickets view when a stored form session exists.
+
+These effects solve the browser lifecycle problem where refreshes, tab switches, or mobile backgrounding could otherwise lose the form entry point. Field values themselves are handled by form drafts; App sessions restore which form should be open.
+
+###### 9. Event Workflow Handlers
+
+Event handlers include `handleNavigate`, `handleSaveEvent`, `handleEdit`, `handleDelete`, `handleLoadSampleData`, `handleFetchWeather`, and `handleViewVenueMap`.
+
+`handleSaveEvent` validates form values, calls `createRecord`, writes through cloud or local event services, handles image deletion/upload through `storageService`, updates event state, links a source ticket back through `linkedEventId` when appropriate, clears draft/session state, refreshes data, and returns to the events view.
+
+`handleFetchWeather` resolves coordinates before calling `weatherService`. Coordinate sources include the event snapshot, built-in venues, customVenues by id, customVenues by name + city, and recent inferred custom venues. The weather service only fetches weather; it does not resolve venue coordinates.
+
+###### 10. Ticket Workflow Handlers
+
+Ticket handlers include `handleSaveTicketApplication`, `handleEditTicketApplication`, `handleStartNewTicketApplication`, `handleAddTicketRoundToGroup`, `handleCancelTicketEditing`, `handleDeleteTicketApplication`, and `handleCreateEventFromApplication`.
+
+`handleSaveTicketApplication` calls `createTicketApplication`, writes through cloud or local ticket services, refreshes ticket state, clears drafts, and supports save-and-add-next-round by creating a new ticket session with a `TicketRoundPreset`.
+
+`handleEditTicketApplication` creates an edit ticket session and switches to the tickets view. `handleAddTicketRoundToGroup` opens a new ticket session from an existing group preset. `handleCreateEventFromApplication` converts ticket data into an `EventFormPreset`, switches to the add view, pre-fills EventForm, and avoids duplicate event creation when `linkedEventId` already exists.
+
+###### 11. Custom Venue Workflow Handlers
+
+Custom venue handlers include `handleCreateCustomVenue`, `handleUpdateCustomVenue`, and `handleDeleteCustomVenue`.
+
+Cloud mode calls Supabase-backed customVenueService functions. Local mode uses the `stagelog-custom-venues` fallback. Create/update immediately update App `customVenues` state instead of waiting for a page refresh. Delete removes only the custom venue library record; historical events/tickets remain readable through venue snapshots. The same state is passed into VenueCombobox, EventForm, TicketApplicationForm, and VenuesPage / CustomVenuesManager.
+
+###### 12. Backup Import/Export and Local-to-Cloud Import
+
+`handleImportLocalDataToCloud` and `handleImportLocalTicketsToCloud` import localStorage records into Supabase with deduplication.
+
+`handleImportBackup` supports local and cloud backup import. Cloud import uses the current logged-in user, not backup `userId` values. Local replace rewrites localStorage; local merge preserves existing records and generates replacement ids for conflicts. The import preserves customVenues, `ticketGroupKey`, venue snapshots, `doorsOpenTime`, and settings, then writes normalized results back into App state.
+
+###### 13. Render Tree and Props Wiring
+
+The return tree distributes shared state and handlers to page components:
+
+- `Header` receives active view, mode, theme/language, profile, events, tickets, customVenues, and import/backup handlers.
+- `EventList` receives filtered events, customVenues, weather state, and event action handlers.
+- `Timeline` receives events and edit handling.
+- `VenuesPage` receives venues data, events, ticketApplications, customVenues, and custom venue CRUD handlers.
+- `Statistics` / `Analytics` receive events, ticketApplications, and venues.
+- `TicketManager` receives ticketApplications, events, venues, customVenues, editingApplication, roundPreset, and ticket workflow handlers.
+- `EventForm` renders only for the add/edit event view and receives editingEvent, eventPreset, customVenues, draft key override, focus request id, create-custom-venue, save, and cancel handlers.
+- Mobile navigation components work around `activeView`.
+
+The render tree is primarily props wiring, not the place where detailed UI behavior is implemented.
+
+###### 14. Why `App.tsx` Is Heavy and Future Refactoring Options
+
+`App.tsx` became heavy because StageLog JP evolved from a simple event list into a single-page app with cloud/local mode, Ticket Management V2, Custom Venues B-lite, Backup, Weather, Image upload, Timeline, and Analytics. Many workflows cross module boundaries, so they are coordinated here.
+
+The current benefit is that the single-page state flow is explicit and cross-module bugs can be traced in one file. The cost is that a near-2000-line file is harder to read, harder to test in isolation, and easier to keep expanding.
+
+Possible future extraction points include:
+
+- `useEventsController` for event load/save/delete/weather/image;
+- `useTicketsController` for ticket save/edit/delete/group/preset;
+- `useCustomVenuesController` for custom venue cloud/local CRUD;
+- `useBackupController` for backup import/export and local-to-cloud import;
+- `useFormSessionController` for event/ticket session and browser lifecycle handling;
+- `useViewController` for active view, navigation, scroll, and focus;
+- `useWeatherController` for coordinate resolution, fetch, and event update.
+
+These hooks/controllers are future refactoring options, not implemented structure.
 
 ##### `index.css`
 
