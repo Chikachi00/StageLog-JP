@@ -31,10 +31,13 @@ import {
 } from "./services/cloudTicketService";
 import {
   createCustomVenue,
+  deleteCustomVenue,
   getLocalCustomVenues,
   listCustomVenues,
   saveLocalCustomVenues,
+  updateCustomVenue,
   type CustomVenueInput,
+  type CustomVenueUpdate,
 } from "./services/customVenueService";
 import {
   addEvent as addLocalEvent,
@@ -1362,6 +1365,42 @@ function App() {
     }
   };
 
+  const handleUpdateCustomVenue = async (id: string, updates: CustomVenueUpdate) => {
+    try {
+      const savedVenue = await updateCustomVenue(id, updates, isCloudMode && user ? user.id : undefined);
+      setCustomVenues((current) =>
+        current
+          .map((venue) => (venue.id === id ? savedVenue : venue))
+          .sort(
+            (first, second) =>
+              second.updatedAt.localeCompare(first.updatedAt) || first.name.localeCompare(second.name),
+          ),
+      );
+      setCustomVenueError("");
+      setNotice(t("customVenues.updated"));
+      return savedVenue;
+    } catch (error) {
+      const message = getErrorMessage(error, t("customVenues.saveFailed"));
+      setCustomVenueError(message);
+      setNotice(message);
+      throw error instanceof Error ? error : new Error(message);
+    }
+  };
+
+  const handleDeleteCustomVenue = async (id: string) => {
+    try {
+      await deleteCustomVenue(id, isCloudMode && user ? user.id : undefined);
+      setCustomVenues((current) => current.filter((venue) => venue.id !== id));
+      setCustomVenueError("");
+      setNotice(t("customVenues.deleted"));
+    } catch (error) {
+      const message = getErrorMessage(error, t("customVenues.deleteFailed"));
+      setCustomVenueError(message);
+      setNotice(message);
+      throw error instanceof Error ? error : new Error(message);
+    }
+  };
+
   const handleImportBackup = async (
     backup: StageLogBackup,
     importMode: BackupImportMode,
@@ -1693,7 +1732,18 @@ function App() {
         {activeView === "timeline" ? <Timeline events={events} onEdit={handleEdit} /> : null}
 
         {activeView === "venues" ? (
-          <VenuesPage events={events} selectedVenueId={selectedVenueId} onEdit={handleEdit} />
+          <VenuesPage
+            customVenueError={customVenueError}
+            customVenues={customVenues}
+            customVenuesLoading={customVenuesLoading}
+            events={events}
+            selectedVenueId={selectedVenueId}
+            ticketApplications={ticketApplications}
+            onCreateCustomVenue={handleCreateCustomVenue}
+            onDeleteCustomVenue={handleDeleteCustomVenue}
+            onEdit={handleEdit}
+            onUpdateCustomVenue={handleUpdateCustomVenue}
+          />
         ) : null}
 
         {activeView === "statistics" ? (

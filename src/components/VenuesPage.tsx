@@ -1,6 +1,7 @@
 import { MapPinned, Pencil, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { CustomVenueInput, CustomVenueUpdate } from "../services/customVenueService";
 import {
   compareVenues,
   getVenueRegion,
@@ -10,6 +11,8 @@ import {
   venues,
 } from "../data/venues";
 import type { EventRecord, Venue } from "../types/event";
+import type { TicketApplication } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 import { formatDate, sortByDateDesc } from "../utils/dateUtils";
 import {
   formatSeatText,
@@ -18,17 +21,36 @@ import {
 } from "../utils/seatMapUtils";
 import { VenueMap } from "./VenueMap";
 import { VenueThumbnail } from "./VenueThumbnail";
+import { CustomVenuesManager } from "./CustomVenuesManager";
 
 interface VenuesPageProps {
   events: EventRecord[];
+  ticketApplications: TicketApplication[];
+  customVenues: CustomVenue[];
+  customVenuesLoading?: boolean;
+  customVenueError?: string | null;
   selectedVenueId?: string;
   onEdit: (event: EventRecord) => void;
+  onCreateCustomVenue: (input: CustomVenueInput) => Promise<CustomVenue> | CustomVenue;
+  onUpdateCustomVenue: (id: string, updates: CustomVenueUpdate) => Promise<CustomVenue> | CustomVenue;
+  onDeleteCustomVenue: (id: string) => Promise<void> | void;
 }
 
 const isVenueCategory = (category: Venue["category"]): category is NonNullable<Venue["category"]> =>
   Boolean(category);
 
-export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps) {
+export function VenuesPage({
+  events,
+  ticketApplications,
+  customVenues,
+  customVenuesLoading = false,
+  customVenueError,
+  selectedVenueId,
+  onEdit,
+  onCreateCustomVenue,
+  onUpdateCustomVenue,
+  onDeleteCustomVenue,
+}: VenuesPageProps) {
   const { t } = useTranslation();
   const [activeVenueId, setActiveVenueId] = useState(selectedVenueId ?? venues[0]?.id ?? "");
   const [search, setSearch] = useState("");
@@ -128,6 +150,17 @@ export function VenuesPage({ events, selectedVenueId, onEdit }: VenuesPageProps)
           {t("venues.venueCount", { count: filteredVenues.length, total: venues.length })}
         </span>
       </div>
+
+      <CustomVenuesManager
+        customVenueError={customVenueError}
+        customVenues={customVenues}
+        customVenuesLoading={customVenuesLoading}
+        events={events}
+        ticketApplications={ticketApplications}
+        onCreateCustomVenue={onCreateCustomVenue}
+        onDeleteCustomVenue={onDeleteCustomVenue}
+        onUpdateCustomVenue={onUpdateCustomVenue}
+      />
 
       <div className="venue-filters">
         <label className="search-field">
