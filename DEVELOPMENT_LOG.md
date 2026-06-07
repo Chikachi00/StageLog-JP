@@ -12,17 +12,62 @@ This document is a bilingual development retrospective for StageLog JP. It cover
 
 ### 0. 项目结构解读
 
+```text
+StageLog-JP/
+├── src/
+│   ├── components/
+│   ├── context/
+│   ├── data/
+│   ├── i18n/
+│   ├── lib/
+│   ├── pages/
+│   ├── services/
+│   ├── types/
+│   ├── utils/
+│   ├── App.tsx
+│   ├── main.tsx
+│   ├── index.css
+│   └── vite-env.d.ts
+├── public/
+│   ├── venue-maps/
+│   └── venue-thumbnails/
+├── scripts/
+│   └── generateVenueThumbnails.mjs
+├── supabase/
+│   └── sql/
+│       ├── checks/
+│       ├── README.md
+│       ├── 01_profiles_and_user_settings.sql
+│       ├── 02_events_core.sql
+│       ├── 03_event_images_storage.sql
+│       ├── 04_ticket_applications_core.sql
+│       ├── 05_ticket_model_v2.sql
+│       ├── 06_custom_venues.sql
+│       └── 07_events_doors_open_time.sql
+├── README.md
+├── README.zh-CN.md
+├── DEVELOPMENT_LOG.md
+├── VERIFICATION.md
+├── SUPABASE_SETUP.md
+├── package.json
+├── package-lock.json
+├── vite.config.ts
+└── tsconfig.json
+```
+
 这一节用于解释 StageLog JP 仓库的主要目录和文件如何协作。它不是完整文件树，而是从职责边界和数据流角度说明项目结构。
 
 #### 0.1 顶层结构
 
 - `README.md`：项目展示页和本地运行 / Supabase 配置入口，面向 GitHub 读者和未来维护者。
+- `README.zh-CN.md`：中文 README 入口，用于中文读者快速查看项目说明。
 - `DEVELOPMENT_LOG.md`：开发过程复盘，记录产品阶段、关键 bug、技术取舍、架构演进和已知限制。
 - `VERIFICATION.md`：构建、回归检查和手动验证记录，特别用于记录 cloud/local mode、Supabase SQL、RLS、表单、票务、Analytics、Backup 和移动端检查。
 - `SUPABASE_SETUP.md`：Supabase 配置说明，包括 Auth、环境变量、SQL、Storage 和云端同步相关事项。
 - `package.json` / `package-lock.json`：项目依赖和脚本。当前主要脚本包括 `dev`、`build`、`preview`、`typecheck` 和 venue thumbnail 生成脚本。
 - `vite.config.ts`：Vite 构建配置。
-- `tsconfig.json`、`tsconfig.app.json`、`tsconfig.node.json`：TypeScript 编译配置。
+- `tsconfig.json`：TypeScript 编译配置。
+- `scripts/`：辅助脚本目录，目前包含 venue thumbnail 生成脚本。
 - `public/`：静态资源目录，包括 venue maps 和 venue thumbnails 等可直接由前端引用的资源。
 - `supabase/sql/`：Supabase schema migration 和检查脚本目录。这里是数据库结构记录，不是运行时代码。
 - `src/`：React + TypeScript 前端应用主体。
@@ -566,17 +611,62 @@ This document summarizes the StageLog JP development process by product and engi
 
 ### 0. Project Structure Guide
 
+```text
+StageLog-JP/
+├── src/
+│   ├── components/
+│   ├── context/
+│   ├── data/
+│   ├── i18n/
+│   ├── lib/
+│   ├── pages/
+│   ├── services/
+│   ├── types/
+│   ├── utils/
+│   ├── App.tsx
+│   ├── main.tsx
+│   ├── index.css
+│   └── vite-env.d.ts
+├── public/
+│   ├── venue-maps/
+│   └── venue-thumbnails/
+├── scripts/
+│   └── generateVenueThumbnails.mjs
+├── supabase/
+│   └── sql/
+│       ├── checks/
+│       ├── README.md
+│       ├── 01_profiles_and_user_settings.sql
+│       ├── 02_events_core.sql
+│       ├── 03_event_images_storage.sql
+│       ├── 04_ticket_applications_core.sql
+│       ├── 05_ticket_model_v2.sql
+│       ├── 06_custom_venues.sql
+│       └── 07_events_doors_open_time.sql
+├── README.md
+├── README.zh-CN.md
+├── DEVELOPMENT_LOG.md
+├── VERIFICATION.md
+├── SUPABASE_SETUP.md
+├── package.json
+├── package-lock.json
+├── vite.config.ts
+└── tsconfig.json
+```
+
 This section explains how the main folders and files in StageLog JP relate to each other. It is not meant to be a complete file tree; it focuses on responsibilities, boundaries, and data flow.
 
 #### 0.1 Top-Level Structure
 
 - `README.md`: project overview, local setup, and Supabase setup entry point for GitHub readers and future maintainers.
+- `README.zh-CN.md`: Chinese README entry point for Chinese readers.
 - `DEVELOPMENT_LOG.md`: development retrospective covering product phases, technical decisions, major bugs, architecture evolution, and limitations.
 - `VERIFICATION.md`: build, regression, and manual verification notes for cloud/local mode, Supabase SQL, RLS, forms, tickets, Analytics, Backup, and mobile layout.
 - `SUPABASE_SETUP.md`: Supabase configuration notes for Auth, environment variables, SQL, Storage, and cloud sync.
 - `package.json` / `package-lock.json`: dependencies and scripts. The main scripts are `dev`, `build`, `preview`, `typecheck`, and the venue thumbnail generator.
 - `vite.config.ts`: Vite build configuration.
-- `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`: TypeScript compiler configuration.
+- `tsconfig.json`: TypeScript compiler configuration.
+- `scripts/`: helper scripts, currently including the venue thumbnail generator.
 - `public/`: static assets such as venue maps and venue thumbnails.
 - `supabase/sql/`: Supabase schema migrations and read-only check scripts.
 - `src/`: main React + TypeScript application code.
