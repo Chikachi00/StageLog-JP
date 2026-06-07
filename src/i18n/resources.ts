@@ -367,6 +367,8 @@ export const resources = {
         title: "Timeline",
         emptyTitle: "No timeline records",
         emptyDescription: "Add events to build your live memory timeline.",
+        upcoming: "Upcoming",
+        completed: "Completed",
       },
       venues: {
         emptyTitle: "No venue maps yet",
@@ -1056,6 +1058,8 @@ export const resources = {
         title: "时间线",
         emptyTitle: "暂无时间线记录",
         emptyDescription: "新增参战记录后，这里会生成你的 Live 记忆时间线。",
+        upcoming: "予定",
+        completed: "已完成",
       },
       venues: {
         emptyTitle: "暂无会场地图",

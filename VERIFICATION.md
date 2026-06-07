@@ -17,6 +17,17 @@ Verification date: 2026-06-07
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## Timeline UI V1 Polish
+
+- Timeline visual layout: Timeline now uses year headers, a date column, timeline nodes, vertical connector lines, and timeline-specific event cards.
+- Grouping/sorting: the existing year grouping and `sortByDateDesc` ordering are unchanged.
+- Doors/start display: Timeline entries show doors-open and show-start times as separate badges, using normalized `HH:mm` display for values such as `16:00:00`.
+- Weather display: Timeline weather appears as a compact badge only when weather data exists, avoiding `undefined` / `null` output.
+- Status display: Timeline entries calculate lightweight UI-only status badges from `event.date`: upcoming events show `Upcoming` / `予定`, and completed events show `Completed` / `已完成`.
+- Responsive check: Timeline CSS uses timeline-specific classes, mobile single-column rules, long-text wrapping, and bottom spacing so cards do not overflow or sit under bottom navigation.
+- Runtime smoke check: local Vite dev server returned HTTP 200. In-app browser automation was unavailable in this session, so desktop/mobile visual screenshots still require manual verification.
+- Regression scope: this polish does not modify Supabase schema, EventForm business logic, Ticket Management V2, Analytics, Backup, Custom Venues, or Recharts rendering.
+
 ## Event Doors Open Time
 
 - SQL file: added `supabase/sql/06_events_doors_open_time.sql`.
