@@ -1,11 +1,13 @@
 import { Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
+import type { CustomVenue } from "../types/venue";
 import { getSeatMapByVenueId } from "../utils/seatMapUtils";
 import { TicketCard } from "./TicketCard";
 
 interface EventListProps {
   events: EventRecord[];
+  customVenues?: CustomVenue[];
   isCompletelyEmpty: boolean;
   fetchingWeatherId: string | null;
   weatherErrors: Record<string, string>;
@@ -18,6 +20,7 @@ interface EventListProps {
 
 export function EventList({
   events,
+  customVenues = [],
   isCompletelyEmpty,
   fetchingWeatherId,
   weatherErrors,
@@ -54,6 +57,7 @@ export function EventList({
       {events.map((event) => (
         <TicketCard
           event={event}
+          customVenues={customVenues}
           hasSeatMap={Boolean(getSeatMapByVenueId(event.venueId))}
           isFetchingWeather={fetchingWeatherId === event.id}
           key={event.id}

@@ -1,14 +1,17 @@
 import { CloudSun, MapPinned, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { venues } from "../data/venues";
 import type { EventRecord } from "../types/event";
+import type { CustomVenue } from "../types/venue";
 import { formatDate, formatEventTimeLabel } from "../utils/dateUtils";
-import { isCustomVenueId } from "../utils/venueSearchUtils";
+import { isCustomVenueId, resolveVenueCoordinates } from "../utils/venueSearchUtils";
 import { weatherCodeToKey } from "../utils/weatherUtils";
 import { BarcodeDecoration } from "./BarcodeDecoration";
 
 interface TicketCardProps {
   event: EventRecord;
+  customVenues?: CustomVenue[];
   isFetchingWeather: boolean;
   weatherError?: string;
   hasSeatMap?: boolean;
@@ -56,6 +59,7 @@ function TicketCover({ imageUrl, title }: { imageUrl?: string; title: string }) 
 
 export function TicketCard({
   event,
+  customVenues = [],
   isFetchingWeather,
   weatherError,
   hasSeatMap,
@@ -76,13 +80,13 @@ export function TicketCard({
     seat.number ? t("seat.seatPrefix", { value: seat.number }) : "",
   ].filter(Boolean);
   const seatLabel = seatParts.length > 0 ? seatParts.join(" / ") : t("seat.notRecorded");
-  const hasCoordinates =
-    typeof event.latitude === "number" &&
-    Number.isFinite(event.latitude) &&
-    typeof event.longitude === "number" &&
-    Number.isFinite(event.longitude);
+  const resolvedCoordinates = resolveVenueCoordinates({
+    ...event,
+    venues,
+    customVenues,
+  });
   const customVenueLacksCoordinates =
-    (event.isCustomVenue || isCustomVenueId(event.venueId)) && !hasCoordinates;
+    (event.isCustomVenue || isCustomVenueId(event.venueId)) && !resolvedCoordinates;
   const timeLabel = formatEventTimeLabel(event.doorsOpenTime, event.startTime, {
     doors: t("eventTime.doors"),
     start: t("eventTime.start"),

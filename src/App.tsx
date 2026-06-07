@@ -67,7 +67,7 @@ import {
   uploadEventImage,
 } from "./services/storageService";
 import { fetchWeatherForEvent } from "./services/weatherService";
-import type { EventFilters, EventFormPreset, EventFormValues, EventRecord, Venue } from "./types/event";
+import type { EventFilters, EventFormPreset, EventFormValues, EventRecord } from "./types/event";
 import { isAppTheme, type AppTheme } from "./types/theme";
 import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "./types/ticket";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "./types/backup";
@@ -82,7 +82,12 @@ import {
   getWonQuantity,
   normalizeTicketGroupKey,
 } from "./utils/ticketUtils";
-import { buildCustomVenueId, isCustomVenueId } from "./utils/venueSearchUtils";
+import {
+  buildCustomVenueId,
+  extractHistoricalCustomVenues,
+  isCustomVenueId,
+  resolveVenueCoordinates,
+} from "./utils/venueSearchUtils";
 
 const defaultFilters: EventFilters = {
   year: "all",
@@ -323,33 +328,6 @@ const parseOptionalCoordinate = (value: string | undefined) => {
 
   const nextValue = Number(value);
   return Number.isFinite(nextValue) ? nextValue : undefined;
-};
-
-const hasCoordinates = (event: Pick<EventRecord, "latitude" | "longitude">) =>
-  typeof event.latitude === "number" &&
-  Number.isFinite(event.latitude) &&
-  typeof event.longitude === "number" &&
-  Number.isFinite(event.longitude);
-
-const createCustomVenueForWeather = (event: EventRecord): Venue | undefined => {
-  const latitude = event.latitude;
-  const longitude = event.longitude;
-
-  if (!hasCoordinates(event) || typeof latitude !== "number" || typeof longitude !== "number") {
-    return undefined;
-  }
-
-  return {
-    id: event.venueId,
-    name: event.venueName,
-    city: event.city,
-    country: event.country,
-    latitude,
-    longitude,
-    prefecture: event.prefecture,
-    region: event.region,
-    category: "other",
-  };
 };
 
 const createRecord = (values: EventFormValues, editingEvent?: EventRecord | null): EventRecord => {
@@ -1142,7 +1120,10 @@ function App() {
       return t("weather.coordinatesRequired");
     }
 
-    if (message === "Custom venue lacks coordinates, weather cannot be fetched automatically.") {
+    if (
+      message === "This venue does not have coordinates. Please add latitude / longitude to the custom venue before fetching weather." ||
+      message === "Custom venue lacks coordinates, weather cannot be fetched automatically."
+    ) {
       return t("weather.customVenueMissingCoordinates");
     }
 
@@ -1166,14 +1147,33 @@ function App() {
   };
 
   const handleFetchWeather = async (event: EventRecord) => {
-    const venue = getVenueById(event.venueId) ?? createCustomVenueForWeather(event);
+    const resolvedCoordinates = resolveVenueCoordinates({
+      ...event,
+      venues,
+      customVenues,
+      historicalVenues: extractHistoricalCustomVenues(events, ticketApplications, venues),
+    });
+    const builtInVenue = getVenueById(event.venueId);
+    const venue = resolvedCoordinates
+      ? {
+          id: event.venueId,
+          name: event.venueName || builtInVenue?.name || "",
+          city: event.city || builtInVenue?.city || "",
+          country: event.country || builtInVenue?.country || "Japan",
+          latitude: resolvedCoordinates.latitude,
+          longitude: resolvedCoordinates.longitude,
+          prefecture: event.prefecture || builtInVenue?.prefecture,
+          region: event.region || builtInVenue?.region,
+          category: builtInVenue?.category ?? "other",
+        }
+      : undefined;
     setFetchingWeatherId(event.id);
     setWeatherErrors((current) => ({ ...current, [event.id]: "" }));
     setNotice("");
 
     try {
-      if ((event.isCustomVenue || isCustomVenueId(event.venueId)) && !venue) {
-        throw new Error("Custom venue lacks coordinates, weather cannot be fetched automatically.");
+      if (!venue) {
+        throw new Error("This venue does not have coordinates. Please add latitude / longitude to the custom venue before fetching weather.");
       }
 
       const weather = await fetchWeatherForEvent(event, venue);
@@ -1774,6 +1774,7 @@ function App() {
               </section>
             ) : (
               <EventList
+                customVenues={customVenues}
                 events={filteredEvents}
                 fetchingWeatherId={fetchingWeatherId}
                 isCompletelyEmpty={events.length === 0}

@@ -1,5 +1,6 @@
 import type { EventRecord, Venue } from "../types/event";
 import type { TicketApplication } from "../types/ticket";
+import type { CustomVenue } from "../types/venue";
 
 const isPresentString = (value: string | undefined): value is string => Boolean(value);
 
@@ -124,6 +125,142 @@ export const searchVenues = (venues: Venue[], query: string, limit = 20): VenueC
 
 const getCustomVenueKey = (venue: VenueValue) =>
   [venue.venueName, venue.city, venue.country].map((value) => normalizeVenueSearchText(value ?? "")).join("::");
+
+type CoordinateInput = number | string | null | undefined;
+
+interface VenueCoordinateSource extends VenueValue {
+  name?: string;
+}
+
+interface ResolveVenueCoordinatesInput extends VenueValue {
+  venues: Venue[];
+  customVenues?: CustomVenue[];
+  historicalVenues?: VenueValue[];
+}
+
+export interface ResolvedVenueCoordinates {
+  latitude: number;
+  longitude: number;
+  source: "event" | "built-in" | "custom" | "recent-custom";
+}
+
+const parseCoordinate = (value: CoordinateInput, min: number, max: number) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= min && value <= max ? value : undefined;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (!/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(trimmed)) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(trimmed);
+
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : undefined;
+};
+
+const readCoordinatePair = (latitude: CoordinateInput, longitude: CoordinateInput) => {
+  const parsedLatitude = parseCoordinate(latitude, -90, 90);
+  const parsedLongitude = parseCoordinate(longitude, -180, 180);
+
+  if (parsedLatitude === undefined || parsedLongitude === undefined) {
+    return null;
+  }
+
+  return {
+    latitude: parsedLatitude,
+    longitude: parsedLongitude,
+  };
+};
+
+const getVenueNameForMatch = (venue: VenueCoordinateSource) => venue.venueName ?? venue.name ?? "";
+
+const isSameVenueSnapshot = (source: VenueCoordinateSource, target: VenueCoordinateSource) => {
+  const sourceName = normalizeVenueSearchText(getVenueNameForMatch(source));
+  const targetName = normalizeVenueSearchText(getVenueNameForMatch(target));
+  const sourceCity = normalizeVenueSearchText(source.city ?? "");
+  const targetCity = normalizeVenueSearchText(target.city ?? "");
+  const sourceCountry = normalizeVenueSearchText(source.country ?? "");
+  const targetCountry = normalizeVenueSearchText(target.country ?? "");
+
+  if (!sourceName || !targetName || sourceName !== targetName) {
+    return false;
+  }
+
+  if (sourceCity && targetCity && sourceCity !== targetCity) {
+    return false;
+  }
+
+  if (sourceCountry && targetCountry && sourceCountry !== targetCountry) {
+    return false;
+  }
+
+  return true;
+};
+
+export const resolveVenueCoordinates = ({
+  venues,
+  customVenues = [],
+  historicalVenues = [],
+  ...target
+}: ResolveVenueCoordinatesInput): ResolvedVenueCoordinates | null => {
+  const eventCoordinates = readCoordinatePair(target.latitude, target.longitude);
+
+  if (eventCoordinates) {
+    return { ...eventCoordinates, source: "event" };
+  }
+
+  const builtInVenue = target.venueId ? venues.find((venue) => venue.id === target.venueId) : undefined;
+  const builtInCoordinates = builtInVenue
+    ? readCoordinatePair(builtInVenue.latitude, builtInVenue.longitude)
+    : null;
+
+  if (builtInCoordinates) {
+    return { ...builtInCoordinates, source: "built-in" };
+  }
+
+  const customVenueById = target.venueId
+    ? customVenues.find((venue) => venue.id === target.venueId)
+    : undefined;
+  const customVenueByIdCoordinates = customVenueById
+    ? readCoordinatePair(customVenueById.latitude, customVenueById.longitude)
+    : null;
+
+  if (customVenueByIdCoordinates) {
+    return { ...customVenueByIdCoordinates, source: "custom" };
+  }
+
+  const customVenueBySnapshot = customVenues.find((venue) => isSameVenueSnapshot(venue, target));
+  const customVenueBySnapshotCoordinates = customVenueBySnapshot
+    ? readCoordinatePair(customVenueBySnapshot.latitude, customVenueBySnapshot.longitude)
+    : null;
+
+  if (customVenueBySnapshotCoordinates) {
+    return { ...customVenueBySnapshotCoordinates, source: "custom" };
+  }
+
+  const historicalVenue =
+    (target.venueId ? historicalVenues.find((venue) => venue.venueId === target.venueId) : undefined) ??
+    historicalVenues.find((venue) => isSameVenueSnapshot(venue, target));
+  const historicalCoordinates = historicalVenue
+    ? readCoordinatePair(historicalVenue.latitude, historicalVenue.longitude)
+    : null;
+
+  if (historicalCoordinates) {
+    return { ...historicalCoordinates, source: "recent-custom" };
+  }
+
+  return null;
+};
 
 export const extractHistoricalCustomVenues = (
   events: EventRecord[] = [],
