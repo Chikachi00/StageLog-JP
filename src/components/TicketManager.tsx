@@ -150,6 +150,10 @@ export function TicketManager({
     onAddRoundToGroup(preset);
     scrollToTicketForm("roundName");
   };
+  const handleEditRound = (application: TicketApplication) => {
+    onEdit(application);
+    scrollToTicketForm("roundName");
+  };
 
   return (
     <section className="ticket-manager">
@@ -366,7 +370,7 @@ export function TicketManager({
                       </span>
                     </div>
                     <div className="ticket-round-row__actions">
-                      <button className="icon-button" type="button" onClick={() => onEdit(application)}>
+                      <button className="icon-button" type="button" onClick={() => handleEditRound(application)}>
                         <Pencil size={16} aria-hidden="true" />
                         {t("common.edit")}
                       </button>
