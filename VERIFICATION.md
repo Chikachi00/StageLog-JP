@@ -1,6 +1,6 @@
 # StageLog JP Regression Verification
 
-Verification date: 2026-06-04
+Verification date: 2026-06-07
 
 ## Commands Run
 
@@ -22,10 +22,25 @@ Verification date: 2026-06-04
 - TicketForm regression: first round creation, add round from a group, save-and-add-next-round, edit/delete paths, quantity validation, CNY default currency, manual exchange behavior, draft persistence, and custom venue inheritance were reviewed.
 - VenueCombobox regression: built-in search covers venue name, alias, city, prefecture, region, country, and category; historical custom venues are inferred from saved events and tickets; mobile list sizing remains constrained.
 - Analytics regression: charts still use `ChartFrame` with `ResizeObserver`; ticket spending uses display currency data with CNY fallback; custom venues fall back through venue/region aggregation without requiring built-in venue ids.
-- Backup regression: export/import keeps events, ticket applications, Ticket V2 fields, venue fields, and `custom:` venue ids; no separate custom venue backup field was added.
+- Backup regression: export/import keeps events, ticket applications, Ticket V2 fields, venue fields, `custom:` venue ids, and the optional `customVenues` library.
 - Mobile regression: bottom navigation spacing, ticket cards, event cards, VenueCombobox lists, analytics chart wrappers, and form bottom padding were reviewed for horizontal overflow risk.
 - i18n regression: VenueCombobox, Ticket V2, Analytics V2, Backup, custom venue weather, and seat map fallback keys are present in English and Chinese resources.
-- Known limitations: custom venues are inferred from saved records, not stored in a separate `custom_venues` table; automatic exchange rates are not supported; custom venue weather requires coordinates.
+- Known limitations: deleting a custom venue does not batch-update historical records; existing event and ticket records keep venue snapshots; custom venue seat maps, duplicate/merge tooling, automatic geocoding, and automatic exchange rates are not supported yet; custom venue weather requires coordinates.
+
+## Custom Venues B-lite Management UI
+
+- CustomVenuesManager: added a Venues page management section for the user-owned custom venue library.
+- Create custom venue: the manager submits name, city, country, optional localized names, aliases, prefecture, region, coordinates, category, capacity, and notes through the existing App custom venue handlers.
+- Edit custom venue: existing custom venue values populate the same form and update through `customVenueService` without changing events or ticket applications.
+- Delete custom venue: deletion requires confirmation and removes only the custom venue library entry from Supabase `custom_venues` or localStorage; historical records are not deleted or batch-updated.
+- Usage count: the manager shows event and ticket usage by first matching `venueId === customVenue.id`, then falling back to normalized venue name, city, and country snapshots.
+- Mobile custom venue manager: CSS keeps the manager single-column on small screens, constrains search/form/card width, wraps long names, aliases, notes, and badges, and keeps action buttons above the bottom navigation spacing.
+- Cloud/local custom venue CRUD: cloud mode uses Supabase `custom_venues` through the current user id; local mode uses the `stagelog-custom-venues` localStorage fallback.
+- VenueCombobox source order: built-in venues, saved `customVenues`, then recent inferred custom venues from historical event/ticket records.
+- EventForm custom venue selection: EventForm still receives `customVenues` and can select/create saved custom venues without changing business logic in this polish pass.
+- TicketForm custom venue selection: TicketApplicationForm still receives `customVenues`; custom venue ids continue to participate in `ticketGroupKey` and next-round inheritance.
+- Backup customVenues export/import: Backup export/import remains wired to the optional `customVenues` field; old backups without `customVenues` remain valid.
+- Regression scope: this pass did not add Supabase SQL, modify RLS, change Analytics, change Backup logic, or reintroduce Recharts `ResponsiveContainer`.
 
 ## Custom Venues B-lite Foundation
 
@@ -36,7 +51,7 @@ Verification date: 2026-06-04
 - Backup customVenues compatibility: backup types and validation now accept optional `customVenues`; old backups without the field remain valid.
 - SQL setup: `SUPABASE_SETUP.md` now documents running `supabase/sql/05_custom_venues.sql`.
 - Known limitation: Custom Venues B-lite does not automatically batch update or delete historical event/ticket records; those records keep venue snapshots.
-- Known limitation: App state and Backup UI wiring for exporting/importing the loaded custom venue library is reserved for a later B-lite integration stage.
+- Integration update: App state and Backup UI wiring for exporting/importing the loaded custom venue library are now complete.
 
 ## Custom Venues B-lite Integration
 
@@ -57,7 +72,7 @@ Verification date: 2026-06-04
 - Add round compatibility: adding another round from a ticket group and using "save and add another round" preserve custom venue details and the existing `ticketGroupKey`.
 - Seat map fallback: custom venues do not use built-in seat maps; only supported built-in venues can show seat maps.
 - Weather coordinate limitation: custom venues without coordinates cannot fetch weather automatically; custom venues with coordinates can still be used for weather lookup.
-- Backup compatibility: backup export/import keeps venue fields on events and ticket applications, including `custom:` venue ids; no separate `customVenues` backup field is required.
+- Backup compatibility: backup export/import keeps venue fields on events and ticket applications, including `custom:` venue ids, and also supports the optional `customVenues` library field.
 - Mobile verification: VenueCombobox input, results list, touch targets, and inline custom venue form were checked for responsive CSS constraints.
 - Runtime browser checks for creating/editing records should still be verified manually with real local or Supabase data.
 

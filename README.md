@@ -1,5 +1,35 @@
 # StageLog JP
 
+## Custom Venues B-lite Management UI / 自定义场馆 B-lite 管理界面
+
+- English: Custom venue management UI
+- English: Create, edit, and delete user-owned custom venues
+- English: Custom venues sync through Supabase in cloud mode
+- English: Local mode stores custom venues in localStorage
+- English: Custom venue deletion does not remove historical event/ticket records
+- English: Existing records keep venue snapshots
+- English: VenueCombobox can search built-in venues, custom venues, and recent inferred venues
+- 中文：自定义场馆管理界面
+- 中文：支持创建、编辑、删除用户自定义场馆
+- 中文：Cloud mode 下自定义场馆通过 Supabase 同步
+- 中文：Local mode 下自定义场馆保存在 localStorage
+- 中文：删除自定义场馆不会删除历史参战/票务记录
+- 中文：历史记录仍保留场馆快照
+- 中文：VenueCombobox 支持搜索内置场馆、自定义场馆和历史推断场馆
+
+## Known Limitations / 已知限制
+
+- English: Deleting a custom venue does not batch-update historical records.
+- English: Existing event and ticket records keep venue snapshots.
+- English: Custom venue seat maps are not supported yet.
+- English: Duplicate/merge custom venues are not supported yet.
+- English: Automatic geocoding is not supported yet.
+- 中文：删除自定义场馆不会批量更新历史记录。
+- 中文：已有参战和票务记录会保留场馆快照。
+- 中文：暂不支持自定义场馆座位图。
+- 中文：暂不支持自定义场馆合并去重。
+- 中文：暂不支持自动地理编码。
+
 ## Custom Venues B-lite / 自定义场馆 B-lite
 
 - 中文：自定义场馆 B-lite
@@ -30,7 +60,7 @@
 - English: Custom venue input
 - English: Recent custom venues
 - English: Built-in venue search by alias / city / region
-- English: Custom venues are inferred from saved events and tickets, not stored in a separate table
+- English: Recent inferred custom venues from saved events and tickets remain available alongside the saved custom venue library
 
 ## Ticket group round creation UX / 票务分组录入优化
 

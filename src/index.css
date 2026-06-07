@@ -1730,6 +1730,7 @@ textarea:focus {
 .custom-venues-manager {
   display: grid;
   min-width: 0;
+  max-width: 100%;
   gap: 0.85rem;
   padding: 1rem;
   border: 1px solid var(--line);
@@ -1778,6 +1779,11 @@ textarea:focus {
 .custom-venue-form textarea {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
+}
+
+.custom-venue-form textarea {
+  resize: vertical;
 }
 
 .custom-venue-form__heading,
@@ -1841,6 +1847,19 @@ textarea:focus {
   min-width: 0;
 }
 
+.custom-venue-card__meta .venue-tag {
+  max-width: 100%;
+  min-height: 1.75rem;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.custom-venue-card__actions .ghost-button {
+  min-width: 0;
+  flex: 1 1 9rem;
+}
+
 .custom-venue-card__snapshot {
   padding: 0.55rem 0.65rem;
   border-radius: 0.5rem;
@@ -1857,6 +1876,11 @@ textarea:focus {
 
 .ghost-button--danger:hover {
   background: rgba(232, 79, 122, 0.08);
+}
+
+.custom-venues-manager .empty-state {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .timeline-item {
