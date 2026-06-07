@@ -1,6 +1,6 @@
 -- =========================================================
 -- StageLog JP - Add doors open time to events
--- File: supabase/sql/06_events_doors_open_time.sql
+-- File: supabase/sql/07_events_doors_open_time.sql
 -- Purpose:
 --   Add "doors open" time for event records.
 --   Keep it as text to match existing events.start_time.

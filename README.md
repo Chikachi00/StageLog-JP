@@ -123,6 +123,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 
 需要在 Supabase SQL Editor 中运行仓库实际存在的 SQL 文件：
 
+当前 SQL 文件说明和最新运行顺序请以 [supabase/sql/README.md](supabase/sql/README.md) 为准。
+
 ```text
 supabase/sql/02_remaining_cloud_features.sql
 supabase/sql/03_events_schema_compatibility.sql
@@ -324,6 +326,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 Do not put a `service_role` key in frontend code, Vercel public environment variables, or committed files.
 
 Run the SQL files that exist in this repository in the Supabase SQL Editor:
+
+See [supabase/sql/README.md](supabase/sql/README.md) for the current SQL file guide and run order.
 
 ```text
 supabase/sql/02_remaining_cloud_features.sql
