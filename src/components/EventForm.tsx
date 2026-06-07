@@ -190,6 +190,39 @@ export function EventForm({
     [venues, values.venueId],
   );
 
+  useEffect(() => {
+    if (!values.venueId || !values.isCustomVenue) {
+      return;
+    }
+
+    const selectedCustomVenue = customVenues.find((venue) => venue.id === values.venueId);
+
+    if (!selectedCustomVenue) {
+      return;
+    }
+
+    const shouldSyncLatitude =
+      typeof values.latitude !== "number" && typeof selectedCustomVenue.latitude === "number";
+    const shouldSyncLongitude =
+      typeof values.longitude !== "number" && typeof selectedCustomVenue.longitude === "number";
+
+    if (!shouldSyncLatitude && !shouldSyncLongitude) {
+      return;
+    }
+
+    setValues((current) => ({
+      ...current,
+      latitude: shouldSyncLatitude ? selectedCustomVenue.latitude : current.latitude,
+      longitude: shouldSyncLongitude ? selectedCustomVenue.longitude : current.longitude,
+    }));
+  }, [
+    customVenues,
+    values.isCustomVenue,
+    values.latitude,
+    values.longitude,
+    values.venueId,
+  ]);
+
   const updateValue = (field: keyof Omit<EventFormValues, "seat">, value: string) => {
     setIsDirty(true);
     setValues((current) => ({ ...current, [field]: value }));

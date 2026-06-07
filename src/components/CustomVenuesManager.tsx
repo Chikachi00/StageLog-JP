@@ -78,6 +78,11 @@ const parseOptionalNumber = (value: string) => {
   return Number.isFinite(number) ? number : undefined;
 };
 
+const parseOptionalCoordinate = (value: string, min: number, max: number) => {
+  const number = parseOptionalNumber(value);
+  return typeof number === "number" && number >= min && number <= max ? number : undefined;
+};
+
 const parseOptionalCapacity = (value: string) => {
   const number = parseOptionalNumber(value);
   return typeof number === "number" && number >= 0 ? number : undefined;
@@ -114,8 +119,8 @@ const toInput = (values: CustomVenueFormState): CustomVenueInput & CustomVenueUp
   country: values.country.trim() || "Japan",
   prefecture: values.prefecture.trim() || undefined,
   region: values.region.trim() || undefined,
-  latitude: parseOptionalNumber(values.latitude),
-  longitude: parseOptionalNumber(values.longitude),
+  latitude: parseOptionalCoordinate(values.latitude, -90, 90),
+  longitude: parseOptionalCoordinate(values.longitude, -180, 180),
   category: values.category || undefined,
   capacity: parseOptionalCapacity(values.capacity),
   notes: values.notes.trim() || undefined,
@@ -227,6 +232,14 @@ export function CustomVenuesManager({
 
     if (formValues.capacity.trim() && parseOptionalCapacity(formValues.capacity) === undefined) {
       setFormError(t("customVenues.capacityError"));
+      return;
+    }
+
+    if (
+      (formValues.latitude.trim() && parseOptionalCoordinate(formValues.latitude, -90, 90) === undefined) ||
+      (formValues.longitude.trim() && parseOptionalCoordinate(formValues.longitude, -180, 180) === undefined)
+    ) {
+      setFormError(t("customVenues.coordinateError"));
       return;
     }
 

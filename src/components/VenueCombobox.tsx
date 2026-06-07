@@ -48,6 +48,11 @@ const parseOptionalNumber = (value: string) => {
   return Number.isFinite(number) ? number : undefined;
 };
 
+const parseOptionalCoordinate = (value: string, min: number, max: number) => {
+  const number = parseOptionalNumber(value);
+  return typeof number === "number" && number >= min && number <= max ? number : undefined;
+};
+
 export function VenueCombobox({
   venues,
   events = [],
@@ -202,6 +207,14 @@ export function VenueCombobox({
       return;
     }
 
+    if (
+      (customVenue.latitude.trim() && parseOptionalCoordinate(customVenue.latitude, -90, 90) === undefined) ||
+      (customVenue.longitude.trim() && parseOptionalCoordinate(customVenue.longitude, -180, 180) === undefined)
+    ) {
+      setCustomError(t("customVenues.coordinateError"));
+      return;
+    }
+
     const input: CustomVenueInput = {
       name: venueName,
       city,
@@ -248,8 +261,8 @@ export function VenueCombobox({
         country,
         prefecture: input.prefecture,
         region: input.region,
-        latitude: parseOptionalNumber(customVenue.latitude),
-        longitude: parseOptionalNumber(customVenue.longitude),
+        latitude: parseOptionalCoordinate(customVenue.latitude, -90, 90),
+        longitude: parseOptionalCoordinate(customVenue.longitude, -180, 180),
         isCustomVenue: true,
       };
 

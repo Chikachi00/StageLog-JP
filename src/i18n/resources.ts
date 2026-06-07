@@ -205,6 +205,7 @@ export const resources = {
         deleteFailed: "Failed to delete custom venue",
         requiredFields: "Name, city, and country are required.",
         capacityError: "Capacity must be a non-negative number.",
+        coordinateError: "Latitude must be between -90 and 90, and longitude must be between -180 and 180.",
         searchPlaceholder: "Search custom venues by name, alias, city, or region",
         deleteNoHistoricalRecords: "Deleting this custom venue will not delete historical records",
         deleteUsageWarning:
@@ -896,6 +897,7 @@ export const resources = {
         deleteFailed: "删除自定义场馆失败",
         requiredFields: "场馆名称、城市和国家为必填项。",
         capacityError: "容量必须是非负数字。",
+        coordinateError: "纬度必须在 -90 到 90 之间，经度必须在 -180 到 180 之间。",
         searchPlaceholder: "按名称、别名、城市或地区搜索自定义场馆",
         deleteNoHistoricalRecords: "删除该自定义场馆不会删除历史记录",
         deleteUsageWarning:

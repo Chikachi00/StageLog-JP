@@ -102,8 +102,13 @@ const cleanOptionalNumber = (value: NumberInput) => {
     return undefined;
   }
 
-  const number = typeof value === "string" ? Number(value) : value;
+  const number = typeof value === "string" ? Number(value.trim()) : value;
   return typeof number === "number" && Number.isFinite(number) ? number : undefined;
+};
+
+const cleanOptionalCoordinate = (value: NumberInput, min: number, max: number) => {
+  const number = cleanOptionalNumber(value);
+  return typeof number === "number" && number >= min && number <= max ? number : undefined;
 };
 
 const normalizeCategory = (value: string | null | undefined): CustomVenueCategory | undefined =>
@@ -161,8 +166,8 @@ export const normalizeCustomVenue = (input: CustomVenueInput | Partial<CustomVen
     country: cleanRequiredString(input.country, "Japan"),
     prefecture: cleanOptionalString(input.prefecture),
     region: cleanOptionalString(input.region),
-    latitude: cleanOptionalNumber(input.latitude),
-    longitude: cleanOptionalNumber(input.longitude),
+    latitude: cleanOptionalCoordinate(input.latitude, -90, 90),
+    longitude: cleanOptionalCoordinate(input.longitude, -180, 180),
     category: normalizeCategory(input.category),
     capacity: cleanOptionalNumber(input.capacity),
     notes: cleanOptionalString(input.notes),
@@ -208,8 +213,8 @@ export const toSupabaseCustomVenuePayload = (
   if ("country" in venue && venue.country !== undefined) payload.country = cleanRequiredString(venue.country, "Japan");
   if ("prefecture" in venue) payload.prefecture = cleanOptionalString(venue.prefecture) ?? null;
   if ("region" in venue) payload.region = cleanOptionalString(venue.region) ?? null;
-  if ("latitude" in venue) payload.latitude = cleanOptionalNumber(venue.latitude) ?? null;
-  if ("longitude" in venue) payload.longitude = cleanOptionalNumber(venue.longitude) ?? null;
+  if ("latitude" in venue) payload.latitude = cleanOptionalCoordinate(venue.latitude, -90, 90) ?? null;
+  if ("longitude" in venue) payload.longitude = cleanOptionalCoordinate(venue.longitude, -180, 180) ?? null;
   if ("category" in venue) payload.category = normalizeCategory(venue.category) ?? null;
   if ("capacity" in venue) payload.capacity = cleanOptionalNumber(venue.capacity) ?? null;
   if ("notes" in venue) payload.notes = cleanOptionalString(venue.notes) ?? null;
