@@ -17,6 +17,16 @@ Verification date: 2026-06-07
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## Event Doors Open Time
+
+- SQL file: added `supabase/sql/06_events_doors_open_time.sql`.
+- Supabase field: `public.events.doors_open_time` is added as `text` and explicitly converted to `text` if it was previously created with another time-like type.
+- Type compatibility: `EventRecord` and `EventFormValues` include optional `doorsOpenTime`; old local/cloud events without this field continue to normalize safely.
+- EventForm: added a "Doors open time" / "开场时间" input before the existing start time field; draft/session persistence keeps the value.
+- Display: event cards and timeline entries format combined times as `Doors 16:00 / Start 17:00` or `开场 16:00 / 开演 17:00`, and normalize values like `16:00:00` to `16:00`.
+- Backup compatibility: backup export keeps `events[].doorsOpenTime`; backup import accepts old backups without the field and restores new backups with it.
+- Regression scope: this change does not modify `ticket_applications`, Ticket Management V2, Analytics logic, custom venues, VenueCombobox, RLS, or Recharts chart rendering.
+
 ## Custom Venues B-lite Workflow Verification
 
 - Verification date: 2026-06-07.

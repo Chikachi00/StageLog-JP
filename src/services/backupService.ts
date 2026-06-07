@@ -136,6 +136,7 @@ export const normalizeBackupEvent = (value: unknown): EventRecord => {
     title: asString(event.title),
     artist: asString(event.artist),
     date: asString(event.date),
+    doorsOpenTime: asString(event.doorsOpenTime),
     startTime: asString(event.startTime),
     venueId: asString(event.venueId),
     venueName: asString(event.venueName),

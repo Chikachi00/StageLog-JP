@@ -44,6 +44,7 @@ export interface EventRecord {
   title: string;
   artist: string;
   date: string;
+  doorsOpenTime?: string;
   startTime: string;
   venueId: string;
   venueName: string;
@@ -68,6 +69,7 @@ export interface EventFormValues {
   title: string;
   artist: string;
   date: string;
+  doorsOpenTime?: string;
   startTime: string;
   venueId: string;
   venueName: string;

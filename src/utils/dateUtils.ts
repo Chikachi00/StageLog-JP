@@ -8,6 +8,41 @@ export const formatDate = (date: string) =>
 export const formatDateTime = (date: string, time: string) =>
   `${formatDate(date)}${time ? ` · ${time}` : ""}`;
 
+export const normalizeTimeDisplay = (time?: string) => {
+  const value = time?.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  const match = value.match(/^(\d{1,2}):(\d{2})/);
+
+  return match ? `${match[1].padStart(2, "0")}:${match[2]}` : value;
+};
+
+export const formatEventTimeLabel = (
+  doorsOpenTime: string | undefined,
+  startTime: string | undefined,
+  labels: { doors: string; start: string },
+) => {
+  const doors = normalizeTimeDisplay(doorsOpenTime);
+  const start = normalizeTimeDisplay(startTime);
+
+  if (doors && start) {
+    return `${labels.doors} ${doors} / ${labels.start} ${start}`;
+  }
+
+  if (doors) {
+    return `${labels.doors} ${doors}`;
+  }
+
+  if (start) {
+    return `${labels.start} ${start}`;
+  }
+
+  return "";
+};
+
 export const getEventYear = (date: string) => date.slice(0, 4);
 
 export const getCurrentYear = () => String(new Date().getFullYear());

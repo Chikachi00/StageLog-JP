@@ -2,7 +2,7 @@ import { CloudSun, MapPinned, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
-import { formatDateTime } from "../utils/dateUtils";
+import { formatDate, formatEventTimeLabel } from "../utils/dateUtils";
 import { isCustomVenueId } from "../utils/venueSearchUtils";
 import { weatherCodeToKey } from "../utils/weatherUtils";
 import { BarcodeDecoration } from "./BarcodeDecoration";
@@ -83,6 +83,10 @@ export function TicketCard({
     Number.isFinite(event.longitude);
   const customVenueLacksCoordinates =
     (event.isCustomVenue || isCustomVenueId(event.venueId)) && !hasCoordinates;
+  const timeLabel = formatEventTimeLabel(event.doorsOpenTime, event.startTime, {
+    doors: t("eventTime.doors"),
+    start: t("eventTime.start"),
+  });
   const weatherSummary = event.weather
     ? `${event.weather.temperature.toFixed(1)}°C · ${t(weatherCodeToKey(event.weather.weatherCode))} ${event.weather.precipitation.toFixed(1)}mm · ${t("weather.wind")} ${event.weather.windSpeed.toFixed(1)}km/h`
     : "";
@@ -93,7 +97,7 @@ export function TicketCard({
       <div className="ticket-card__main">
         <div className="ticket-card__topline">
           <span className="ticket-card__category">{event.ticketType || t("ticketCard.liveArchive")}</span>
-          <span>{formatDateTime(event.date, event.startTime)}</span>
+          <span>{`${formatDate(event.date)}${timeLabel ? ` · ${timeLabel}` : ""}`}</span>
         </div>
         <TicketCover imageUrl={event.imageUrl} title={event.title} />
         <h3>{event.title}</h3>

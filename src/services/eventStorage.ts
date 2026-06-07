@@ -13,6 +13,7 @@ const normalizeEvent = (event: Partial<EventRecord>): EventRecord => {
     title: event.title ?? "",
     artist: event.artist ?? "",
     date: event.date ?? "",
+    doorsOpenTime: event.doorsOpenTime ?? "",
     startTime: event.startTime ?? "",
     venueId: event.venueId ?? "",
     venueName: event.venueName ?? "",

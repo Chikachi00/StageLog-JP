@@ -1,12 +1,42 @@
 import { CalendarDays, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
-import { formatDate, getEventYear, sortByDateDesc } from "../utils/dateUtils";
+import { formatDate, formatEventTimeLabel, getEventYear, sortByDateDesc } from "../utils/dateUtils";
 import { weatherCodeToKey } from "../utils/weatherUtils";
 
 interface TimelineProps {
   events: EventRecord[];
   onEdit: (event: EventRecord) => void;
+}
+
+function TimelineItem({ event, onEdit }: { event: EventRecord; onEdit: (event: EventRecord) => void }) {
+  const { t } = useTranslation();
+  const eventTimeLabel = formatEventTimeLabel(event.doorsOpenTime, event.startTime, {
+    doors: t("eventTime.doors"),
+    start: t("eventTime.start"),
+  });
+
+  return (
+    <article className="timeline-item">
+      <time>{formatDate(event.date)}</time>
+      <div>
+        <strong>{event.title}</strong>
+        <p>
+          {event.artist} - {event.venueName}
+        </p>
+        {eventTimeLabel ? <span>{eventTimeLabel}</span> : null}
+        {event.weather ? (
+          <span>{t(weatherCodeToKey(event.weather.weatherCode))} / {event.weather.temperature.toFixed(1)} deg C</span>
+        ) : (
+          <span>{t("common.noWeatherData")}</span>
+        )}
+      </div>
+      <button className="icon-button" type="button" onClick={() => onEdit(event)}>
+        <Pencil size={16} aria-hidden="true" />
+        {t("common.edit")}
+      </button>
+    </article>
+  );
 }
 
 export function Timeline({ events, onEdit }: TimelineProps) {
@@ -43,24 +73,7 @@ export function Timeline({ events, onEdit }: TimelineProps) {
             <h3>{year}</h3>
             <div>
               {groupedEvents[year].map((event) => (
-                <article className="timeline-item" key={event.id}>
-                  <time>{formatDate(event.date)}</time>
-                  <div>
-                    <strong>{event.title}</strong>
-                    <p>
-                      {event.artist} - {event.venueName}
-                    </p>
-                    {event.weather ? (
-                      <span>{t(weatherCodeToKey(event.weather.weatherCode))} / {event.weather.temperature.toFixed(1)} deg C</span>
-                    ) : (
-                      <span>{t("common.noWeatherData")}</span>
-                    )}
-                  </div>
-                  <button className="icon-button" type="button" onClick={() => onEdit(event)}>
-                    <Pencil size={16} aria-hidden="true" />
-                    {t("common.edit")}
-                  </button>
-                </article>
+                <TimelineItem event={event} key={event.id} onEdit={onEdit} />
               ))}
             </div>
           </section>

@@ -104,6 +104,11 @@ export const resources = {
         noMatchingDescription: "Try adjusting your filters.",
         loadSample: "Load sample data",
       },
+      eventTime: {
+        doorsOpen: "Doors open",
+        doors: "Doors",
+        start: "Start",
+      },
       eventForm: {
         editing: "Editing",
         newRecord: "New record",
@@ -115,6 +120,7 @@ export const resources = {
         artist: "Artist / performer",
         artistPlaceholder: "Artist, unit, orchestra, cast...",
         date: "Date",
+        doorsOpenTime: "Doors open time",
         startTime: "Start time",
         venue: "Venue",
         city: "City",
@@ -789,6 +795,11 @@ export const resources = {
         noMatchingDescription: "请调整筛选条件。",
         loadSample: "加载示例数据",
       },
+      eventTime: {
+        doorsOpen: "开场时间",
+        doors: "开场",
+        start: "开演",
+      },
       eventForm: {
         editing: "正在编辑",
         newRecord: "新记录",
@@ -800,6 +811,7 @@ export const resources = {
         artist: "艺人 / 出演者",
         artistPlaceholder: "艺人、组合、乐团、声优阵容...",
         date: "日期",
+        doorsOpenTime: "开场时间",
         startTime: "开演时间",
         venue: "会场",
         ticketType: "票种",

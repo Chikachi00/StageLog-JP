@@ -23,6 +23,7 @@ StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务�
 
 - 创建、编辑、删除和筛选参战记录。
 - 记录艺人、活动标题、日期、时间、场馆、座位、票种、备注和图片。
+- 参战记录支持开场时间和开演时间。
 - Cloud mode 下图片上传到 Supabase Storage；local mode 下使用本地图片预览。
 - 根据场馆经纬度、活动日期和开演时间匹配历史天气。
 - 部分内置场馆支持座位图，例如 Tokyo Dome、Belluna Dome、K-Arena Yokohama、Ariake Arena、Makuhari Messe Event Hall 和 Saitama Super Arena。
@@ -127,6 +128,7 @@ supabase/sql/02_remaining_cloud_features.sql
 supabase/sql/03_events_schema_compatibility.sql
 supabase/sql/04_ticket_model_v2.sql
 supabase/sql/05_custom_venues.sql
+supabase/sql/06_events_doors_open_time.sql
 ```
 
 说明：
@@ -135,6 +137,7 @@ supabase/sql/05_custom_venues.sql
 - `03_events_schema_compatibility.sql` 更新 events schema 和 events RLS 兼容字段。
 - `04_ticket_model_v2.sql` 添加 Ticket Management V2 字段。
 - `05_custom_venues.sql` 添加 `custom_venues` 表和用户自有场馆 RLS policies，并包含 `notify pgrst, 'reload schema';`。
+- `06_events_doors_open_time.sql` 为 events 添加 `doors_open_time text`，与现有 `start_time text` 保持一致。
 - 需要在 Supabase Auth 中配置部署地址和本地开发地址的 redirect URLs。
 - 图片上传使用私有 `event-images` Storage bucket；具体配置见项目 SQL 和 `SUPABASE_SETUP.md`。
 
@@ -223,6 +226,7 @@ Built a full-stack live event tracking and analytics web app for Japanese concer
 
 - Create, edit, delete, and filter live event records.
 - Track artist, title, date, time, venue, seat, ticket type, notes, and images.
+- Event records support both doors open time and show start time.
 - Upload event images to Supabase Storage in cloud mode; use local image previews in guest mode.
 - Match historical weather by venue coordinates, event date, and start time.
 - Use built-in seat maps for supported venues such as Tokyo Dome, Belluna Dome, K-Arena Yokohama, Ariake Arena, Makuhari Messe Event Hall, and Saitama Super Arena.
@@ -326,6 +330,7 @@ supabase/sql/02_remaining_cloud_features.sql
 supabase/sql/03_events_schema_compatibility.sql
 supabase/sql/04_ticket_model_v2.sql
 supabase/sql/05_custom_venues.sql
+supabase/sql/06_events_doors_open_time.sql
 ```
 
 Notes:
@@ -334,6 +339,7 @@ Notes:
 - `03_events_schema_compatibility.sql` updates events schema compatibility and event RLS.
 - `04_ticket_model_v2.sql` adds Ticket Management V2 fields.
 - `05_custom_venues.sql` adds the `custom_venues` table and user-owned RLS policies, and includes `notify pgrst, 'reload schema';`.
+- `06_events_doors_open_time.sql` adds `doors_open_time text` to events, matching the existing `start_time text` field.
 - Configure Supabase Auth redirect URLs for the deployed app and any local development URL you intentionally use.
 - Image upload uses the private `event-images` Storage bucket configured by the project SQL/setup flow.
 

@@ -36,6 +36,7 @@ export function createSampleEvents(venues: Venue[]): EventRecord[] {
       title: "Aqours live at Tokyo Dome",
       artist: "Aqours",
       date: "2025-06-21",
+      doorsOpenTime: "16:00",
       startTime: "17:00",
       ticketType: "Reserved seat",
       seat: {
@@ -53,6 +54,7 @@ export function createSampleEvents(venues: Venue[]): EventRecord[] {
       title: "Idol live at K-Arena Yokohama",
       artist: "Starlight Project",
       date: "2025-09-13",
+      doorsOpenTime: "17:30",
       startTime: "18:30",
       ticketType: "Fan club advance",
       seat: {

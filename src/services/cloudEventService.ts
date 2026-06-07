@@ -9,6 +9,7 @@ interface CloudEventRow {
   title: string | null;
   artist: string | null;
   date: string | null;
+  doors_open_time: string | null;
   start_time: string | null;
   venue_id: string | null;
   venue_name: string | null;
@@ -106,6 +107,7 @@ export const toCloudEventRow = (
     title: cleanRequiredString(event.title, "title"),
     artist: cleanRequiredString(event.artist, "artist"),
     date: cleanRequiredString(event.date, "date"),
+    doors_open_time: cleanOptionalString(event.doorsOpenTime),
     start_time: cleanOptionalString(event.startTime),
     venue_id: cleanRequiredString(event.venueId, "venue_id"),
     venue_name: cleanRequiredString(event.venueName, "venue_name"),
@@ -157,6 +159,7 @@ export const fromCloudEventRow = (row: CloudEventRow): EventRecord => {
     title: row.title ?? "",
     artist: row.artist ?? "",
     date: row.date ?? "",
+    doorsOpenTime: row.doors_open_time ?? "",
     startTime: row.start_time ?? "",
     venueId: row.venue_id ?? "",
     venueName: row.venue_name ?? "",

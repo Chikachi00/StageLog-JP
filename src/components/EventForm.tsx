@@ -53,6 +53,7 @@ const createInitialValues = (
       title: editingEvent.title,
       artist: editingEvent.artist,
       date: editingEvent.date,
+      doorsOpenTime: editingEvent.doorsOpenTime ?? "",
       startTime: editingEvent.startTime,
       venueId: editingEvent.venueId,
       venueName: editingEvent.venueName,
@@ -75,6 +76,7 @@ const createInitialValues = (
     title: "",
     artist: "",
     date: "",
+    doorsOpenTime: "",
     startTime: "",
     venueId: defaultVenue?.id ?? "",
     venueName: defaultVenue?.name ?? "",
@@ -395,6 +397,8 @@ export function EventForm({
       ...values,
       title: values.title.trim(),
       artist: values.artist.trim(),
+      doorsOpenTime: values.doorsOpenTime?.trim() ?? "",
+      startTime: values.startTime.trim(),
       ticketType: values.ticketType.trim(),
       notes: values.notes.trim(),
       seat: {
@@ -468,6 +472,15 @@ export function EventForm({
             type="date"
             value={values.date}
             onChange={(event) => updateValue("date", event.target.value)}
+          />
+        </label>
+
+        <label>
+          {t("eventForm.doorsOpenTime")}
+          <input
+            type="time"
+            value={values.doorsOpenTime ?? ""}
+            onChange={(event) => updateValue("doorsOpenTime", event.target.value)}
           />
         </label>
 
