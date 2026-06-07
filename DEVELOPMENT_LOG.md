@@ -10,6 +10,126 @@ This document is a bilingual development retrospective for StageLog JP. It cover
 
 这份开发日志基于 Git commit history、README、VERIFICATION、Supabase 配置说明和当前项目结构整理。它不是逐 commit 流水账，而是按产品阶段和工程问题复盘 StageLog JP 的演进过程。
 
+### 0. 项目结构解读
+
+这一节用于解释 StageLog JP 仓库的主要目录和文件如何协作。它不是完整文件树，而是从职责边界和数据流角度说明项目结构。
+
+#### 0.1 顶层结构
+
+- `README.md`：项目展示页和本地运行 / Supabase 配置入口，面向 GitHub 读者和未来维护者。
+- `DEVELOPMENT_LOG.md`：开发过程复盘，记录产品阶段、关键 bug、技术取舍、架构演进和已知限制。
+- `VERIFICATION.md`：构建、回归检查和手动验证记录，特别用于记录 cloud/local mode、Supabase SQL、RLS、表单、票务、Analytics、Backup 和移动端检查。
+- `SUPABASE_SETUP.md`：Supabase 配置说明，包括 Auth、环境变量、SQL、Storage 和云端同步相关事项。
+- `package.json` / `package-lock.json`：项目依赖和脚本。当前主要脚本包括 `dev`、`build`、`preview`、`typecheck` 和 venue thumbnail 生成脚本。
+- `vite.config.ts`：Vite 构建配置。
+- `tsconfig.json`、`tsconfig.app.json`、`tsconfig.node.json`：TypeScript 编译配置。
+- `public/`：静态资源目录，包括 venue maps 和 venue thumbnails 等可直接由前端引用的资源。
+- `supabase/sql/`：Supabase schema migration 和检查脚本目录。这里是数据库结构记录，不是运行时代码。
+- `src/`：React + TypeScript 前端应用主体。
+
+#### 0.2 `src` 目录
+
+`src` 是应用核心。`main.tsx` 负责挂载 React app；`App.tsx` 是全局协调层，负责页面切换、cloud/local mode、events、ticketApplications、customVenues、profile/settings、backup import/export、weather fetch 和表单会话状态；`index.css` 承担全局样式、主题、响应式布局和大部分组件样式。
+
+`App.tsx` 的职责比较重，但它的核心作用是把 UI 组件和数据服务连接起来：组件负责展示和输入，上层 handler 决定调用 Supabase service 还是 localStorage fallback，并把返回结果写回统一 state。
+
+#### 0.3 `src/components`
+
+`components` 目录包含可复用 UI 和业务组件：
+
+- `EventForm`：新增 / 编辑参战记录，处理 doorsOpenTime、startTime、VenueCombobox、座位、图片、draft/session 和保存。
+- `TicketApplicationForm`：新增 / 编辑票务抽选轮次，处理 Ticket Management V2 字段、数量校验、货币字段、round preset 和 draft/session。
+- `TicketManager`：展示 ticket group card、按 `ticketGroupKey` 聚合同一场公演的多轮抽选，并提供新增轮次、编辑轮次、删除轮次和从 ticket 创建 event 的入口。
+- `VenueCombobox`：统一场馆选择入口，合并 built-in venues、正式 `customVenues` 和 recent inferred venues，并支持 inline 创建 customVenue。
+- `CustomVenuesManager`：自定义场馆库管理 UI，支持新增、编辑、删除、搜索和 event/ticket usage count。
+- `BackupPanel`：JSON backup export/import 的 UI。
+- `Analytics` 和 `ChartFrame`：数据分析和 Recharts 稳定渲染。图表使用 ChartFrame + ResizeObserver 测量尺寸，不再依赖 ResponsiveContainer。
+- `Timeline`：按年份展示参战记录时间线，后续加入了日期列、节点、竖线、时间 badge、天气 badge 和 upcoming/completed 状态 badge。
+- `TicketCard` / `EventList`：参战记录卡片和列表展示，也承载天气获取入口、图片、座位摘要和编辑/删除入口。
+- `Header`、`MobileBottomNav`、`MobileMenuDrawer`、`FloatingAddButton`：桌面和移动端导航。
+
+#### 0.4 `src/services`
+
+`services` 是数据读写和外部 API 访问层。UI 组件不应该直接拼 Supabase row，而是通过 App handler 和 service 层处理映射。
+
+- `cloudEventService`：`events` 的 Supabase row 映射和 cloud CRUD，包括 `start_time`、`doors_open_time`、venue snapshot、seat/weather JSON 和 image 字段。
+- `cloudTicketService`：`ticket_applications` 的 Supabase row 映射和 cloud CRUD，包含 Ticket Management V2 字段和 `ticketGroupKey`。
+- `customVenueService`：`custom_venues` 的 cloud/local CRUD，支持 localStorage fallback key `stagelog-custom-venues`，并清洗 latitude / longitude / capacity 等字段。
+- `eventStorage` / `ticketStorage`：localStorage fallback 的 events 和 ticket applications 读写。
+- `backupService`：JSON backup import/export、旧 backup 兼容、customVenues 兼容、event/ticket venue snapshots 保留。
+- `storageService`：event image 上传、signed URL 和删除，依赖 Supabase Storage。
+- `weatherService`：Open-Meteo Archive 天气获取。坐标由上层统一解析后传入，不在 service 内查 venue 数据。
+- `profileService`、`draftStorage`：profile/settings 云端持久化和表单 draft/session 持久化。
+
+#### 0.5 `src/types`
+
+`types` 定义核心数据模型：
+
+- `EventRecord` / `EventFormValues`：参战记录，包括 `doorsOpenTime`、`startTime`、venue snapshot、seat、weather、image、notes。
+- `TicketApplication`：票务抽选轮次，包括 `ticketGroupKey`、roundName / roundType、appliedQuantity / wonQuantity / paidQuantity、currency / displayCurrency、amountOriginal / amountDisplay 等 V2 字段。
+- `CustomVenue`：用户自定义场馆库记录，包括 aliases、city/country、prefecture/region、latitude/longitude、category、capacity、notes。
+- `Backup` 相关类型：定义 JSON backup 的 events、ticketApplications、profile/settings、customVenues 等结构。
+- `Venue`：内置场馆数据类型，包含坐标、地区、类别、容量、座位图和缩略图信息。
+
+#### 0.6 `src/utils`
+
+`utils` 是纯函数工具层：
+
+- `ticketUtils`：`ticketGroupKey` 生成/归一化、票务数量和金额读取、分组相关计算。
+- `analyticsUtils`：把 events 和 tickets 转成 Analytics V1/V2 所需的图表数据。
+- `venueSearchUtils`：场馆搜索、搜索文本归一化、历史自定义场馆提取、custom venue id 生成，以及 custom venue 天气坐标解析。
+- `dateUtils`：日期、时间、doors/start 展示格式和排序。
+- `seatMapUtils`：内置座位图查找和座位图兼容判断。
+- `statisticsUtils`、`weatherUtils`：统计和天气展示辅助函数。
+
+#### 0.7 `src/data`
+
+`data` 保存静态数据和内置数据源：
+
+- `venues.ts`：内置日本 live venue 数据，包括英文名、日文/中文名、aliases、城市、地区、坐标、category、capacity、seat map 支持和 thumbnail 信息。
+- `seatMaps.ts`：数据驱动的内置场馆 seat map 定义。
+- `sampleEvents.ts`：示例参战记录，用于空状态体验和本地验证。
+
+#### 0.8 `src/i18n`、`src/context` 和 `src/lib`
+
+- `src/i18n`：中文/英文文案资源和 i18next 初始化。VenueCombobox、CustomVenuesManager、Ticket V2、Timeline、Backup、weather、seat map、Analytics 等文案都在这里维护。
+- `src/context`：Auth 和 user settings 上下文，封装 Supabase session、cloud/local mode 所需的用户状态，以及 theme/language/profile 相关状态。
+- `src/lib/supabase.ts`：Supabase client 初始化，读取 Vite 环境变量。前端只使用 anon/publishable key，不使用 service role key。
+
+#### 0.9 `supabase/sql`
+
+`supabase/sql` 是数据库 schema 和 migration 记录。它不会在 push 到 GitHub 后自动修改 Supabase 数据库；需要手动复制到 Supabase SQL Editor 执行，或用迁移工具执行。
+
+当前正式 migration 顺序记录在 `supabase/sql/README.md` 中，核心文件包括 profiles/settings、events core、event image storage、ticket_applications core、Ticket Management V2 字段、custom_venues、events.doors_open_time。`checks/` 下的 SQL 只用于检查字段和 RLS policies，不是 migration。
+
+重要约束：
+
+- `events` 保存参战记录和 venue snapshot。
+- `ticket_applications` 保存票务抽选轮次，使用 `ticketGroupKey` 单表分组，没有 `ticket_groups` 表。
+- `custom_venues` 保存用户自定义场馆库，并通过 RLS 限制用户只能操作自己的记录。
+- Storage bucket 用于 event image 上传。
+- `doors_open_time` 使用 `text`，是为了匹配已有的 `events.start_time text`。
+- 执行 schema 变更后需要运行 `notify pgrst, 'reload schema';`，避免 PostgREST schema cache 没刷新。
+
+#### 0.10 模块关系和数据流
+
+核心数据流可以概括为：
+
+```text
+用户操作 UI
+EventForm / TicketApplicationForm / CustomVenuesManager
+  ↓
+App state / handlers
+  ↓
+services
+  ↓
+Supabase cloud mode 或 localStorage local mode
+  ↓
+Timeline / Analytics / Backup / cards 从统一数据模型读取
+```
+
+VenueCombobox 从 built-in venues、customVenues 和 recent inferred venues 中选择场馆。Event 和 Ticket 不只保存 `venueId`，还保存 `venueName`、`city`、`country` 等 snapshot，因此 customVenue 被删除后历史记录仍能显示。TicketManager 用 `ticketGroupKey` 聚合同一场公演的多轮抽选。Backup 同时保存 customVenues 和 events/tickets 的 venue snapshots，既能恢复正式场馆库，也能保护历史记录显示。
+
 ### 1. 项目动机
 
 StageLog JP 的出发点是解决一个比较具体的记录问题：日本演出、舞台活动、fan event 和票务抽选并不适合只用普通日历或备忘录管理。日历可以记录日期，但很难自然表达多轮抽选、申请张数、中选张数、付款张数、场馆、座位、天气、票务支出、图片、备份和长期分析。
@@ -374,11 +494,195 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 短期内不应继续扩大的方向包括：完整 B：场馆合并 / 去重；自定义场馆座位图；自动 geocoding；删除 customVenue 后批量更新历史 records；自动汇率 API；大规模重写 Ticket Management V2；重新引入 ResponsiveContainer。
 
+### 20. 开发日志初版之后的近期迭代
+
+这一节补充 DEVELOPMENT_LOG 初版创建之后的几个小阶段。它们不是独立大模块重写，而是围绕真实使用流程做的字段补充、UX polish、SQL 维护和 bugfix。
+
+#### 20.1 Ticket 编辑与票务转参战 UX
+
+**Problem**：Ticket Management V2 已经支持“新增这一场的抽选轮次”和“保存并新增下一轮”，但编辑某一轮 ticket 时，页面没有像新增流程一样自动滚动到 TicketApplicationForm。另一个问题是从 ticket round 点击“创建参战记录”后，用户可能停留在票务页面或没有进入可继续编辑的 EventForm。
+
+**Design Decision**：这些问题属于导航和表单定位，不应该改 Ticket V2 数据模型。解决方式是复用已有 form ref、scroll helper、focus request 和 session 机制。
+
+**Implementation**：编辑 ticket round 时，表单切换到 edit mode 后自动滚动到 TicketApplicationForm，并优先聚焦 roundName。票务创建参战记录流程改为切换到 EventForm 新增模式，使用 ticket preset 预填 title、artist、date、venue snapshot、seat/notes 等信息，滚动到 EventForm，并避免对已有 linkedEventId 的 ticket 重复创建 event。
+
+**Result**：Ticket group card 中新增、编辑、保存并新增下一轮、从 ticket 创建 event 的体验更连续，同时没有改变 ticket_applications schema，也没有新增 ticket_groups 表。
+
+#### 20.2 Event Time Model：开场时间与开演时间
+
+**Problem**：EventForm 原来只有 `startTime`，但日本演出记录中“开场时间 / doors open”和“开演时间 / show start”经常都需要记录。只记录 startTime 会丢失实际入场和安排行程需要的信息。
+
+**Design Decision**：新增 `doorsOpenTime` 作为 EventRecord 字段，并在 Supabase 中加入 `events.doors_open_time`。关键约束是：`doors_open_time` 必须使用 `text`，因为现有 `events.start_time` 也是 `text`。不使用 `time` 或 `timestamptz`，避免 cloud/local 数据格式不一致，也避免破坏已有 start_time。
+
+**Implementation**：新增 `supabase/sql/07_events_doors_open_time.sql`，确保 `doors_open_time text` 存在，并能把误建成 time-like 类型的字段转换回 text。EventForm 在日期和开演时间之间增加开场时间输入；EventRecord / EventFormValues / cloud mapping / local storage / backup import-export 都兼容 `doorsOpenTime`。显示层通过时间 helper 把 `16:00:00` 归一化成 `16:00`。
+
+**Result**：参战记录可以同时显示“开场 15:00 / 开演 16:00”或对应英文 “Doors 15:00 / Start 16:00”。旧记录没有 doorsOpenTime 时继续正常显示。
+
+#### 20.3 Supabase SQL 文件结构整理
+
+**Problem**：随着 events、ticket_applications、custom_venues、storage、schema compatibility 和检查语句增多，`supabase/sql` 目录开始难以维护。旧文件名也不再准确表达运行顺序和职责。
+
+**Design Decision**：不把已执行的 migration 合并成一个大文件，也不修改业务 schema 逻辑。只做文件命名、拆分、README 和检查脚本归档，让未来维护者能明确哪些是 migration、哪些是检查脚本。
+
+**Implementation**：`supabase/sql` 现在按推荐顺序组织为 profiles/settings、events core、event images storage、ticket_applications core、Ticket V2、custom_venues、doors_open_time。`checks/` 目录保存 events、ticket_applications、custom_venues columns 和 RLS policies 的只读检查脚本。`supabase/sql/README.md` 记录用途、运行顺序、每个 migration 的职责、检查脚本说明、manual verification queries，以及执行 schema 变更后需要 `notify pgrst, 'reload schema';`。
+
+**Result**：SQL 目录从“补丁集合”变成可读的 migration 记录。需要强调的是：把 SQL 文件 push 到 GitHub 不会自动修改 Supabase 数据库，仍然需要手动在 Supabase SQL Editor 执行或通过迁移工具执行。
+
+#### 20.4 Custom Venue Coordinates and Weather
+
+**Problem**：Custom Venues B-lite 支持在 custom_venues 中维护 latitude / longitude，但天气获取逻辑早期主要从内置 venues 查坐标。结果是自定义场馆即使填写了坐标，也可能被误判为没有坐标。
+
+**Design Decision**：天气 API 不应该负责理解 built-in venues、customVenues 和历史推断场馆。坐标解析应该在前端工具层统一完成，再把解析出的经纬度传给 weatherService。
+
+**Implementation**：`venueSearchUtils` 增加统一坐标解析逻辑，优先级是：当前 event/form snapshot 的 latitude / longitude、built-in venues id、customVenues id、customVenues name + city、recent inferred venues。解析支持 number 和 string，经纬度范围校验为 latitude -90 到 90、longitude -180 到 180，并且不会把合法的 0 当成无效值。Event weather fetch 和 event card 的按钮禁用逻辑都改为使用这个解析结果。
+
+**Result**：有坐标的 customVenue 可以获取天气；没有坐标或坐标无效时显示更准确的提示：“当前场馆缺少经纬度，无法自动获取天气。请在自定义场馆中补充 latitude / longitude。”这不是自动 geocoding，坐标仍需要用户手动维护。
+
+#### 20.5 Custom Venue 坐标同步到 EventForm
+
+**Problem**：用户在 CustomVenuesManager 编辑 customVenue 的 latitude / longitude 后，再去新增参战记录选择这个 customVenue，EventForm 有时仍像没有坐标。这类问题不是 schema 问题，而是前端状态链路问题：custom venue library、VenueCombobox、EventForm state 和 weather resolver 之间必须保持坐标一致。
+
+**Design Decision**：不重写 EventForm / VenueCombobox / CustomVenuesManager，只补齐坐标链路。正式 customVenue 的坐标应当在 create/update 后立即进入 App customVenues state；VenueCombobox 选择 customVenue 时返回坐标；EventForm 如果当前已选 customVenue 但 state 缺坐标，应从 customVenues state 补齐。
+
+**Implementation**：customVenueService 对 latitude / longitude 做范围清洗，CustomVenuesManager 和 VenueCombobox 在保存/inline 创建时对超范围坐标给出明确错误，不再静默丢失。EventForm 增加一个保守的同步 effect：只在当前选中正式 customVenue 且表单缺少坐标时，从 App 传入的 customVenues 中补齐 latitude / longitude，不覆盖已有 event snapshot。
+
+**Result**：在“我的自定义场馆”中维护坐标后，新建 event 选择该 customVenue 会立即获得坐标；在 EventForm 中直接创建 customVenue 并填写坐标也能立即进入表单 state。已有 event 如果没有坐标 snapshot，也仍可通过 customVenues id 查到坐标并获取天气。
+
+#### 20.6 Timeline UI V1 Polish
+
+**Problem**：Timeline 页面已经能展示 event，但视觉上更像普通列表。年份、日期和事件之间的关联不够强，开场 / 开演 / 天气信息挤在一行，可读性一般。
+
+**Design Decision**：这属于 Timeline UI V1 polish，不改变数据排序、分组或 schema。不新增筛选、日历视图、月份折叠，也不重写 Timeline。
+
+**Implementation**：Timeline 保留现有年份分组和 `sortByDateDesc`，但把展示改成更接近时间线：年份 header 更明显，event 左侧有日期列、节点圆点和竖向连接线，右侧是 timeline-specific card。开场、开演和天气变成 badge；未来活动和已完成活动用 UI-only 状态 badge 显示 Upcoming / Completed 或 予定 / 已完成。移动端改为单列/弱化节点，避免横向溢出。
+
+**Result**：Timeline 更像时间线而不是普通列表，同时不影响 EventForm、Ticket Management V2、Analytics、Backup 或 Supabase schema。
+
 ---
 
 ## English Version
 
 This document summarizes the StageLog JP development process by product and engineering phases. It is based on the repository commit history, README, verification notes, Supabase setup notes, and the current project structure.
+
+### 0. Project Structure Guide
+
+This section explains how the main folders and files in StageLog JP relate to each other. It is not meant to be a complete file tree; it focuses on responsibilities, boundaries, and data flow.
+
+#### 0.1 Top-Level Structure
+
+- `README.md`: project overview, local setup, and Supabase setup entry point for GitHub readers and future maintainers.
+- `DEVELOPMENT_LOG.md`: development retrospective covering product phases, technical decisions, major bugs, architecture evolution, and limitations.
+- `VERIFICATION.md`: build, regression, and manual verification notes for cloud/local mode, Supabase SQL, RLS, forms, tickets, Analytics, Backup, and mobile layout.
+- `SUPABASE_SETUP.md`: Supabase configuration notes for Auth, environment variables, SQL, Storage, and cloud sync.
+- `package.json` / `package-lock.json`: dependencies and scripts. The main scripts are `dev`, `build`, `preview`, `typecheck`, and the venue thumbnail generator.
+- `vite.config.ts`: Vite build configuration.
+- `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`: TypeScript compiler configuration.
+- `public/`: static assets such as venue maps and venue thumbnails.
+- `supabase/sql/`: Supabase schema migrations and read-only check scripts.
+- `src/`: main React + TypeScript application code.
+
+#### 0.2 `src`
+
+`src` contains the frontend application. `main.tsx` mounts the React app. `App.tsx` is the top-level coordination layer for view switching, cloud/local mode, events, ticket applications, custom venues, profile/settings, backup import/export, weather fetch, and form sessions. `index.css` contains global styles, responsive layout, theme rules, and most component styles.
+
+`App.tsx` is intentionally the point where UI components meet persistence. Components collect input and render state; App handlers decide whether to call Supabase services or localStorage fallback services, then write the returned records back into shared state.
+
+#### 0.3 `src/components`
+
+`components` contains reusable UI and business components:
+
+- `EventForm`: create/edit event records, including doors open time, show start time, VenueCombobox, seat data, image upload, draft/session behavior, and save handling.
+- `TicketApplicationForm`: create/edit ticket lottery rounds, including Ticket Management V2 fields, quantity validation, currency fields, round presets, and draft/session behavior.
+- `TicketManager`: renders ticket group cards, groups rounds by `ticketGroupKey`, and handles add-round, edit-round, delete-round, and create-event-from-ticket entry points.
+- `VenueCombobox`: the unified venue selector. It merges built-in venues, saved `customVenues`, and recent inferred venues, and supports inline custom venue creation.
+- `CustomVenuesManager`: user-owned custom venue library UI for create, edit, delete, search, and event/ticket usage counts.
+- `BackupPanel`: JSON backup export/import UI.
+- `Analytics` and `ChartFrame`: analytics dashboards and stable Recharts rendering. Charts use ChartFrame + ResizeObserver instead of ResponsiveContainer.
+- `Timeline`: chronological event display. Later iterations added a date column, nodes, connector lines, time badges, weather badges, and upcoming/completed status badges.
+- `TicketCard` / `EventList`: event card and list display, including weather fetch entry points, images, seat summary, and edit/delete actions.
+- `Header`, `MobileBottomNav`, `MobileMenuDrawer`, `FloatingAddButton`: desktop and mobile navigation.
+
+#### 0.4 `src/services`
+
+`services` is the data access and external API layer. UI components should not hand-build Supabase rows; App handlers and services handle mapping and persistence.
+
+- `cloudEventService`: Supabase row mapping and cloud CRUD for `events`, including `start_time`, `doors_open_time`, venue snapshots, seat/weather JSON, and image fields.
+- `cloudTicketService`: Supabase row mapping and cloud CRUD for `ticket_applications`, including Ticket Management V2 fields and `ticketGroupKey`.
+- `customVenueService`: cloud/local CRUD for `custom_venues`, localStorage fallback key `stagelog-custom-venues`, and cleaning for latitude / longitude / capacity.
+- `eventStorage` / `ticketStorage`: localStorage fallback for events and ticket applications.
+- `backupService`: JSON backup import/export, old backup compatibility, customVenues compatibility, and event/ticket venue snapshot preservation.
+- `storageService`: event image upload, signed URL generation, and delete behavior through Supabase Storage.
+- `weatherService`: Open-Meteo Archive fetch logic. Venue coordinates are resolved before calling this service.
+- `profileService`, `draftStorage`: profile/settings persistence and form draft/session persistence.
+
+#### 0.5 `src/types`
+
+`types` defines the core data models:
+
+- `EventRecord` / `EventFormValues`: event records, including `doorsOpenTime`, `startTime`, venue snapshots, seat, weather, image, and notes.
+- `TicketApplication`: ticket lottery rounds, including `ticketGroupKey`, roundName / roundType, appliedQuantity / wonQuantity / paidQuantity, currency / displayCurrency, amountOriginal / amountDisplay, and related V2 fields.
+- `CustomVenue`: user-owned custom venue library records, including aliases, location, coordinates, category, capacity, and notes.
+- Backup types: JSON backup shape for events, ticketApplications, profile/settings, and customVenues.
+- `Venue`: built-in venue data including coordinates, region, category, capacity, seat map support, and thumbnails.
+
+#### 0.6 `src/utils`
+
+`utils` contains pure helper functions:
+
+- `ticketUtils`: `ticketGroupKey` generation/normalization, ticket quantity helpers, amount helpers, and grouping-related calculations.
+- `analyticsUtils`: transforms events and tickets into chart-ready data for Analytics V1/V2.
+- `venueSearchUtils`: venue search, search text normalization, historical custom venue extraction, custom venue id generation, and custom venue weather coordinate resolution.
+- `dateUtils`: date/time formatting, doors/start display helpers, and date sorting.
+- `seatMapUtils`: built-in seat map lookup and seat map compatibility helpers.
+- `statisticsUtils`, `weatherUtils`: statistics and weather display helpers.
+
+#### 0.7 `src/data`
+
+`data` stores static data:
+
+- `venues.ts`: built-in Japanese live venue data, including localized names, aliases, city, region, coordinates, category, capacity, seat map support, and thumbnail metadata.
+- `seatMaps.ts`: data-driven seat map definitions for supported built-in venues.
+- `sampleEvents.ts`: sample event records used for empty-state onboarding and local verification.
+
+#### 0.8 `src/i18n`, `src/context`, and `src/lib`
+
+- `src/i18n`: i18next resources and initialization for Chinese and English UI text. VenueCombobox, CustomVenuesManager, Ticket V2, Timeline, Backup, weather, seat map, and Analytics text live here.
+- `src/context`: Auth and user settings contexts for Supabase session state, user settings, theme/language, and cloud/local mode behavior.
+- `src/lib/supabase.ts`: Supabase client initialization from Vite environment variables. The frontend uses the anon/publishable key, not a service role key.
+
+#### 0.9 `supabase/sql`
+
+`supabase/sql` records database schema and migration scripts. Pushing SQL files to GitHub does not automatically modify the Supabase database. They must be run manually in the Supabase SQL Editor or through a migration tool.
+
+The current recommended migration order is documented in `supabase/sql/README.md`. The files cover profiles/settings, events core, event image storage, ticket applications core, Ticket Management V2 fields, `custom_venues`, and `events.doors_open_time`. Scripts under `checks/` are read-only verification queries, not migrations.
+
+Important constraints:
+
+- `events` stores event records and venue snapshots.
+- `ticket_applications` stores ticket lottery rounds and uses `ticketGroupKey` single-table grouping. There is no `ticket_groups` table.
+- `custom_venues` stores the user-owned custom venue library, protected by RLS.
+- Storage is used for event image uploads.
+- `doors_open_time` is `text` to match the existing `events.start_time text` field.
+- After schema changes, `notify pgrst, 'reload schema';` should be run so PostgREST sees new columns.
+
+#### 0.10 Module Relationships and Data Flow
+
+The main data flow is:
+
+```text
+User actions in UI
+EventForm / TicketApplicationForm / CustomVenuesManager
+  ↓
+App state / handlers
+  ↓
+services
+  ↓
+Supabase cloud mode or localStorage local mode
+  ↓
+Timeline / Analytics / Backup / cards read from the shared data models
+```
+
+VenueCombobox selects from built-in venues, customVenues, and recent inferred venues. Events and tickets store `venueId` plus `venueName`, `city`, and `country` snapshots, so historical records still display even if a customVenue is deleted. TicketManager groups multiple lottery rounds with `ticketGroupKey`. Backup stores both customVenues and event/ticket venue snapshots, preserving both the custom venue library and historical display safety.
 
 ### 1. Project Motivation
 
@@ -1088,3 +1392,67 @@ The following ideas should stay out of scope until there is a clearer need and a
 - automatic exchange-rate APIs,
 - a large rewrite of Ticket Management V2,
 - reintroducing ResponsiveContainer.
+
+### 20. Recent Iterations After the First Development Log
+
+This section records the main iterations added after the first DEVELOPMENT_LOG draft. They are not large rewrites; they are field additions, workflow polish, SQL maintenance, and targeted bug fixes driven by real usage.
+
+#### 20.1 Ticket Edit and Ticket-to-Event UX
+
+**Problem**: Ticket Management V2 already supported adding a round to an existing performance and saving while continuing to the next round. Editing an existing ticket round, however, did not scroll to `TicketApplicationForm` the same way. Another issue was the create-event-from-ticket flow: clicking "Create Event Record" from a ticket round could leave the user on the ticket page without a usable event form.
+
+**Design Decision**: These were navigation and form-positioning issues, not data model issues. The fix reused existing form refs, scroll helpers, focus requests, and session state rather than changing Ticket V2.
+
+**Implementation**: Editing a ticket round now switches into edit mode, scrolls to `TicketApplicationForm`, and prefers focusing `roundName`. Creating an event from a ticket now switches to the new EventForm flow, pre-fills event title, artist, date, venue snapshot, seat/notes context where available, scrolls to the form, and avoids creating duplicate events when a ticket already has `linkedEventId`.
+
+**Result**: Add round, edit round, save-and-add-next-round, and create-event-from-ticket are now more continuous workflows. This did not change `ticket_applications` schema and did not add a `ticket_groups` table.
+
+#### 20.2 Event Time Model: Doors Open and Show Start
+
+**Problem**: EventForm originally had only `startTime`, but Japanese live events often need both doors-open time and show-start time. Keeping only start time loses useful arrival and schedule context.
+
+**Design Decision**: Add `doorsOpenTime` to the event model and `events.doors_open_time` to Supabase. The important constraint is that `doors_open_time` must be `text`, because the existing `events.start_time` field is also `text`. It should not be `time` or `timestamptz`.
+
+**Implementation**: `supabase/sql/07_events_doors_open_time.sql` ensures `doors_open_time text` exists and converts a mistakenly-created time-like column back to `text`. EventForm adds a doors-open input before start time. EventRecord / EventFormValues / cloud mapping / local storage / backup import-export all preserve `doorsOpenTime`. Display helpers normalize values such as `16:00:00` to `16:00`.
+
+**Result**: Events can display `Doors 15:00 / Start 16:00` or the Chinese equivalent. Old records without `doorsOpenTime` remain compatible.
+
+#### 20.3 Supabase SQL File Organization
+
+**Problem**: As events, ticket applications, custom venues, storage, schema compatibility, and check scripts accumulated, `supabase/sql` became harder to maintain. Some older filenames no longer described execution order or responsibility clearly.
+
+**Design Decision**: Do not merge historical migrations into one large file and do not change business schema logic. Organize filenames, split responsibilities, add README guidance, and move read-only checks into a dedicated folder.
+
+**Implementation**: `supabase/sql` is now organized by recommended run order: profiles/settings, events core, event image storage, ticket applications core, Ticket V2, custom venues, and doors-open time. `checks/` contains read-only scripts for events columns, ticket_applications columns, custom_venues columns, and RLS policies. `supabase/sql/README.md` documents purpose, run order, migration responsibilities, check scripts, manual verification queries, and the need to run `notify pgrst, 'reload schema';` after schema changes.
+
+**Result**: The SQL directory is now a readable migration record rather than a loose collection of patches. Pushing SQL files to GitHub still does not automatically update Supabase; the SQL must be run manually in the SQL Editor or through a migration tool.
+
+#### 20.4 Custom Venue Coordinates and Weather
+
+**Problem**: Custom Venues B-lite allowed latitude / longitude to be stored in `custom_venues`, but the weather fetch path originally relied mostly on built-in venues. A custom venue with coordinates could still be treated as if it had no coordinates.
+
+**Design Decision**: `weatherService` should not know how to search built-in venues, saved custom venues, or historical inferred venues. Coordinate resolution should happen in frontend utilities before calling the weather service.
+
+**Implementation**: `venueSearchUtils` gained a unified coordinate resolver. Its priority is: current event/form snapshot coordinates, built-in venue id, customVenues id, customVenues name + city, then recent inferred venues. It accepts number and string coordinates, validates latitude in `-90..90` and longitude in `-180..180`, and keeps valid `0` values. Event weather fetch and event card disabled-state logic use this resolver.
+
+**Result**: Custom venues with coordinates can fetch weather. Missing or invalid coordinates now show a more accurate message asking the user to add latitude / longitude to the custom venue. This is not automatic geocoding; coordinates are still maintained manually.
+
+#### 20.5 Syncing Custom Venue Coordinates into EventForm
+
+**Problem**: After editing latitude / longitude in CustomVenuesManager, selecting that customVenue in a new EventForm could still behave as if coordinates were missing. The problem was not schema-related; it was a frontend state-chain issue across customVenue library state, VenueCombobox, EventForm state, and weather coordinate resolution.
+
+**Design Decision**: Do not rewrite EventForm, VenueCombobox, or CustomVenuesManager. Tighten the coordinate path. Saved custom venue coordinates should enter App customVenues state immediately after create/update; VenueCombobox should return coordinates when selecting a customVenue; EventForm should fill missing coordinates from customVenues state when the selected customVenue is known.
+
+**Implementation**: `customVenueService` now range-cleans latitude / longitude. CustomVenuesManager and VenueCombobox validate out-of-range coordinates and show a clear error instead of silently dropping values. EventForm has a conservative sync effect: when the current selected venue is a formal customVenue and the form lacks coordinates, it fills latitude / longitude from App-provided customVenues without overwriting an existing event snapshot.
+
+**Result**: After maintaining coordinates in "My custom venues", selecting that customVenue in a new event immediately gives EventForm usable coordinates. Creating a customVenue with coordinates from EventForm also keeps those coordinates in form state. Existing events without coordinate snapshots can still resolve coordinates by customVenues id.
+
+#### 20.6 Timeline UI V1 Polish
+
+**Problem**: Timeline could display events, but visually it felt like a plain list. The relationship between year, date, and event was not strong enough, and doors/start/weather metadata was crowded.
+
+**Design Decision**: Treat this as Timeline UI V1 polish only. Do not change data ordering, grouping, schema, filters, calendar views, or month collapsing.
+
+**Implementation**: Timeline keeps the existing year grouping and `sortByDateDesc` ordering, but the display now looks more like a timeline: stronger year headers, a date column, node dots, vertical connector lines, and timeline-specific cards. Doors, start time, and weather are shown as badges. Upcoming/completed status is calculated in UI from `event.date` and displayed as lightweight badges. Mobile layout uses a simplified single-column version to avoid horizontal overflow.
+
+**Result**: Timeline now reads as a timeline rather than a regular list, without affecting EventForm, Ticket Management V2, Analytics, Backup, or Supabase schema.
