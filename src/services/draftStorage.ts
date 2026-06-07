@@ -21,6 +21,10 @@ const getDraftMeta = (key: string): { formType: DraftFormType; mode: DraftMode; 
     return { formType: "event", mode: "edit", entityId: key.replace("stagelog-event-draft-edit-", "") };
   }
 
+  if (key.startsWith("stagelog-event-draft-ticket-")) {
+    return { formType: "event", mode: "new" };
+  }
+
   if (key === "stagelog-ticket-draft-new") {
     return { formType: "ticket", mode: "new" };
   }
@@ -121,6 +125,8 @@ export function hasDraft(key: string): boolean {
 
 export const getEventDraftKey = (eventId?: string | null) =>
   eventId ? `stagelog-event-draft-edit-${eventId}` : "stagelog-event-draft-new";
+
+export const getEventFromTicketDraftKey = (ticketId: string) => `stagelog-event-draft-ticket-${ticketId}`;
 
 export const getTicketDraftKey = (ticketId?: string | null) =>
   ticketId ? `stagelog-ticket-draft-edit-${ticketId}` : "stagelog-ticket-draft-new";

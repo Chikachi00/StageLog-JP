@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { clearDraft, getDraft, getEventDraftKey, hasDraft, saveDraft } from "../services/draftStorage";
 import { CLOUD_IMAGE_MAX_SIZE_BYTES, CLOUD_IMAGE_MIME_TYPES } from "../services/storageService";
 import type { CustomVenueInput } from "../services/customVenueService";
-import type { EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
+import type { EventFormPreset, EventFormValues, EventRecord, SeatInfo, Venue } from "../types/event";
 import type { CustomVenue } from "../types/venue";
 import type { VenueValue } from "../utils/venueSearchUtils";
 import { SeatPicker } from "./SeatPicker";
@@ -16,6 +16,10 @@ interface EventFormProps {
   customVenues?: CustomVenue[];
   events?: EventRecord[];
   editingEvent?: EventRecord | null;
+  eventPreset?: EventFormPreset | null;
+  draftKeyOverride?: string;
+  initialFocus?: "title" | null;
+  focusRequestId?: number;
   useCloudImages?: boolean;
   isSaving?: boolean;
   onCreateCustomVenue?: (input: CustomVenueInput) => Promise<CustomVenue> | CustomVenue;
@@ -37,7 +41,11 @@ type EventDraftPayload = EventFormValues & {
   imageFileName?: string;
 };
 
-const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null): EventFormValues => {
+const createInitialValues = (
+  venues: Venue[],
+  editingEvent?: EventRecord | null,
+  eventPreset?: EventFormPreset | null,
+): EventFormValues => {
   const defaultVenue = venues[0];
 
   if (editingEvent) {
@@ -63,7 +71,7 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
     };
   }
 
-  return {
+  const newValues: EventFormValues = {
     title: "",
     artist: "",
     date: "",
@@ -83,6 +91,20 @@ const createInitialValues = (venues: Venue[], editingEvent?: EventRecord | null)
     imagePath: undefined,
     notes: "",
   };
+
+  if (!eventPreset) {
+    return newValues;
+  }
+
+  const { sourceTicketId: _sourceTicketId, ...presetValues } = eventPreset;
+
+  return {
+    ...newValues,
+    ...presetValues,
+    seat: { ...emptySeat, ...(eventPreset.seat ?? {}) },
+    imageFile: undefined,
+    removeImage: false,
+  };
 };
 
 export function EventForm({
@@ -90,6 +112,10 @@ export function EventForm({
   customVenues = [],
   events = [],
   editingEvent,
+  eventPreset = null,
+  draftKeyOverride,
+  initialFocus = null,
+  focusRequestId = 0,
   useCloudImages = false,
   isSaving = false,
   onCreateCustomVenue,
@@ -97,18 +123,22 @@ export function EventForm({
   onCancelEditing,
 }: EventFormProps) {
   const { t } = useTranslation();
-  const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent));
+  const [values, setValues] = useState<EventFormValues>(() => createInitialValues(venues, editingEvent, eventPreset));
   const [imageError, setImageError] = useState("");
   const [draftStatus, setDraftStatus] = useState("");
   const [hasAutoRestoredDraft, setHasAutoRestoredDraft] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const valuesRef = useRef(values);
   const isDirtyRef = useRef(false);
-  const draftKey = useMemo(() => getEventDraftKey(editingEvent?.id), [editingEvent?.id]);
+  const titleRef = useRef<HTMLInputElement | null>(null);
+  const draftKey = useMemo(
+    () => draftKeyOverride ?? getEventDraftKey(editingEvent?.id),
+    [draftKeyOverride, editingEvent?.id],
+  );
 
   useEffect(() => {
-    const initialValues = createInitialValues(venues, editingEvent);
-    const draft = getDraft<EventDraftPayload>(getEventDraftKey(editingEvent?.id));
+    const initialValues = createInitialValues(venues, editingEvent, eventPreset);
+    const draft = getDraft<EventDraftPayload>(draftKey);
 
     if (draft) {
       setValues({
@@ -131,7 +161,7 @@ export function EventForm({
     setHasAutoRestoredDraft(false);
     setIsDirty(false);
     isDirtyRef.current = false;
-  }, [editingEvent, t, venues]);
+  }, [draftKey, editingEvent, eventPreset, t, venues]);
 
   useEffect(() => {
     valuesRef.current = values;
@@ -140,6 +170,18 @@ export function EventForm({
   useEffect(() => {
     isDirtyRef.current = isDirty;
   }, [isDirty]);
+
+  useEffect(() => {
+    if (initialFocus !== "title") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      titleRef.current?.focus();
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [focusRequestId, initialFocus]);
 
   const selectedVenue = useMemo(
     () => venues.find((venue) => venue.id === values.venueId),
@@ -401,6 +443,7 @@ export function EventForm({
         <label>
           {t("eventForm.title")}
           <input
+            ref={titleRef}
             required
             value={values.title}
             onChange={(event) => updateValue("title", event.target.value)}

@@ -60,22 +60,26 @@ import {
   normalizeBackupEvent,
   normalizeBackupTicketApplication,
 } from "./services/backupService";
-import { clearDraft, getEventDraftKey, getTicketDraftKey } from "./services/draftStorage";
+import { clearDraft, getEventDraftKey, getEventFromTicketDraftKey, getTicketDraftKey } from "./services/draftStorage";
 import {
   deleteEventImage,
   getEventImageSignedUrl,
   uploadEventImage,
 } from "./services/storageService";
 import { fetchWeatherForEvent } from "./services/weatherService";
-import type { EventFilters, EventFormValues, EventRecord, Venue } from "./types/event";
+import type { EventFilters, EventFormPreset, EventFormValues, EventRecord, Venue } from "./types/event";
 import { isAppTheme, type AppTheme } from "./types/theme";
 import type { TicketApplication, TicketApplicationFormValues, TicketRoundPreset } from "./types/ticket";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "./types/backup";
 import type { CustomVenue } from "./types/venue";
 import { getEventYear, sortByDateDesc } from "./utils/dateUtils";
 import {
+  getAppliedQuantity,
+  getPaidQuantity,
   getTicketAmountDisplay,
   getTicketAmountOriginal,
+  getTicketDisplayCurrency,
+  getWonQuantity,
   normalizeTicketGroupKey,
 } from "./utils/ticketUtils";
 import { buildCustomVenueId, isCustomVenueId } from "./utils/venueSearchUtils";
@@ -95,6 +99,7 @@ type EventFormSession =
       version: 1;
       mode: "new";
       currentView: "add";
+      sourceTicketId?: string;
       openedAt: string;
       updatedAt: string;
     }
@@ -126,13 +131,14 @@ type TicketFormSession =
 
 const isBrowser = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
-const createNewEventFormSession = (): EventFormSession => {
+const createNewEventFormSession = (sourceTicketId?: string): EventFormSession => {
   const now = new Date().toISOString();
 
   return {
     version: 1,
     mode: "new",
     currentView: "add",
+    sourceTicketId,
     openedAt: now,
     updatedAt: now,
   };
@@ -175,6 +181,7 @@ const getStoredEventFormSession = (): EventFormSession | null => {
         version: 1,
         mode: "new",
         currentView: "add",
+        sourceTicketId: typeof parsed.sourceTicketId === "string" ? parsed.sourceTicketId : undefined,
         openedAt: parsed.openedAt,
         updatedAt: parsed.updatedAt ?? parsed.openedAt,
       };
@@ -543,6 +550,9 @@ function App() {
     initialEventFormSession?.mode === "edit" ? initialEventFormSession.editingEventId : null,
   );
   const eventFormSessionRef = useRef<EventFormSession | null>(initialEventFormSession);
+  const eventFormRef = useRef<HTMLDivElement | null>(null);
+  const [eventFormPreset, setEventFormPreset] = useState<EventFormPreset | null>(null);
+  const [eventFormFocusRequestId, setEventFormFocusRequestId] = useState(0);
   const [editingApplication, setEditingApplication] = useState<TicketApplication | null>(null);
   const [ticketFormSession, setTicketFormSession] = useState<TicketFormSession | null>(
     initialTicketFormSession,
@@ -557,6 +567,24 @@ function App() {
   const [fetchingWeatherId, setFetchingWeatherId] = useState<string | null>(null);
   const [weatherErrors, setWeatherErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string>("");
+
+  const scrollToEventForm = useCallback(() => {
+    setEventFormFocusRequestId((current) => current + 1);
+
+    requestAnimationFrame(() => {
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      eventFormRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }, []);
+  const eventSourceTicketId =
+    eventFormPreset?.sourceTicketId ??
+    (eventFormSession?.mode === "new" ? eventFormSession.sourceTicketId : undefined);
 
   const filterOptions = useMemo(
     () => ({
@@ -788,8 +816,11 @@ function App() {
 
   const handleNavigate = (view: AppView) => {
     if (view === "add") {
-      if (!eventFormSession) {
-        setEventFormSession(createNewEventFormSession());
+      setEventFormPreset(null);
+      if (!eventFormSession || (eventFormSession.mode === "new" && eventFormSession.sourceTicketId)) {
+        const session = createNewEventFormSession();
+        setEventFormSession(session);
+        saveEventFormSession(session);
       }
 
       setActiveView("add");
@@ -821,6 +852,7 @@ function App() {
           ? events.find((event) => event.id === eventFormSession.editingEventId) ?? editingEvent
           : null;
       const record = createRecord(values, activeEditingEvent);
+      let savedEvent: EventRecord | null = null;
 
       if (isCloudMode && user) {
         let savedRecord = record;
@@ -889,19 +921,50 @@ function App() {
             setNotice(`${t("storage.uploadFailed")} ${getErrorMessage(error, t("storage.uploadFailed"))}`);
           }
         }
+        savedEvent = savedRecord;
       } else if (activeEditingEvent) {
-        updateLocalEvent(record);
+        savedEvent = updateLocalEvent(record);
         setNotice(t("notice.eventUpdated"));
       } else {
-        addLocalEvent(record);
+        savedEvent = addLocalEvent(record);
         setNotice(t("notice.eventSaved"));
       }
 
+      if (!activeEditingEvent && eventSourceTicketId && savedEvent) {
+        const sourceTicket = ticketApplications.find((ticket) => ticket.id === eventSourceTicketId);
+
+        if (sourceTicket && !sourceTicket.linkedEventId) {
+          const linkedApplication = {
+            ...sourceTicket,
+            linkedEventId: savedEvent.id,
+            updatedAt: new Date().toISOString(),
+          };
+
+          try {
+            if (isCloudMode && user) {
+              await updateCloudTicketApplication(linkedApplication, user.id);
+            } else {
+              updateTicketApplication(linkedApplication);
+            }
+            setNotice(t("notice.eventCreatedFromTicket"));
+          } catch (error) {
+            setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
+          }
+        }
+      }
+
       clearDraft(getEventDraftKey(eventFormSession?.mode === "edit" ? eventFormSession.editingEventId : undefined));
+      if (eventSourceTicketId) {
+        clearDraft(getEventFromTicketDraftKey(eventSourceTicketId));
+      }
+      setEventFormPreset(null);
       setEditingEvent(null);
       setEditingEventId(null);
       setEventFormSession(null);
       await refreshEvents();
+      if (eventSourceTicketId) {
+        await refreshTicketApplications();
+      }
       setActiveView("events");
     } catch (error) {
       setNotice(getSaveFailureMessage(error));
@@ -1017,6 +1080,7 @@ function App() {
     setEventFormSession(session);
     setEditingEvent(event);
     setEditingEventId(event.id);
+    setEventFormPreset(null);
     setActiveView("add");
     setNotice("");
   };
@@ -1232,28 +1296,44 @@ function App() {
     }
   };
 
-  const handleCreateEventFromApplication = async (application: TicketApplication) => {
+  const handleCreateEventFromApplication = (application: TicketApplication) => {
     if (application.linkedEventId) {
+      const linkedEvent = events.find((event) => event.id === application.linkedEventId);
+
+      if (linkedEvent) {
+        handleEdit(linkedEvent);
+        scrollToEventForm();
+      }
+
       setNotice(t("notice.alreadyCreated"));
       return;
     }
 
     const venue = application.venueId ? getVenueById(application.venueId) : undefined;
-    const hasVenue = Boolean(venue || application.venueName?.trim());
-
-    if (!hasVenue || !application.eventDate) {
-      setNotice(t("notice.createEventMissing"));
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const record: EventRecord = {
-      id: crypto.randomUUID(),
-      title: application.eventTitle,
-      artist: application.artist,
-      date: application.eventDate,
+    const amountDisplay = getTicketAmountDisplay(application);
+    const displayCurrency = getTicketDisplayCurrency(application);
+    const ticketNotes = [
+      t("notice.createdFromTicket"),
+      `- Round: ${
+        application.roundName ||
+        (application.roundType ? t(`roundType.${application.roundType}`) : t("tickets.lotteryRound"))
+      }`,
+      application.roundType ? `- Type: ${t(`roundType.${application.roundType}`)}` : "",
+      `- Platform: ${t(`platform.${application.platform}`)}`,
+      `- Status: ${t(`status.${application.status}`)}`,
+      `- Applied: ${getAppliedQuantity(application)}`,
+      `- Won: ${getWonQuantity(application)}`,
+      `- Paid: ${getPaidQuantity(application)}`,
+      typeof amountDisplay === "number" ? `- Amount: ${amountDisplay} ${displayCurrency}` : "",
+      application.memo ? `- Memo: ${application.memo}` : "",
+    ].filter(Boolean);
+    const preset: EventFormPreset = {
+      sourceTicketId: application.id,
+      title: application.eventTitle ?? "",
+      artist: application.artist ?? "",
+      date: application.eventDate ?? "",
       startTime: "",
-      venueId: venue?.id ?? application.venueId ?? buildCustomVenueId(application.venueName ?? "", application.city),
+      venueId: venue?.id ?? application.venueId ?? (application.venueName ? buildCustomVenueId(application.venueName, application.city) : ""),
       venueName: venue?.name ?? application.venueName ?? "",
       city: venue?.city ?? application.city ?? (application.venueName ? "Unknown" : ""),
       country: venue?.country ?? application.country ?? "Japan",
@@ -1261,7 +1341,7 @@ function App() {
       region: venue?.region ?? application.region,
       latitude: venue?.latitude ?? application.latitude,
       longitude: venue?.longitude ?? application.longitude,
-      isCustomVenue: venue ? false : true,
+      isCustomVenue: venue ? false : Boolean(application.isCustomVenue || application.venueId?.startsWith("custom:") || application.venueName),
       ticketType: application.ticketType ?? "",
       seat: {
         gate: "",
@@ -1270,42 +1350,19 @@ function App() {
         row: "",
         number: "",
       },
-      notes: `${t("notice.createdFromTicket")}${application.memo ? ` ${application.memo}` : ""}`,
-      createdAt: now,
-      updatedAt: now,
+      notes: ticketNotes.join("\n"),
     };
 
-    let savedEvent = record;
-
-    try {
-      if (isCloudMode && user) {
-        savedEvent = await addCloudEvent(record, user.id);
-      } else {
-        savedEvent = addLocalEvent(record);
-      }
-    } catch (error) {
-      setNotice(getSaveFailureMessage(error));
-      return;
-    }
-
-    const linkedApplication = {
-      ...application,
-      linkedEventId: savedEvent.id,
-      updatedAt: now,
-    };
-
-    try {
-      if (isCloudMode && user) {
-        await updateCloudTicketApplication(linkedApplication, user.id);
-      } else {
-        updateTicketApplication(linkedApplication);
-      }
-      await refreshEvents();
-      await refreshTicketApplications();
-      setNotice(t("notice.eventCreatedFromTicket"));
-    } catch (error) {
-      setNotice(getErrorMessage(error, t("notice.ticketSaveFailed")));
-    }
+    const session = createNewEventFormSession(application.id);
+    clearDraft(getEventFromTicketDraftKey(application.id));
+    saveEventFormSession(session);
+    setEventFormSession(session);
+    setEditingEvent(null);
+    setEditingEventId(null);
+    setEventFormPreset(preset);
+    setActiveView("add");
+    setNotice("");
+    scrollToEventForm();
   };
 
   const handleImportLocalTicketsToCloud = async () => {
@@ -1789,27 +1846,39 @@ function App() {
         ) : null}
 
         {activeView === "add" && !isEditingEventLoading && !isEditingEventMissing ? (
-          <EventForm
-            customVenues={customVenues}
-            editingEvent={currentEditingEvent}
-            events={events}
-            isSaving={isSavingEvent}
-            useCloudImages={isCloudMode}
-            venues={venues}
-            onCreateCustomVenue={handleCreateCustomVenue}
-            onCancelEditing={() => {
-              if (eventFormSession?.mode === "edit") {
-                clearDraft(getEventDraftKey(eventFormSession.editingEventId));
-              } else {
-                clearDraft(getEventDraftKey());
+          <div ref={eventFormRef} className="event-form-anchor">
+            <EventForm
+              customVenues={customVenues}
+              draftKeyOverride={
+                eventSourceTicketId ? getEventFromTicketDraftKey(eventSourceTicketId) : undefined
               }
-              setEditingEvent(null);
-              setEditingEventId(null);
-              setEventFormSession(null);
-              setActiveView("events");
-            }}
-            onSave={handleSaveEvent}
-          />
+              editingEvent={currentEditingEvent}
+              eventPreset={eventFormPreset}
+              events={events}
+              focusRequestId={eventFormFocusRequestId}
+              initialFocus={eventSourceTicketId ? "title" : null}
+              isSaving={isSavingEvent}
+              useCloudImages={isCloudMode}
+              venues={venues}
+              onCreateCustomVenue={handleCreateCustomVenue}
+              onCancelEditing={() => {
+                if (eventFormSession?.mode === "edit") {
+                  clearDraft(getEventDraftKey(eventFormSession.editingEventId));
+                } else {
+                  clearDraft(getEventDraftKey());
+                }
+                if (eventSourceTicketId) {
+                  clearDraft(getEventFromTicketDraftKey(eventSourceTicketId));
+                }
+                setEditingEvent(null);
+                setEditingEventId(null);
+                setEventFormPreset(null);
+                setEventFormSession(null);
+                setActiveView("events");
+              }}
+              onSave={handleSaveEvent}
+            />
+          </div>
         ) : null}
       </main>
     </div>

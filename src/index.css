@@ -2095,6 +2095,7 @@ textarea:focus {
   font-weight: 800;
 }
 
+.event-form-anchor,
 .ticket-form-anchor {
   scroll-margin-top: 6rem;
   scroll-margin-bottom: 7rem;
@@ -2900,6 +2901,7 @@ textarea:focus {
     flex-direction: column;
   }
 
+  .event-form-anchor,
   .ticket-form-anchor {
     scroll-margin-top: 4.75rem;
     scroll-margin-bottom: calc(6rem + env(safe-area-inset-bottom));

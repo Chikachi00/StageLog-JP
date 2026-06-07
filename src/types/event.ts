@@ -87,6 +87,10 @@ export interface EventFormValues {
   notes: string;
 }
 
+export type EventFormPreset = Partial<EventFormValues> & {
+  sourceTicketId?: string;
+};
+
 export interface EventFilters {
   year: string;
   artist: string;
