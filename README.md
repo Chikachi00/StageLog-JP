@@ -1,438 +1,106 @@
 # StageLog JP
 
-## Custom Venues B-lite Management UI / 自定义场馆 B-lite 管理界面
+Personal live event tracking and analytics for Japanese concerts, stage events, fan events, and ticket lotteries.
 
-- English: Custom venue management UI
-- English: Create, edit, and delete user-owned custom venues
-- English: Custom venues sync through Supabase in cloud mode
-- English: Local mode stores custom venues in localStorage
-- English: Custom venue deletion does not remove historical event/ticket records
-- English: Existing records keep venue snapshots
-- English: VenueCombobox can search built-in venues, custom venues, and recent inferred venues
-- 中文：自定义场馆管理界面
-- 中文：支持创建、编辑、删除用户自定义场馆
-- 中文：Cloud mode 下自定义场馆通过 Supabase 同步
-- 中文：Local mode 下自定义场馆保存在 localStorage
-- 中文：删除自定义场馆不会删除历史参战/票务记录
-- 中文：历史记录仍保留场馆快照
-- 中文：VenueCombobox 支持搜索内置场馆、自定义场馆和历史推断场馆
-
-## Known Limitations / 已知限制
-
-- English: Deleting a custom venue does not batch-update historical records.
-- English: Existing event and ticket records keep venue snapshots.
-- English: Custom venue seat maps are not supported yet.
-- English: Duplicate/merge custom venues are not supported yet.
-- English: Automatic geocoding is not supported yet.
-- 中文：删除自定义场馆不会批量更新历史记录。
-- 中文：已有参战和票务记录会保留场馆快照。
-- 中文：暂不支持自定义场馆座位图。
-- 中文：暂不支持自定义场馆合并去重。
-- 中文：暂不支持自动地理编码。
-
-## Custom Venues B-lite / 自定义场馆 B-lite
-
-- 中文：自定义场馆 B-lite
-- 中文：用户自己的自定义场馆库
-- 中文：自定义场馆通过 Supabase 云同步
-- 中文：参战和票务记录仍保留场馆快照
-- 中文：删除自定义场馆不会删除历史记录
-- English: Custom Venues B-lite
-- English: User-owned custom venue library
-- English: Custom venues sync through Supabase
-- English: Events and tickets still keep venue snapshots
-- English: Deleting a custom venue does not delete historical records
-- 中文：自定义场馆库现在可通过 Supabase 同步
-- 中文：参战和票务表单可选择自定义场馆
-- 中文：参战和票务记录仍会保留场馆快照，防止场馆被删除后历史记录丢失
-- English: Custom venue library is now synced through Supabase
-- English: Custom venues can be selected in event and ticket forms
-- English: Events and tickets still keep venue snapshots for safety
-
-## Venue UX V1 / 场馆体验 V1
-
-- 中文：可搜索场馆选择
-- 中文：自定义场馆输入
-- 中文：最近使用的自定义场馆
-- 中文：支持按别名 / 城市 / 地区搜索内置场馆
-- 中文：自定义场馆第一版从已保存记录中提取，不单独建表
-- English: Searchable venue selection
-- English: Custom venue input
-- English: Recent custom venues
-- English: Built-in venue search by alias / city / region
-- English: Recent inferred custom venues from saved events and tickets remain available alongside the saved custom venue library
-
-## Ticket group round creation UX / 票务分组录入优化
-
-- 中文：Ticket group card 内现在可以直接点击“新增这一场的抽选轮次”，表单会自动带入同一场公演的标题、艺人、日期、会场和 `ticketGroupKey`。
-- 中文：新增票务表单支持“保存并新增下一轮”，适合连续录入最速先行、二次先行、一般贩售等多轮抽选。
-- 中文：仍然使用 `ticket_applications` 单表和 `ticketGroupKey` 分组，没有新增 Supabase schema 或 `ticket_groups` 表。
-- English: Ticket group cards now include “Add lottery round to this performance” so users can add another round without retyping the performance details.
-- English: The ticket form supports “Save and add another round” for quickly entering multiple lottery rounds under the same `ticketGroupKey`.
-- English: This keeps the single-table `ticket_applications` model and does not add a `ticket_groups` table or new Supabase schema.
-
-## Ticket Management V2 / 票务管理 V2
-
-- 中文：支持同一公演多轮抽选分组，通过 `ticketGroupKey` 在 `ticket_applications` 单表中归类，不新增 `ticket_groups` 表。
-- 中文：支持申请 / 中选 / 付款张数记录，票务当选率会区分张数当选率、轮次当选率和公演获得率。
-- 中文：支持手动汇率与货币折算，默认展示货币为人民币 CNY，不会自动联网换汇。
-- 中文：Analytics 票务分析已适配新模型，支出和平均票价按展示货币显示。
-- English: Ticket Management V2 groups multiple lottery rounds per performance through `ticketGroupKey` on the single `ticket_applications` table.
-- English: Applied / won / paid quantity tracking powers quantity win rate, round win rate, and performance success rate.
-- English: Manual currency conversion is supported with CNY as the default display currency; no automatic exchange-rate API is used.
-- English: Ticket win rate and spending analytics now use the V2 ticket model.
-
-<details open>
-<summary><strong>中文（默认展开）</strong></summary>
-
-## 项目简介
-
-StageLog JP 是一个面向日本 anime / idol / live concert 粉丝的个人参战记录 Web App。它把每一次 Live 参战经历记录成票根风格卡片，并支持会场、座位、票务抽选、天气、统计、图片和云端同步。
-
-这是一个已经完成初版 MVP 的作品集项目，不是单页 demo。项目同时支持未登录本地模式和登录后的 Supabase 云端同步模式。
-
-- 在线地址：https://stage-log-jp.vercel.app
-- GitHub：https://github.com/Chikachi00/StageLog-JP
-
-## 当前状态
-
-已完成初版核心功能：
-
-- React + Vite + TypeScript 应用架构
-- localStorage 本地数据持久化
-- Supabase Auth 登录
-- Supabase cloud sync 云端同步
-- Events / Tickets / Profile / Theme / Language 多模块数据管理
-- Supabase Storage 私有图片上传
-- 日本 Live 会场数据库与座位图系统
-- Analytics 数据分析仪表盘
-- 中英文 UI 切换与主题切换
-- Vercel 部署
-
-## 核心功能
-
-### 参战记录
-
-- 新增、编辑、删除参战记录
-- 记录活动标题、艺人、日期、时间、会场、票种、座位、备注和图片
-- 票根风格 TicketCard UI
-- 年份、艺人、会场和关键词筛选
-- 初次使用时可加载示例数据
-- 未登录时使用 `localStorage`
-- 登录后使用 Supabase `events` 表同步
-
-### 图片上传
-
-- 未登录模式下使用本地 base64 图片预览
-- 登录模式下上传到 Supabase Storage 私有 bucket：`event-images`
-- Storage 路径格式：`userId/eventId/filename`
-- `events.image_path` 保存 Storage 路径
-- 前端使用 signed URL 显示图片
-- 图片缺失或加载失败时不会显示浏览器破图图标
-
-### 云端同步
-
-- Supabase Auth 支持 Magic Link 和 Email + Password
-- 登录用户可同步：
-  - 参战记录
-  - 票务抽选记录
-  - 用户资料
-  - 语言设置
-  - 主题设置
-  - 活动图片
-- 所有云端用户数据通过 `user_id` / `auth.uid()` 隔离
-- 支持将本地 localStorage 数据导入云端
-- Supabase 未配置时自动回退到 localStorage 模式
-
-### 会场与座位图
-
-- 内置日本常见 Live / 动漫 / 偶像活动会场数据
-- 覆盖东京、千叶、神奈川、埼玉、关西、中部、九州和北海道等地区
-- 所有内置会场都有简化 SVG thumbnail
-- 重点会场支持数据驱动的交互座位图：
-  - Tokyo Dome
-  - Belluna Dome
-  - K-Arena Yokohama
-  - Ariake Arena
-  - Makuhari Messe Event Hall
-  - Saitama Super Arena
-- 支持根据 block / level / gate 自动匹配座位区域
-- 支持手动点击地图保存 seat marker
-- Venues 页面可叠加显示同一会场多次参战位置
-
-### 天气与统计
-
-- 使用 Open-Meteo Archive API 获取历史小时级天气
-- 根据会场坐标、活动日期和开演时间匹配最接近的小时天气
-- 显示温度、降水、风速和天气类型
-- Statistics 页面包含：
-  - 总参战数
-  - 今年参战数
-  - 不同艺人 / 会场数量
-  - 最常观看艺人
-  - 最常去会场
-  - 最热 / 最冷 / 最大雨量 / 最大风速 Live
-  - 年份、艺人、会场、票种分布
-
-### 数据分析
-
-- Analytics 页面提供完整数据分析仪表盘
-- 参战趋势可视化：年度参战数、月度参战数、累计参战数
-- 艺人 / 会场 / 地区统计图表
-- 天气分析：天气状态分布、月度平均气温、月度降水量、风速排行、最热 / 最冷 / 雨量最大 / 风最大参战
-- 票务分析：申请状态、平台分布、各平台当选率、月度支出、累计支出、各平台支出和各平台平均票价
-
-### 票务抽选管理
-
-- 独立的 TicketApplication 数据模型
-- 记录日本 Live 常见票务流程：
-  - planned
-  - applied
-  - waiting result
-  - won
-  - lost
-  - paid
-  - issued
-  - attended
-  - cancelled
-- 支持平台、状态、价格、数量、同行者、申请日期、当落日期、入金期限和发券日期
-- 支持从当选 / 入金 / 发券 / 已参战票务记录创建参战记录
-- Ticket statistics 统计当选率、计划支出、已支付金额和平台分布
-
-### UI / UX
-
-- 现代票根风格卡片
-- Sakura / Ocean / Night / Classic 四套主题
-- English / 中文应用内语言切换
-- 移动端友好布局
-- Header 使用紧凑登录入口，登录表单和账号菜单通过弹出面板打开
-- 空状态、错误状态和加载状态都有基本处理
-
-## 技术栈
-
-- React
-- Vite
-- TypeScript
-- Tailwind CSS via `@tailwindcss/vite`
-- Supabase Auth
-- Supabase Database + Row Level Security
-- Supabase Storage
-- Open-Meteo Archive API
-- Recharts
-- Browser `localStorage`
-- Vercel
-
-## 本地运行
-
-```bash
-npm install
-npm run dev
-```
-
-生产构建：
-
-```bash
-npm run build
-```
-
-## Supabase 配置（可选）
-
-不配置 Supabase 时，应用仍然可以作为本地 Web App 使用。
-
-如需启用登录和云端同步，请在 `.env.local` 或 Vercel 环境变量中配置：
-
-```bash
-VITE_SUPABASE_URL=your-project-url
-VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
-```
-
-不要在前端代码或 README 中写入 `service_role` key。
-
-需要在 Supabase SQL Editor 中运行项目提供的 SQL：
-
-```text
-supabase/sql/02_remaining_cloud_features.sql
-supabase/sql/03_events_schema_compatibility.sql
-```
-
-详细配置说明见：
-
-```text
-SUPABASE_SETUP.md
-```
-
-## 本地存储 Key
-
-- `stagelog-events`
-- `stagelog-ticket-applications`
-- `stagelog-theme`
-- `stagelog-language`
-
-## 安全说明
-
-- `.env` / `.env.local` 不应提交到 Git
-- `node_modules/` 和 `dist/` 不应提交到 Git
-- Supabase 使用 anon / publishable key
-- 用户数据通过 RLS 隔离
-- 图片存储 bucket 为 private
-- 项目内的座位图和会场缩略图为简化自绘 SVG，不复制官方座席图
-
-## 项目亮点
-
-- 不只是 CRUD：包含本地/云端双模式、Auth、RLS、Storage、i18n、主题、天气 API 和座位图
-- 面向明确使用场景：日本 Live / idol / anime concert 参战记录
-- 处理了真实应用常见边界：UUID、RLS、signed URL、localStorage fallback、云端导入、图片失败 fallback
-- 适合作为前端 / full-stack-ish 作品集项目展示
-
-## License
-
-MIT License
-
-</details>
-
----
-
-<details>
-<summary><strong>English</strong></summary>
-
-## Overview
-
-StageLog JP is a personal live event archive web app for anime, idol, and live concert fans in Japan. It turns every live attendance memory into a ticket-style record with venue, seat, ticket lottery, weather, statistics, image, and cloud sync support.
-
-This is a completed first-version MVP portfolio project, not a simple single-page demo. It supports both guest localStorage mode and logged-in Supabase cloud sync mode.
+StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务抽选场景的个人参战记录与数据分析 Web App。
 
 - Live demo: https://stage-log-jp.vercel.app
 - GitHub: https://github.com/Chikachi00/StageLog-JP
 
-## Current Status
+## Overview / 项目简介
 
-The first version includes:
+StageLog JP helps fans keep structured records of live events, ticket lottery rounds, venues, seats, weather, images, and spending. It supports both a guest localStorage mode and a Supabase-backed cloud mode for logged-in users.
 
-- React + Vite + TypeScript app architecture
-- localStorage persistence
-- Supabase Auth
-- Supabase cloud sync
-- Events / Tickets / Profile / Theme / Language data flows
-- Supabase Storage private image upload
-- Japanese live venue database and seat map system
-- Analytics dashboard
-- English / Chinese UI switching and theme switching
-- Vercel deployment
+开发了一个面向日本演出与票务抽选场景的全栈 Web App，支持 Supabase 登录与云同步、本地模式、票务多轮抽选分组、自定义场馆管理、图片上传、备份导入导出、天气匹配，以及基于 Recharts 的数据分析仪表盘。
 
-## Features
+## Key Features / 核心功能
 
-### Event Archive
+### Event Tracking / 参战记录
 
-- Create, edit, and delete live event records
-- Track title, artist, date, time, venue, ticket type, seat, notes, and images
-- Ticket-style event cards
-- Filter by year, artist, venue, and keyword
-- Load sample data for first-time exploration
-- Guest mode uses `localStorage`
-- Cloud mode syncs with the Supabase `events` table
+- Create, edit, delete, and filter live event records.
+- Track artist, title, date, time, venue, seat, ticket type, notes, and images.
+- Upload event images to Supabase Storage in cloud mode; use local previews in guest mode.
+- Match historical weather by venue coordinates, event date, and start time.
+- Use built-in seat maps for supported venues such as Tokyo Dome, Belluna Dome, K-Arena Yokohama, Ariake Arena, Makuhari Messe Event Hall, and Saitama Super Arena.
 
-### Image Upload
+### Ticket Management V2 / 票务管理 V2
 
-- Guest mode keeps local base64 image previews
-- Cloud mode uploads event images to the private Supabase Storage bucket `event-images`
-- Storage path format: `userId/eventId/filename`
-- `events.image_path` stores the Storage object path
-- Signed URLs are used for display
-- Missing or failed images are hidden gracefully without broken image icons
+- Group multiple ticket lottery rounds under one performance with `ticketGroupKey`.
+- Keep the data model on the single `ticket_applications` table; no `ticket_groups` table is used.
+- Track `roundName`, `roundType`, platform, status, application date, result date, payment deadline, issue date, and companion.
+- Track `appliedQuantity`, `wonQuantity`, and `paidQuantity`.
+- Use CNY as the default display currency.
+- Support manually entered exchange rates and original/display amount fields.
+- No automatic exchange-rate API is used.
+- Analyze platform win rate, round win rate, performance success rate, planned spending, paid amount, and average ticket price.
 
-### Cloud Sync
+### Venue System / 场馆系统
 
-- Supabase Auth with Magic Link and Email + Password
-- Logged-in users can sync:
-  - Event records
-  - Ticket lottery applications
-  - User profile
-  - Language settings
-  - Theme settings
-  - Event images
-- User data is isolated by `user_id` / `auth.uid()`
-- Local data can be imported into the cloud
-- If Supabase is not configured, the app falls back to localStorage mode
+- Shared searchable `VenueCombobox` for event and ticket forms.
+- Built-in venue search by name, Japanese/Chinese name, alias, city, prefecture, region, country, and category.
+- Supports built-in venues, saved custom venues, and recent custom venues inferred from historical event/ticket records.
+- Temporary custom venue input remains available when a venue is not in the built-in list.
+- Custom Venues B-lite provides a user-owned custom venue library.
+- Custom venues sync through Supabase in cloud mode and use `localStorage` fallback in local mode.
+- `CustomVenuesManager` supports viewing, searching, creating, editing, and deleting custom venues.
+- Existing event and ticket records keep venue snapshots such as `venueName`, `city`, and `country`, so historical records remain readable even if a custom venue is deleted.
 
-### Venues And Seat Maps
+### Analytics Dashboard / 数据分析
 
-- Built-in database of common Japanese live event venues
-- Covers Tokyo, Chiba, Kanagawa, Saitama, Kansai, Chubu, Kyushu, and Hokkaido
-- Every built-in venue includes a simplified SVG thumbnail
-- Selected major venues support data-driven interactive seat maps:
-  - Tokyo Dome
-  - Belluna Dome
-  - K-Arena Yokohama
-  - Ariake Arena
-  - Makuhari Messe Event Hall
-  - Saitama Super Arena
-- Auto-highlight seat sections from block / level / gate input
-- Manually place seat markers on the map
-- Venues page overlays multiple attendance markers for the same venue
+- Attendance trends by year, month, and cumulative count.
+- Artist, venue, and region distribution charts.
+- Weather analytics for weather type, temperature, precipitation, wind, and weather extremes.
+- Ticket analytics for status, platform distribution, win rate, spending, and average ticket price.
+- Recharts rendering is wrapped by `ChartFrame` with `ResizeObserver` for stable chart sizing.
 
-### Weather And Statistics
+### Backup / 备份
 
-- Historical hourly weather lookup through the Open-Meteo Archive API
-- Matches weather by venue coordinates, event date, and start time
-- Displays temperature, precipitation, wind speed, and weather type
-- Statistics page includes:
-  - Total events
-  - Events this year
-  - Unique artists and venues
-  - Most watched artist
-  - Most visited venue
-  - Hottest / coldest / rainiest / windiest live events
-  - Distribution by year, artist, venue, and ticket type
+- Export JSON backups.
+- Import JSON backups in local mode and cloud merge mode.
+- Backup data includes events, ticket applications, profile, settings, and optional `customVenues`.
+- Event and ticket records preserve venue snapshots in backups.
+- Old backups without `customVenues` remain compatible.
 
-### Analytics
+### Cloud Sync / 云同步
 
-- Dedicated Analytics dashboard for visual insights
-- Attendance trend visualization with yearly, monthly, and cumulative charts
-- Artist / venue / region charts
-- Weather analytics charts for condition distribution, average temperature by month, monthly precipitation, wind speed ranking, and weather extremes
-- Ticket analytics for application status, platform distribution, win rate by platform, monthly spending, cumulative spending, spending by platform, and average ticket price by platform
+- Supabase Auth with Magic Link / Email OTP and Email + Password.
+- Cloud mode syncs event records, ticket applications, user profile, language/theme settings, event images, and custom venues.
+- Local mode works without Supabase and persists data in browser `localStorage`.
+- Supabase Row Level Security protects user-owned data with `auth.uid()` / `user_id`.
 
-### Ticket Lottery Management
-
-- Separate `TicketApplication` model
-- Tracks common Japanese ticket lottery states:
-  - planned
-  - applied
-  - waiting result
-  - won
-  - lost
-  - paid
-  - issued
-  - attended
-  - cancelled
-- Tracks platform, status, price, quantity, companion, application date, result date, payment deadline, and issue date
-- Create event records from won / paid / issued / attended ticket applications
-- Ticket statistics include win rate, planned spending, paid amount, and platform distribution
-
-### UI / UX
-
-- Modern ticket-stub card design
-- Sakura / Ocean / Night / Classic themes
-- English / Chinese in-app language switching
-- Mobile-friendly responsive layout
-- Compact auth entry in the header with popover login and account menu
-- Empty, loading, and error states for core flows
-
-## Tech Stack
+## Tech Stack / 技术栈
 
 - React
-- Vite
 - TypeScript
-- Tailwind CSS via `@tailwindcss/vite`
+- Vite
 - Supabase Auth
 - Supabase Database + Row Level Security
 - Supabase Storage
-- Open-Meteo Archive API
 - Recharts
+- Open-Meteo Archive API
 - Browser `localStorage`
-- Vercel
+- Responsive CSS layout
+- Vercel deployment
 
-## Getting Started
+## Architecture / 架构简述
+
+- `events`: live event records with venue, seat, weather, image, and notes data.
+- `ticketApplications`: Ticket Management V2 records using `ticketGroupKey` for multi-round grouping.
+- `customVenues`: user-owned custom venue library, stored in Supabase `custom_venues` in cloud mode or `stagelog-custom-venues` in local mode.
+- Built-in `venues`: static Japanese venue data used for search, venue pages, and supported seat maps.
+- `analyticsUtils`: transforms event and ticket data into chart-friendly analytics models.
+- `backupService`: validates, normalizes, exports, and imports backup JSON.
+- Dual data mode: the app can run entirely on localStorage or sync through Supabase when authenticated.
+
+## Data Model Highlights / 数据模型亮点
+
+- Ticket Management V2 groups multiple lottery rounds through `ticketGroupKey` without adding a `ticket_groups` table.
+- Events and tickets keep venue snapshots for safety: `venueId`, `venueName`, `city`, `country`, and optional venue metadata.
+- Custom venues are stored separately in `custom_venues`, while historical records still keep their own venue snapshots.
+- Currency data stores original amount, display amount, original currency, display currency, and manually entered exchange rate.
+- Custom venue deletion does not batch-update historical events or ticket records.
+
+## Setup / 本地运行
 
 ```bash
 npm install
@@ -445,57 +113,94 @@ Production build:
 npm run build
 ```
 
-## Optional Supabase Setup
+## Supabase Setup / Supabase 配置
 
-The app works in localStorage mode without Supabase.
-
-To enable authentication and cloud sync, configure these variables in `.env.local` or Vercel:
+StageLog JP works without Supabase in localStorage mode. To enable login, cloud sync, image upload, and cloud custom venue sync, configure:
 
 ```bash
 VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 ```
 
-Never put a `service_role` key in frontend code or documentation.
+Do not put a `service_role` key in frontend code, Vercel public environment variables, or committed files.
 
-Run the provided SQL files in the Supabase SQL Editor:
+Run the SQL files that exist in this repository in the Supabase SQL Editor:
 
 ```text
 supabase/sql/02_remaining_cloud_features.sql
 supabase/sql/03_events_schema_compatibility.sql
+supabase/sql/04_ticket_model_v2.sql
+supabase/sql/05_custom_venues.sql
 ```
 
-See:
+Notes:
+
+- `02_remaining_cloud_features.sql` sets up remaining cloud features such as profiles, ticket applications, and storage-related policies.
+- `03_events_schema_compatibility.sql` updates the events schema and event RLS compatibility.
+- `04_ticket_model_v2.sql` adds Ticket Management V2 fields.
+- `05_custom_venues.sql` adds the `custom_venues` table, user-owned RLS policies, and ends with `notify pgrst, 'reload schema';`.
+- Configure Supabase Auth redirect URLs for your deployed app and any local development URL you use intentionally.
+- Image upload uses the private `event-images` Storage bucket configured by the project SQL/setup flow.
+
+See the detailed setup guide:
 
 ```text
 SUPABASE_SETUP.md
 ```
 
-## Local Storage Keys
+## Local Storage Keys / 本地存储
+
+Important localStorage keys include:
 
 - `stagelog-events`
 - `stagelog-ticket-applications`
+- `stagelog-custom-venues`
 - `stagelog-theme`
 - `stagelog-language`
 
-## Security Notes
+The app also uses draft/session keys for form recovery.
 
-- Do not commit `.env` or `.env.local`
-- Do not commit `node_modules/` or `dist/`
-- Supabase uses the anon / publishable key
-- User data is protected by RLS
-- Image bucket is private
-- Venue maps and thumbnails are simplified project-owned SVG drawings, not copied official seating charts
+## Verification / 验证
 
-## Highlights
+Basic verification:
 
-- More than CRUD: local/cloud modes, Auth, RLS, Storage, i18n, themes, weather API, and seat maps
-- Clear product domain: Japanese live / idol / anime concert attendance archive
-- Handles real app edge cases: UUIDs, RLS, signed URLs, localStorage fallback, cloud import, and image fallback
-- Suitable as a frontend / full-stack-ish portfolio project
+```bash
+npm install
+npm run build
+```
 
-## License
+Manual verification checklist:
+
+- Create and edit an event record.
+- Create multiple ticket lottery rounds under one performance.
+- Confirm `ticketGroupKey` keeps related rounds grouped.
+- Create, edit, delete, and search custom venues.
+- Confirm deleting a custom venue does not delete historical event/ticket records.
+- Export and import a JSON backup, including `customVenues`.
+- Verify cloud mode after running the Supabase SQL files.
+- Verify local mode with Supabase environment variables removed.
+
+Additional regression notes are tracked in:
+
+```text
+VERIFICATION.md
+```
+
+## Known Limitations / 已知限制
+
+- No automatic exchange-rate API is used; exchange rates are entered manually.
+- Deleting a custom venue does not batch-update historical records.
+- Existing event and ticket records keep venue snapshots.
+- Custom venue seat maps are not supported yet.
+- Custom venue merge/dedup tooling is not supported yet.
+- Automatic geocoding is not supported yet.
+- Custom venue weather lookup requires latitude and longitude.
+- Some builds may show a Vite chunk size warning; this is not a TypeScript or build failure.
+
+## Screenshots / Demo
+
+Screenshots to be added.
+
+## License / 许可证
 
 MIT License
-
-</details>
