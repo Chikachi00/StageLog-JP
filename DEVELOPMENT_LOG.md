@@ -74,9 +74,63 @@ StageLog-JP/
 
 #### 0.2 `src` 目录
 
-`src` 是应用核心。`main.tsx` 负责挂载 React app；`App.tsx` 是全局协调层，负责页面切换、cloud/local mode、events、ticketApplications、customVenues、profile/settings、backup import/export、weather fetch 和表单会话状态；`index.css` 承担全局样式、主题、响应式布局和大部分组件样式。
+`src` 是 React + TypeScript 前端应用主体。它包含应用入口、全局协调层、业务组件、数据 service、类型定义、工具函数、静态数据和 i18n 文案。`src` 内部的核心关系是：`main.tsx` 挂载应用，`App.tsx` 统筹全局状态和业务流程，`components` 负责 UI 和用户输入，`services` 负责 cloud/local 数据读写，`types` 和 `utils` 负责数据模型与纯函数逻辑。
 
-`App.tsx` 的职责比较重，但它的核心作用是把 UI 组件和数据服务连接起来：组件负责展示和输入，上层 handler 决定调用 Supabase service 还是 localStorage fallback，并把返回结果写回统一 state。
+##### `main.tsx`
+
+`main.tsx` 是 React 应用入口。它从 DOM 中找到 `root` 节点并挂载 `App`，同时完成应用启动阶段需要的轻量初始化：`StrictMode`、`AuthProvider`、`UserSettingsProvider`、i18n 初始化和全局 CSS 引入。
+
+它的职责应该保持轻量：启动 React、接入全局 provider、加载全局资源。events、tickets、Supabase CRUD、backup、weather 等业务逻辑不放在这里，这样入口层不会和业务流程耦合。
+
+##### `App.tsx`
+
+`App.tsx` 是当前项目的全局协调层，不只是普通页面组件。它把页面状态、用户状态、业务数据和 service 调用连接起来，并负责多个模块之间的联动。
+
+它主要协调：
+
+- 页面 / tab 切换，例如参战记录、时间线、会场、统计、数据分析、票务、新增参战等视图。
+- cloud mode / local mode 的切换和状态管理。
+- Supabase Auth 用户状态和本地模式状态的协调。
+- events state：参战记录加载、新增、编辑、删除、导入、天气更新、图片更新。
+- ticketApplications state：票务抽选记录加载、新增、编辑、删除、`ticketGroupKey` 分组相关操作。
+- customVenues state：自定义场馆库加载、新增、编辑、删除，并传给 `VenueCombobox`、`EventForm` 和 `TicketApplicationForm`。
+- profile / settings：用户 profile、语言、主题、显示设置等状态。
+- backup import/export：把 events、tickets、profile/settings、customVenues 等传给 `BackupPanel` / `backupService`。
+- form preset 和跳转：例如从 ticket 创建 event、ticket round 编辑自动滚动、EventForm / TicketForm 的新增/编辑状态。
+- weather fetch：协调 event/form 中的坐标、built-in venues、customVenues 和 `weatherService`。
+- image upload：协调 `EventForm`、`storageService`、event `image_path` / `imageUrl`。
+- draft/session：配合 `EventForm` / `TicketApplicationForm` 保持浏览器切换、刷新、移动端后台后的表单状态。
+- 把 services 的返回结果统一写回 React state。
+
+`App.tsx` 的典型数据流是：
+
+```text
+UI 组件触发操作
+  ↓
+App.tsx handler
+  ↓
+根据 cloud/local mode 调用 Supabase service 或 localStorage fallback
+  ↓
+返回结果写回统一 state
+  ↓
+Timeline / Cards / Analytics / Backup 重新读取 state 渲染
+```
+
+`App.tsx` 当前职责比较重，这是项目从单页应用持续演进形成的“应用协调层”。它的好处是方便协调 Event、Ticket、Venue、Backup、Weather、Auth 等模块之间的联动。未来如果继续扩大，可以考虑拆分为 `useEventsController`、`useTicketsController`、`useCustomVenuesController`、`useBackupController`、`useWeatherController` 和 route/view state controller，但这些目前只是可选重构方向，并不是已经实现的结构。
+
+##### `index.css`
+
+`index.css` 是全局样式入口，主要承担主题、响应式布局和组件样式。当前项目没有采用 CSS modules 或 Tailwind，因此很多 UI polish 都集中在这里。
+
+它覆盖：
+
+- 主题色、背景、字体、按钮、表单、卡片、badge 等基础样式。
+- Sakura / Ocean / Night / Classic 等主题样式。
+- 移动端 header、bottom nav、drawer、floating add button 等 responsive layout。
+- Timeline、ticket group card、VenueCombobox、CustomVenuesManager、Analytics chart frame 等组件样式。
+- 长文本换行、表单底部 padding、候选列表滚动、图表容器宽度等移动端可用性细节。
+
+这种集中样式方式方便快速迭代和统一全局视觉，但也让 `index.css` 承担了较多责任。未来如果样式继续膨胀，可以按组件拆分 CSS 文件；当前阶段保持集中样式更利于维护现有单页应用的整体一致性。
 
 #### 0.3 `src/components`
 
@@ -671,11 +725,65 @@ This section explains how the main folders and files in StageLog JP relate to ea
 - `supabase/sql/`: Supabase schema migrations and read-only check scripts.
 - `src/`: main React + TypeScript application code.
 
-#### 0.2 `src`
+#### 0.2 `src` Directory
 
-`src` contains the frontend application. `main.tsx` mounts the React app. `App.tsx` is the top-level coordination layer for view switching, cloud/local mode, events, ticket applications, custom venues, profile/settings, backup import/export, weather fetch, and form sessions. `index.css` contains global styles, responsive layout, theme rules, and most component styles.
+`src` is the React + TypeScript frontend application. It contains the application bootstrap, the global coordination layer, business components, data services, type definitions, utility functions, static data, and i18n resources. The core relationship is: `main.tsx` mounts the app, `App.tsx` coordinates global state and workflows, `components` render UI and collect user input, `services` handle cloud/local persistence, and `types` / `utils` keep data models and pure logic separate.
 
-`App.tsx` is intentionally the point where UI components meet persistence. Components collect input and render state; App handlers decide whether to call Supabase services or localStorage fallback services, then write the returned records back into shared state.
+##### `main.tsx`
+
+`main.tsx` is the React bootstrap entry. It finds the DOM `root`, mounts `App`, and wires the lightweight startup layer: `StrictMode`, `AuthProvider`, `UserSettingsProvider`, i18n initialization, and the global stylesheet.
+
+Its responsibility should stay small: start React, attach global providers, and load global resources. It should not contain events, tickets, Supabase CRUD, backup, or weather business logic.
+
+##### `App.tsx`
+
+`App.tsx` is the current application coordination layer, not just a normal UI component. It connects view state, user state, business data, and service calls across modules.
+
+It coordinates:
+
+- view/tab switching for events, timeline, venues, statistics, analytics, tickets, and new-event flows,
+- cloud mode / local mode state,
+- Supabase Auth user state and local-mode state,
+- events state: loading, create, edit, delete, import, weather updates, and image updates,
+- ticketApplications state: loading, create, edit, delete, and `ticketGroupKey` grouping workflows,
+- customVenues state: loading, create, edit, delete, and passing custom venues into `VenueCombobox`, `EventForm`, and `TicketApplicationForm`,
+- profile / settings state such as profile data, language, theme, and display settings,
+- backup import/export by passing events, tickets, profile/settings, and customVenues into `BackupPanel` / `backupService`,
+- form presets and navigation, such as create-event-from-ticket, ticket round edit scrolling, and EventForm / TicketForm new/edit state,
+- weather fetch coordination across event/form coordinates, built-in venues, customVenues, and `weatherService`,
+- image upload coordination between `EventForm`, `storageService`, event `image_path`, and `imageUrl`,
+- draft/session behavior for `EventForm` and `TicketApplicationForm` across refresh, tab switching, and mobile backgrounding,
+- writing service return values back into shared React state.
+
+The typical data flow is:
+
+```text
+UI component action
+  ↓
+App.tsx handler
+  ↓
+Supabase service or localStorage fallback, depending on cloud/local mode
+  ↓
+Returned record is written back into shared state
+  ↓
+Timeline / Cards / Analytics / Backup re-render from that state
+```
+
+`App.tsx` is heavy because the app evolved as a single-page application with many cross-module workflows. Keeping this coordination in one place makes Event, Ticket, Venue, Backup, Weather, and Auth interactions easier to reason about. If the app grows further, optional refactoring targets include `useEventsController`, `useTicketsController`, `useCustomVenuesController`, `useBackupController`, `useWeatherController`, and a route/view state controller. Those controllers are future options, not current implemented modules.
+
+##### `index.css`
+
+`index.css` is the global styling entry. Because the project currently does not use CSS modules or Tailwind, much of the theme, responsive layout, and component-level styling lives here.
+
+It covers:
+
+- base styles for colors, backgrounds, typography, buttons, forms, cards, and badges,
+- Sakura / Ocean / Night / Classic theme styles,
+- mobile header, bottom navigation, drawer, floating add button, and other responsive layout rules,
+- component styling for Timeline, ticket group cards, VenueCombobox, CustomVenuesManager, and Analytics chart frames,
+- mobile usability details such as long-text wrapping, form bottom padding, scrollable candidate lists, and chart container width constraints.
+
+This centralized style approach made fast iteration and consistent visual polish easier. If styles continue to grow, component-level CSS splitting may become useful, but the current centralized stylesheet still fits the existing single-page application structure.
 
 #### 0.3 `src/components`
 
