@@ -7,6 +7,7 @@ Verification date: 2026-06-07
 - `git status --short --ignored`: passed. Only ignored local artifacts were listed before edits: `.env.local`, `dist/`, `node_modules/`, and `vite-verify*.log`.
 - `npm install`: passed, 0 vulnerabilities.
 - `npm.cmd run build`: passed. TypeScript and Vite build completed successfully.
+- `npm run typecheck`: passed.
 - `npm run lint`: script not found in `package.json`.
 - `npm run test`: script not found in `package.json`.
 
@@ -15,6 +16,35 @@ Verification date: 2026-06-07
 - `tsc --noEmit`: passed.
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
+
+## Custom Venues B-lite Workflow Verification
+
+- Verification date: 2026-06-07.
+- Basic checks: `git status --short --ignored` listed only ignored local artifacts before this verification pass; `.env.local`, `dist/`, `node_modules`, and `vite-verify*.log` remain ignored and were not staged.
+- Install/build: `npm install` passed with 0 vulnerabilities; `npm run build` passed with TypeScript and Vite build success; the only build issue is the existing Vite chunk size warning.
+- Script availability: `package.json` has no lint or test script; `npm run typecheck` was run and passed.
+- Supabase SQL prerequisite: `SUPABASE_SETUP.md` now explicitly points to `supabase/sql/05_custom_venues.sql`, and the SQL file contains `notify pgrst, 'reload schema';`.
+- Supabase manual checks required: confirm `public.custom_venues` exists, user-owned RLS policies exist, and the current logged-in user can insert/select/update/delete only their own custom venues.
+- CustomVenuesManager: code inspection confirms the Venues page renders `CustomVenuesManager` with `customVenues`, loading/error state, events, ticket applications, and App create/update/delete handlers.
+- CustomVenuesManager CRUD: create/edit/delete call the existing App handlers; delete requires browser confirmation and explains that historical event/ticket records keep their venue snapshot.
+- CustomVenuesManager usage count: event/ticket usage is computed by `venueId === customVenue.id` first, with fallback to normalized venue name, city, and country.
+- CustomVenuesManager search: search includes name, nameJa, nameZh, aliases, city, country, prefecture, region, category, and notes; empty search leaves the original `customVenues` state unchanged.
+- CustomVenuesManager states: loading, error, empty, list, and form states are all represented in the component.
+- VenueCombobox: source order remains built-in venues first, formal `customVenues` second, and recent inferred custom venues third.
+- VenueCombobox built-in search: built-in venue data contains Ariake, Makuhari/幕張, Zepp, K-Arena, and Belluna Dome entries/aliases; `searchVenues` searches names, aliases, city, prefecture, region, country, and category.
+- VenueCombobox custom search: formal custom venues search name, localized names, aliases, city, prefecture, region, country, and category; historical inferred venues remain available and are deduplicated against saved custom venues.
+- EventForm customVenue: EventForm still receives `customVenues` and `onCreateCustomVenue`; custom venues are saved through `venueId`, `venueName`, `city`, `country`, optional coordinates, and `isCustomVenue` without changing image upload, draft/session, weather, or seat map logic in this pass.
+- TicketForm customVenue: TicketApplicationForm still receives `customVenues` and `onCreateCustomVenue`; custom venue id/name/city/country flow into form state and ticket save.
+- TicketManager grouping: `normalizeTicketGroupKey` uses `venueId` first and normalized venue name fallback, so `custom:<id>` participates in grouping; round presets preserve venue fields and `ticketGroupKey`.
+- Ticket V2 regression: code inspection confirms applied/won/paid quantity validation remains in TicketApplicationForm; default original/display currency fallback remains CNY; no automatic exchange-rate behavior was added.
+- Backup customVenues: backup export includes optional `customVenues`; validation accepts old backups without `customVenues`; cloud import uses the current `user.id` through `createCustomVenue`; local import writes `stagelog-custom-venues`; event/ticket venue snapshots remain preserved.
+- Analytics regression: Analytics still uses local `ChartFrame` with `ResizeObserver`; no `ResponsiveContainer` import or usage exists under `src`; ticket spending uses display currency with CNY fallback; empty states are still present.
+- Cloud/local mode: cloud mode calls Supabase `custom_venues` through `customVenueService` when a user id is present; local mode reads/writes `stagelog-custom-venues`; switching modes reloads custom venues separately from events/tickets.
+- Mobile verification: CSS inspection confirms CustomVenuesManager, VenueCombobox, EventForm, TicketForm, and app shell have width constraints, mobile single-column rules, long-text wrapping, max-height scrolling, and bottom navigation padding/scroll margins.
+- i18n verification: a key scan covered CustomVenuesManager, VenueCombobox, and Backup custom venue keys; no missing custom venue keys were found in `resources.ts`. Known limitations are documented in English and Chinese in README and summarized below.
+- Runtime smoke test: Vite dev server returned HTTP 200 for `http://127.0.0.1:5173/`. The in-app browser automation backend was unavailable in this session, so click-by-click UI CRUD, responsive screenshots, and real Supabase cloud CRUD require manual verification.
+- Regression scope: this pass did not add Supabase SQL, modify RLS, change event/ticket schemas, change Analytics logic, change Backup logic, rewrite components, add `ticket_groups`, batch update historical records, add custom venue seat maps, add venue merge tooling, add automatic geocoding, or reintroduce `ResponsiveContainer`.
+- Known limitations: deleting a custom venue does not batch-update historical records; historical events/tickets keep venue snapshots; custom venue seat maps are not supported yet; custom venue merge/dedup is not supported yet; automatic geocoding is not supported yet; custom venue weather depends on latitude/longitude.
 
 ## Full Regression After Venue UX Integration
 

@@ -55,6 +55,8 @@ For Custom Venues B-lite, also run:
 supabase/sql/05_custom_venues.sql
 ```
 
+The `05_custom_venues.sql` file ends with `notify pgrst, 'reload schema';`; after running it, confirm the statement completed so PostgREST can see `public.custom_venues`.
+
 It creates or updates:
 
 - `public.profiles`
@@ -105,6 +107,7 @@ After running the SQL, verify:
 - Magic Link login works on the deployed site.
 - `profiles` row is created after login.
 - `ticket_applications` rows are created for logged-in ticket records.
+- `custom_venues` exists, its user-owned RLS policies exist, and the current logged-in user can insert/select/update/delete only their own custom venues.
 - `events.image_path` is updated after uploading an event image.
 - `event-images` contains files under `user_id/event_id/filename`.
 - Incognito or mobile login with the same email shows cloud events, tickets, and settings.
