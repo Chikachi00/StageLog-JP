@@ -31,6 +31,30 @@ Current project-internal counts:
 - Venues currently matched by `src/data/venueThumbnailLayouts.ts`: 11.
 - Venues still using generator fallback: 27.
 
+Venue Thumbnail Layout V1 status:
+
+- Priority 1 venues now have dedicated per-venue schematic layout configs.
+- The generator reports 11 dedicated layouts and 27 fallback layouts.
+- All Priority 1 layouts remain `schematic`; none are marked `verified`.
+- Generated SVGs remain illustrative project-owned schematics, not official seat maps.
+- Some Priority 1 SVG files may not show a text diff if their previous schematic output already matched the generated result, but they are still routed through the dedicated layout path.
+
+Processed Priority 1 layouts:
+
+| venueId | name | layoutShape | accuracy | notes |
+|---|---|---|---|---|
+| k-arena-yokohama | K-Arena Yokohama | arena-fan | schematic | Simplified fan-shaped arena schematic; needs manual reference before any verified status. |
+| pia-arena-mm | Pia Arena MM | arena-rectangle | schematic | Simplified rectangular arena schematic; needs manual reference before any verified status. |
+| yokohama-arena | Yokohama Arena | arena-rectangle | schematic | Simplified rectangular arena schematic with outer ring hint; needs manual reference before any verified status. |
+| ariake-arena | Ariake Arena | arena-rectangle | schematic | Simplified rectangular arena schematic; needs manual reference before any verified status. |
+| tokyo-dome | Tokyo Dome | dome-oval | schematic | Simplified oval dome schematic; needs manual reference before any verified status. |
+| belluna-dome | Belluna Dome | dome-oval | schematic | Simplified oval dome schematic; needs manual reference before any verified status. |
+| makuhari-messe | Makuhari Messe | exhibition-hall | schematic | Simplified exhibition hall schematic; exact hall/event setup needs manual reference. |
+| zepp-haneda | Zepp Haneda TOKYO | livehouse | schematic | Simplified livehouse schematic with standing area; second-floor detail needs manual reference. |
+| zepp-divercity-tokyo | Zepp DiverCity TOKYO | livehouse | schematic | Simplified livehouse schematic with standing area; second-floor detail needs manual reference. |
+| zepp-shinjuku-tokyo | Zepp Shinjuku TOKYO | livehouse | schematic | Simplified livehouse schematic with standing area; second-floor detail needs manual reference. |
+| kt-zepp-yokohama | KT Zepp Yokohama | livehouse | schematic | Simplified livehouse schematic with standing area; second-floor detail needs manual reference. |
+
 ## 2. What This Audit Can and Cannot Verify
 
 ### A. Project-internal facts this audit can verify

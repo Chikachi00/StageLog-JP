@@ -1,13 +1,16 @@
 export type VenueThumbnailAccuracy = "generic" | "schematic" | "verified";
 
 export type VenueThumbnailShape =
-  | "arena-oval"
+  | "arena-fan"
   | "arena-rectangle"
-  | "fan"
-  | "dome"
+  | "dome-oval"
   | "exhibition-hall"
   | "livehouse"
-  | "hall";
+  | "theater"
+  | "hall"
+  | "stadium"
+  | "convention"
+  | "generic";
 
 export type VenueThumbnailStagePosition =
   | "end"
@@ -24,6 +27,7 @@ export interface VenueThumbnailLayout {
   hasArenaFloor?: boolean;
   hasSecondFloor?: boolean;
   hasOuterRing?: boolean;
+  hasStandingArea?: boolean;
   notes?: string;
 }
 
@@ -31,62 +35,62 @@ export const venueThumbnailLayouts: Record<string, VenueThumbnailLayout> = {
   "k-arena-yokohama": {
     venueId: "k-arena-yokohama",
     accuracy: "schematic",
-    shape: "fan",
+    shape: "arena-fan",
     stagePosition: "end",
-    tiers: 3,
+    tiers: 4,
     hasArenaFloor: true,
     hasSecondFloor: true,
-    notes: "Fan-like concert hall schematic. Illustrative only, not an official seat map.",
+    notes: "Simplified arena-fan schematic, not official seat map. Needs manual reference before any verified status.",
   },
   "pia-arena-mm": {
     venueId: "pia-arena-mm",
     accuracy: "schematic",
     shape: "arena-rectangle",
     stagePosition: "end",
-    tiers: 2,
+    tiers: 3,
     hasArenaFloor: true,
     hasSecondFloor: true,
-    notes: "Box arena schematic with end-stage concert layout.",
+    notes: "Simplified rectangular arena schematic, not official seat map. Needs manual reference before any verified status.",
   },
   "yokohama-arena": {
     venueId: "yokohama-arena",
     accuracy: "schematic",
-    shape: "arena-oval",
+    shape: "arena-rectangle",
     stagePosition: "end",
-    tiers: 2,
+    tiers: 3,
     hasArenaFloor: true,
     hasOuterRing: true,
-    notes: "Rounded arena schematic with outer seating ring.",
+    notes: "Simplified rectangular arena schematic with outer ring hint, not official seat map. Needs manual reference before any verified status.",
   },
   "ariake-arena": {
     venueId: "ariake-arena",
     accuracy: "schematic",
     shape: "arena-rectangle",
     stagePosition: "end",
-    tiers: 2,
+    tiers: 3,
     hasArenaFloor: true,
     hasSecondFloor: true,
-    notes: "Rectangular arena schematic with end-stage concert layout.",
+    notes: "Simplified rectangular arena schematic, not official seat map. Needs manual reference before any verified status.",
   },
   "belluna-dome": {
     venueId: "belluna-dome",
     accuracy: "schematic",
-    shape: "dome",
+    shape: "dome-oval",
     stagePosition: "end",
     tiers: 2,
     hasArenaFloor: true,
     hasOuterRing: true,
-    notes: "Dome schematic with outer ring and end-stage floor.",
+    notes: "Simplified dome-oval schematic, not official seat map. Needs manual reference before any verified status.",
   },
   "tokyo-dome": {
     venueId: "tokyo-dome",
     accuracy: "schematic",
-    shape: "dome",
+    shape: "dome-oval",
     stagePosition: "end",
     tiers: 2,
     hasArenaFloor: true,
     hasOuterRing: true,
-    notes: "Dome schematic with outer ring and end-stage floor.",
+    notes: "Simplified dome-oval schematic, not official seat map. Needs manual reference before any verified status.",
   },
   "makuhari-messe": {
     venueId: "makuhari-messe",
@@ -95,7 +99,7 @@ export const venueThumbnailLayouts: Record<string, VenueThumbnailLayout> = {
     stagePosition: "end",
     tiers: 1,
     hasArenaFloor: true,
-    notes: "Exhibition hall schematic for flexible event layouts.",
+    notes: "Simplified exhibition-hall schematic, not official seat map. Exact hall/event setup needs manual reference.",
   },
   "zepp-haneda": {
     venueId: "zepp-haneda",
@@ -104,8 +108,9 @@ export const venueThumbnailLayouts: Record<string, VenueThumbnailLayout> = {
     stagePosition: "end",
     tiers: 1,
     hasArenaFloor: true,
+    hasStandingArea: true,
     hasSecondFloor: true,
-    notes: "Livehouse schematic with stage, standing floor, and balcony hint.",
+    notes: "Simplified livehouse schematic with standing area, not official seat map. Second-floor detail needs manual reference.",
   },
   "zepp-divercity-tokyo": {
     venueId: "zepp-divercity-tokyo",
@@ -114,8 +119,9 @@ export const venueThumbnailLayouts: Record<string, VenueThumbnailLayout> = {
     stagePosition: "end",
     tiers: 1,
     hasArenaFloor: true,
+    hasStandingArea: true,
     hasSecondFloor: true,
-    notes: "Livehouse schematic with stage, standing floor, and balcony hint.",
+    notes: "Simplified livehouse schematic with standing area, not official seat map. Second-floor detail needs manual reference.",
   },
   "zepp-shinjuku-tokyo": {
     venueId: "zepp-shinjuku-tokyo",
@@ -124,8 +130,9 @@ export const venueThumbnailLayouts: Record<string, VenueThumbnailLayout> = {
     stagePosition: "end",
     tiers: 1,
     hasArenaFloor: true,
+    hasStandingArea: true,
     hasSecondFloor: true,
-    notes: "Livehouse schematic with stage, standing floor, and balcony hint.",
+    notes: "Simplified livehouse schematic with standing area, not official seat map. Second-floor detail needs manual reference.",
   },
   "kt-zepp-yokohama": {
     venueId: "kt-zepp-yokohama",
@@ -134,7 +141,8 @@ export const venueThumbnailLayouts: Record<string, VenueThumbnailLayout> = {
     stagePosition: "end",
     tiers: 1,
     hasArenaFloor: true,
+    hasStandingArea: true,
     hasSecondFloor: true,
-    notes: "Livehouse schematic with stage, standing floor, and balcony hint.",
+    notes: "Simplified livehouse schematic with standing area, not official seat map. Second-floor detail needs manual reference.",
   },
 };

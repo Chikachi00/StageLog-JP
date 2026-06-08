@@ -57,7 +57,7 @@ const tierLines = (count = 1, startY = 88, step = 16, x1 = 92, x2 = 228) =>
   }).join("\n  ");
 
 const layoutTemplates = {
-  fan: (p, layout) => `
+  "arena-fan": (p, layout) => `
   <path d="M62 142 C91 72 122 43 160 36 C198 43 229 72 258 142 Z" fill="${p.fill}" stroke="${p.stroke}" stroke-width="3"/>
   <path d="M86 132 C111 84 135 63 160 58 C185 63 209 84 234 132" fill="none" stroke="${p.stroke}" stroke-width="3"/>
   <path d="M104 118 C126 88 143 76 160 73 C177 76 194 88 216 118" fill="none" stroke="${p.stroke}" stroke-width="2"/>
@@ -89,7 +89,7 @@ const layoutTemplates = {
   ${label(160, 68, "STAGE", 10)}
   ${label(170, 114, "Arena Floor", 11)}
   `,
-  dome: (p, layout) => `
+  "dome-oval": (p, layout) => `
   <ellipse cx="160" cy="94" rx="118" ry="66" fill="${p.fill}" stroke="${p.stroke}" stroke-width="3"/>
   ${layout.hasOuterRing ? `<ellipse cx="160" cy="94" rx="98" ry="52" fill="white" stroke="${p.stroke}" stroke-width="2" opacity="0.92"/>` : ""}
   <ellipse cx="160" cy="103" rx="69" ry="35" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
@@ -291,9 +291,15 @@ const main = async () => {
     console.warn(`Skipped ${missingLayoutIds.length} thumbnail layouts with unknown venue ids: ${missingLayoutIds.join(", ")}`);
   }
 
-  const schematicCount = venues.filter((venue) => layouts[venue.id]).length;
-  console.log(`Generated ${venues.length} venue thumbnails in ${OUTPUT_DIR}`);
-  console.log(`Used ${schematicCount} schematic venue thumbnail layouts`);
+  const dedicatedLayoutCount = venues.filter((venue) => layouts[venue.id]).length;
+  const fallbackCount = venues.length - dedicatedLayoutCount;
+  const generatedFileCount = venues.length;
+
+  console.log(`Total venues: ${venues.length}`);
+  console.log(`Dedicated layout count: ${dedicatedLayoutCount}`);
+  console.log(`Fallback count: ${fallbackCount}`);
+  console.log(`Generated file count: ${generatedFileCount}`);
+  console.log(`Output directory: ${OUTPUT_DIR}`);
 };
 
 await main();

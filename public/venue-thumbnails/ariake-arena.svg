@@ -10,6 +10,7 @@
   <path d="M70 78 h26 v62 h-26 z M224 78 h26 v62 h-26 z" fill="white" stroke="#91a7d0" stroke-width="2" opacity="0.95"/>
   <path d="M104 82 H216" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
   <path d="M104 98 H216" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  <path d="M104 114 H216" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
   <text x="160" y="67" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">STAGE</text>
   <text x="160" y="115" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">Arena Floor</text>
   <text x="83" y="112" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="9" font-weight="700">Stand</text>

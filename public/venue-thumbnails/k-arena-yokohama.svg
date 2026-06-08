@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-labelledby="title desc">
   <title id="title">K-Arena Yokohama venue thumbnail</title>
-  <desc id="desc">Project-owned schematic fan venue thumbnail for StageLog JP. This is illustrative and not an official seat map.</desc>
+  <desc id="desc">Project-owned schematic arena-fan venue thumbnail for StageLog JP. This is illustrative and not an official seat map.</desc>
   <rect width="320" height="200" rx="22" fill="#fbfcff"/>
   <rect x="10" y="10" width="300" height="180" rx="18" fill="white" stroke="#91a7d0" stroke-width="2" opacity="0.95"/>
   
@@ -12,8 +12,8 @@
   <path d="M123 134 H197 L184 151 H136 Z" fill="#b7e4d5" stroke="#91a7d0" stroke-width="2"/>
   <text x="160" y="49" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">STAGE</text>
   <text x="160" y="146" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">Arena Floor</text>
-  <text x="160" y="84" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">3 tiers</text>
+  <text x="160" y="84" text-anchor="middle" fill="#42526b" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">4 tiers</text>
   
   <text x="24" y="178" fill="#314057" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">K-Arena Yokohama</text>
-  <text x="296" y="178" text-anchor="end" fill="#68758a" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">FAN</text>
+  <text x="296" y="178" text-anchor="end" fill="#68758a" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">ARENA FAN</text>
 </svg>
