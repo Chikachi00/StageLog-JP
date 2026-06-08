@@ -1,16 +1,27 @@
 # StageLog JP
 
+> 完整中英双语 README 请见 [README.md](README.md)。本文件保留为中文单独版。
+
 StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务抽选场景的个人参战记录、票务管理、场馆足迹和数据分析 Web App。
 
 - Live demo: https://stage-log-jp.vercel.app
 - GitHub: https://github.com/Chikachi00/StageLog-JP
-- English README: [README.md](README.md)
+- English Version: [README.md#english-version](README.md#english-version)
 
 ## 项目简介
 
 StageLog JP 用于长期记录 live / event 参战经历、票务抽选轮次、场馆、座位、天气、图片和支出数据。应用同时支持未登录的 localStorage 本地模式，以及登录后的 Supabase 云同步模式。
 
 这个项目重点贴合日本演出和票务抽选的真实流程：同一场公演可能有多轮抽选，票务支出需要手动折算，参战记录需要保留场馆快照，自定义场馆需要跨设备同步，数据也需要能备份和复盘。
+
+## 快速链接
+
+- [Live demo](https://stage-log-jp.vercel.app)
+- [GitHub](https://github.com/Chikachi00/StageLog-JP)
+- [完整双语 README](README.md)
+- [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)
+- [VERIFICATION.md](VERIFICATION.md)
+- [SUPABASE_SETUP.md](SUPABASE_SETUP.md)
 
 ## 核心功能
 
@@ -37,7 +48,7 @@ StageLog JP 用于长期记录 live / event 参战经历、票务抽选轮次、
 ### 时间线、足迹图和场馆视图
 
 - Timeline 按年份展示参战记录，并显示活动时间、天气、场馆和状态信息。
-- 足迹图会把有合法经纬度的参战记录显示为地图 marker。
+- Footprint Map / 足迹图会把有合法经纬度的参战记录显示为地图 marker。
 - 地图点来自 event 场馆快照、内置场馆和自定义场馆坐标。
 - 地图视图适合中国 + 日本范围，支持年份筛选和国家筛选。
 - 缺少坐标或坐标无效的记录会单独列出，不会导致地图报错。
@@ -53,7 +64,7 @@ StageLog JP 用于长期记录 live / event 参战经历、票务抽选轮次、
 - `CustomVenuesManager` 支持查看、搜索、创建、编辑和删除自定义场馆。
 - 自定义场馆经纬度可用于天气查询和足迹图。
 - 参战和票务记录会保留场馆快照，所以自定义场馆删除后历史记录仍可读。
-- 内置场馆缩略图是项目自制 illustrative schematic，不是官方座位图。
+- 内置场馆缩略图是项目自制 schematic / illustrative thumbnail，不是官方座位图。
 - Priority venue thumbnails 已做 schematic refine，但不是 verified official layout。
 
 ### 数据分析
@@ -105,7 +116,7 @@ Footprint Map V1 使用 Leaflet / React Leaflet 和 OpenStreetMap 公开底图�
 - Event 和 Ticket 会保存 `venueId`、`venueName`、`city`、`country` 和可选经纬度等场馆快照。
 - Custom Venues B-lite 使用 `custom_venues` 表维护用户自己的场馆库。
 - 删除 customVenue 不会批量更新历史 records。
-- 足迹图是基于已有 event / venue 坐标派生出来的可视化视图，不新增持久化地图数据模型。
+- Footprint Map 是基于已有 event / venue 坐标派生出来的可视化视图，不新增持久化地图数据模型。
 - 货币数据保存原始金额、展示金额、原始货币、展示货币和手动输入汇率。
 - 场馆缩略图同时支持 generic fallback 和少量 dedicated schematic layouts。
 
@@ -213,9 +224,9 @@ VERIFICATION.md
 
 - 不支持自动汇率 API；汇率需要手动输入。
 - 不支持自动 geocoding。
-- 足迹图只显示有合法 latitude / longitude 的记录。
+- Footprint Map 只显示有合法 latitude / longitude 的记录。
 - 缺少坐标或坐标无效的记录会单独列出。
-- 足迹图暂不支持路线动画、热力图、marker 聚类或地区着色。
+- Footprint Map 暂不支持路线动画、热力图、marker 聚类或地区着色。
 - 删除自定义场馆不会批量更新历史 records。
 - 历史 event / ticket 会保留场馆快照。
 - 暂不支持自定义场馆座位图。
