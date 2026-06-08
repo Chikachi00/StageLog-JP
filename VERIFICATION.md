@@ -17,6 +17,14 @@ Verification date: 2026-06-07
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## Venue Thumbnail Accuracy V1
+
+- Layout config: added `src/data/venueThumbnailLayouts.ts` with schematic thumbnail layout metadata for selected high-priority built-in venues.
+- Schematic venues: K-Arena Yokohama, Pia Arena MM, Yokohama Arena, Ariake Arena, Belluna Dome, Tokyo Dome, Makuhari Messe, Zepp Haneda, Zepp DiverCity Tokyo, Zepp Shinjuku Tokyo, and KT Zepp Yokohama.
+- Generator behavior: `scripts/generateVenueThumbnails.mjs` now reads the layout config first; configured venues use shape-specific schematic SVG layouts, while unconfigured venues continue using the existing category fallback.
+- Command: `npm.cmd run generate:venue-thumbnails` generated 38 thumbnails and used 11 schematic layouts.
+- Scope: thumbnails are project-owned illustrative schematics only. They are not official venue seat maps, do not copy official images, and do not change Event/Ticket/Analytics/Backup/Supabase logic.
+
 ## Timeline UI V1 Polish
 
 - Timeline visual layout: Timeline now uses year headers, a date column, timeline nodes, vertical connector lines, and timeline-specific event cards.
