@@ -31,7 +31,9 @@ const shortLabel = (name) => {
 const base = (venue, body, layout) => {
   const palette = categoryPalette[venue.category] ?? categoryPalette.other;
   const description = layout
-    ? `Project-owned schematic ${escapeXml(layout.shape)} venue thumbnail for StageLog JP. This is illustrative and not an official seat map.`
+    ? layout.refinement === "v2"
+      ? `Project-owned manually refined schematic ${escapeXml(layout.shape)} venue thumbnail for StageLog JP. This is illustrative and not an official seat map.`
+      : `Project-owned schematic ${escapeXml(layout.shape)} venue thumbnail for StageLog JP. This is illustrative and not an official seat map.`
     : `Project-owned simplified ${escapeXml(venue.category)} venue thumbnail for StageLog JP.`;
   const typeLabel = layout ? layout.shape.replaceAll("-", " ").toUpperCase() : venue.category.toUpperCase();
 
@@ -55,6 +57,92 @@ const tierLines = (count = 1, startY = 88, step = 16, x1 = 92, x2 = 228) =>
     const y = startY + index * step;
     return `<path d="M${x1} ${y} H${x2}" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8"/>`;
   }).join("\n  ");
+
+const refinedLayoutTemplates = {
+  "k-arena-yokohama-v2": (p) => `
+  <path d="M48 151 C77 77 116 40 160 31 C204 40 243 77 272 151 Z" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <path d="M70 143 C96 91 128 62 160 55 C192 62 224 91 250 143" fill="none" stroke="${p.stroke}" stroke-width="4" opacity="0.95"/>
+  <path d="M88 132 C111 95 137 77 160 73 C183 77 209 95 232 132" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.85"/>
+  <path d="M106 119 C126 96 145 88 160 86 C175 88 194 96 214 119" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.75"/>
+  <path d="M123 107 C139 97 151 94 160 93 C169 94 181 97 197 107" fill="none" stroke="${p.stroke}" stroke-width="2" opacity="0.7"/>
+  <rect x="119" y="33" width="82" height="24" rx="8" fill="#314057"/>
+  <path d="M118 133 C135 124 185 124 202 133 L187 153 H133 Z" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <path d="M75 151 H112 M208 151 H245" stroke="${p.stroke}" stroke-width="3" opacity="0.55"/>
+  ${label(160, 49, "STAGE", 10)}
+  `,
+  "tokyo-dome-v2": (p) => `
+  <ellipse cx="160" cy="96" rx="126" ry="68" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <ellipse cx="160" cy="96" rx="104" ry="54" fill="white" stroke="${p.stroke}" stroke-width="3" opacity="0.92"/>
+  <ellipse cx="160" cy="106" rx="78" ry="37" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <path d="M72 94 C104 66 216 66 248 94" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.62"/>
+  <path d="M80 125 C114 150 206 150 240 125" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.62"/>
+  <path d="M57 95 C91 48 229 48 263 95" fill="none" stroke="${p.stroke}" stroke-width="2" opacity="0.36"/>
+  <rect x="118" y="40" width="84" height="23" rx="8" fill="#314057"/>
+  ${label(160, 56, "STAGE", 10)}
+  `,
+  "belluna-dome-v2": (p) => `
+  <ellipse cx="160" cy="98" rx="119" ry="64" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <ellipse cx="160" cy="98" rx="96" ry="48" fill="white" stroke="${p.stroke}" stroke-width="3" opacity="0.9"/>
+  <ellipse cx="160" cy="111" rx="69" ry="31" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <path d="M73 80 C112 58 208 58 247 80" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.58"/>
+  <path d="M70 113 C105 146 215 146 250 113" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.58"/>
+  <path d="M47 106 C70 151 250 151 273 106" fill="none" stroke="${p.stroke}" stroke-width="2" opacity="0.36"/>
+  <rect x="126" y="42" width="68" height="23" rx="8" fill="#314057"/>
+  ${label(160, 57, "STAGE", 10)}
+  `,
+  "pia-arena-mm-v2": (p) => `
+  <rect x="52" y="42" width="216" height="108" rx="18" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <rect x="111" y="52" width="98" height="22" rx="7" fill="#314057"/>
+  <rect x="98" y="90" width="124" height="43" rx="10" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <path d="M68 78 H252 M68 140 H252" stroke="white" stroke-width="5" opacity="0.75"/>
+  <path d="M75 82 H245 M75 136 H245" stroke="${p.stroke}" stroke-width="2" opacity="0.72"/>
+  <rect x="70" y="85" width="22" height="50" rx="6" fill="white" stroke="${p.stroke}" stroke-width="2" opacity="0.95"/>
+  <rect x="228" y="85" width="22" height="50" rx="6" fill="white" stroke="${p.stroke}" stroke-width="2" opacity="0.95"/>
+  ${label(160, 67, "STAGE", 10)}
+  `,
+  "yokohama-arena-v2": (p) => `
+  <rect x="48" y="39" width="224" height="116" rx="42" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <rect x="69" y="55" width="182" height="88" rx="35" fill="white" stroke="${p.stroke}" stroke-width="3" opacity="0.92"/>
+  <rect x="116" y="54" width="88" height="22" rx="8" fill="#314057"/>
+  <rect x="103" y="94" width="114" height="35" rx="17" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <path d="M76 91 C105 75 215 75 244 91" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.68"/>
+  <path d="M76 119 C107 142 213 142 244 119" fill="none" stroke="${p.stroke}" stroke-width="3" opacity="0.68"/>
+  <path d="M61 96 C91 61 229 61 259 96" fill="none" stroke="${p.stroke}" stroke-width="2" opacity="0.42"/>
+  ${label(160, 69, "STAGE", 10)}
+  `,
+  "ariake-arena-v2": (p) => `
+  <rect x="54" y="42" width="212" height="108" rx="24" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <rect x="116" y="53" width="88" height="22" rx="8" fill="#314057"/>
+  <rect x="104" y="90" width="112" height="44" rx="13" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <rect x="70" y="76" width="28" height="64" rx="9" fill="white" stroke="${p.stroke}" stroke-width="2" opacity="0.95"/>
+  <rect x="222" y="76" width="28" height="64" rx="9" fill="white" stroke="${p.stroke}" stroke-width="2" opacity="0.95"/>
+  <path d="M104 82 H216 M104 141 H216" stroke="${p.stroke}" stroke-width="3" opacity="0.55"/>
+  <path d="M84 86 v48 M236 86 v48" stroke="${p.stroke}" stroke-width="2" opacity="0.5"/>
+  ${label(160, 68, "STAGE", 10)}
+  `,
+  "makuhari-messe-v2": (p) => `
+  <rect x="38" y="45" width="244" height="102" rx="8" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <rect x="55" y="56" width="210" height="20" rx="5" fill="#314057"/>
+  <rect x="61" y="92" width="198" height="37" rx="6" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <path d="M61 84 H259 M61 138 H259" stroke="${p.stroke}" stroke-width="2" opacity="0.55"/>
+  <path d="M102 82 V139 M160 82 V139 M218 82 V139" stroke="white" stroke-width="3" opacity="0.65"/>
+  <path d="M48 45 V147 M272 45 V147" stroke="${p.stroke}" stroke-width="2" opacity="0.35"/>
+  ${label(160, 70, "STAGE", 9)}
+  `,
+  "zepp-haneda-v2": (p) => `
+  <rect x="73" y="42" width="174" height="108" rx="12" fill="${p.fill}" stroke="${p.stroke}" stroke-width="4"/>
+  <rect x="89" y="54" width="142" height="25" rx="7" fill="#314057"/>
+  <rect x="94" y="101" width="132" height="34" rx="10" fill="${p.accent}" stroke="${p.stroke}" stroke-width="2"/>
+  <rect x="94" y="84" width="132" height="12" rx="5" fill="white" stroke="${p.stroke}" stroke-width="2" opacity="0.82"/>
+  <path d="M103 112 H217 M103 124 H217" stroke="white" stroke-width="2" opacity="0.52"/>
+  <circle cx="117" cy="118" r="3.6" fill="white" opacity="0.95"/>
+  <circle cx="139" cy="127" r="3.6" fill="white" opacity="0.95"/>
+  <circle cx="160" cy="116" r="3.6" fill="white" opacity="0.95"/>
+  <circle cx="183" cy="127" r="3.6" fill="white" opacity="0.95"/>
+  <circle cx="204" cy="118" r="3.6" fill="white" opacity="0.95"/>
+  ${label(160, 70, "STAGE", 10)}
+  `,
+};
 
 const layoutTemplates = {
   "arena-fan": (p, layout) => `
@@ -278,7 +366,11 @@ const main = async () => {
   await Promise.all(
     venues.map((venue) => {
       const layout = layouts[venue.id];
-      const layoutTemplate = layout ? layoutTemplates[layout.shape] : undefined;
+      const refinedLayoutTemplate =
+        layout?.refinement === "v2" && layout.visualVariant
+          ? refinedLayoutTemplates[layout.visualVariant]
+          : undefined;
+      const layoutTemplate = refinedLayoutTemplate ?? (layout ? layoutTemplates[layout.shape] : undefined);
       const body = layoutTemplate
         ? (palette) => layoutTemplate(palette, layout)
         : templates[venue.category] ?? templates.other;
@@ -292,11 +384,13 @@ const main = async () => {
   }
 
   const dedicatedLayoutCount = venues.filter((venue) => layouts[venue.id]).length;
+  const refinedLayoutCount = venues.filter((venue) => layouts[venue.id]?.refinement === "v2").length;
   const fallbackCount = venues.length - dedicatedLayoutCount;
   const generatedFileCount = venues.length;
 
   console.log(`Total venues: ${venues.length}`);
   console.log(`Dedicated layout count: ${dedicatedLayoutCount}`);
+  console.log(`V2 refined layout count: ${refinedLayoutCount}`);
   console.log(`Fallback count: ${fallbackCount}`);
   console.log(`Generated file count: ${generatedFileCount}`);
   console.log(`Output directory: ${OUTPUT_DIR}`);

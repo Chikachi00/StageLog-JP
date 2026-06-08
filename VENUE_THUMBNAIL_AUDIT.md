@@ -55,6 +55,26 @@ Processed Priority 1 layouts:
 | zepp-shinjuku-tokyo | Zepp Shinjuku TOKYO | livehouse | schematic | Simplified livehouse schematic with standing area; second-floor detail needs manual reference. |
 | kt-zepp-yokohama | KT Zepp Yokohama | livehouse | schematic | Simplified livehouse schematic with standing area; second-floor detail needs manual reference. |
 
+Venue Thumbnail V2 refined schematic status:
+
+- V2 is limited to 8 manually refined high-priority venues.
+- V2 focuses on stronger outlines, clearer stage placement, more distinct tier/ring geometry, and less internal explanatory text.
+- V2 thumbnails are still illustrative schematics. They are not official seat maps and are not marked `verified`.
+- The remaining dedicated layouts and all fallback thumbnails are intentionally unchanged by V2.
+
+Processed V2 refined set:
+
+| venueId | name | V2 focus | accuracy |
+|---|---|---|---|
+| k-arena-yokohama | K-Arena Yokohama | Stronger fan-shaped bowl, end stage, nested tier arcs, inset floor. | schematic |
+| tokyo-dome | Tokyo Dome | Wider oval dome, thicker ring structure, large central floor, end stage. | schematic |
+| belluna-dome | Belluna Dome | Distinct oval dome proportions and alternate ring/floor balance from Tokyo Dome. | schematic |
+| pia-arena-mm | Pia Arena MM | Clean modern rectangular arena with end stage, three-tier feel, and stable floor block. | schematic |
+| yokohama-arena | Yokohama Arena | More compact bowl-like arena with rounded outer ring and central floor. | schematic |
+| ariake-arena | Ariake Arena | Balanced rectangular arena with clearer left/right stands and central floor. | schematic |
+| makuhari-messe | Makuhari Messe | Flat exhibition hall box, end stage, straight floor lanes, no arena bowl. | schematic |
+| zepp-haneda | Zepp Haneda TOKYO | Compact livehouse, front stage, standing floor, and rear balcony hint. | schematic |
+
 ## 2. What This Audit Can and Cannot Verify
 
 ### A. Project-internal facts this audit can verify
