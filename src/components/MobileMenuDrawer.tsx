@@ -1,4 +1,4 @@
-import { BarChart3, Cloud, Palette, Settings, X } from "lucide-react";
+import { BarChart3, Cloud, Map, Palette, Settings, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { BackupImportMode, BackupImportResult, StageLogBackup } from "../types/backup";
@@ -138,6 +138,17 @@ export function MobileMenuDrawer({
             <BarChart3 size={16} aria-hidden="true" />
             {t("analytics.title")}
           </h2>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => {
+              onNavigate("footprint");
+              onClose();
+            }}
+          >
+            <Map size={16} aria-hidden="true" />
+            {t("nav.footprint")}
+          </button>
           <button
             className="ghost-button"
             type="button"

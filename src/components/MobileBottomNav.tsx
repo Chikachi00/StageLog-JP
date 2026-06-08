@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, MapPinned, ReceiptText, Ticket } from "lucide-react";
+import { BarChart3, CalendarDays, Map, MapPinned, ReceiptText, Ticket } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AppView } from "./Header";
@@ -6,6 +6,7 @@ import type { AppView } from "./Header";
 const mobileNavItems: Array<{ view: AppView; labelKey: string; icon: LucideIcon }> = [
   { view: "events", labelKey: "nav.events", icon: Ticket },
   { view: "timeline", labelKey: "nav.timeline", icon: CalendarDays },
+  { view: "footprint", labelKey: "nav.footprint", icon: Map },
   { view: "venues", labelKey: "nav.venues", icon: MapPinned },
   { view: "statistics", labelKey: "nav.statistics", icon: BarChart3 },
   { view: "tickets", labelKey: "nav.tickets", icon: ReceiptText },

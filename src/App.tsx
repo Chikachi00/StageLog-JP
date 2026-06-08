@@ -7,6 +7,7 @@ import { Analytics } from "./components/Analytics";
 import { Header } from "./components/Header";
 import { BackupPanel } from "./components/BackupPanel";
 import { FloatingAddButton } from "./components/FloatingAddButton";
+import { FootprintMapPage } from "./components/FootprintMapPage";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import type { AppView } from "./components/Header";
 import { Statistics } from "./components/Statistics";
@@ -1790,6 +1791,10 @@ function App() {
         ) : null}
 
         {activeView === "timeline" ? <Timeline events={events} onEdit={handleEdit} /> : null}
+
+        {activeView === "footprint" ? (
+          <FootprintMapPage customVenues={customVenues} events={events} venues={venues} />
+        ) : null}
 
         {activeView === "venues" ? (
           <VenuesPage

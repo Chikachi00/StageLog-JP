@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, MapPinned, Menu, Plus, ReceiptText, Ticket } from "lucide-react";
+import { BarChart3, CalendarDays, Map, MapPinned, Menu, Plus, ReceiptText, Ticket } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
-export type AppView = "events" | "timeline" | "venues" | "statistics" | "analytics" | "tickets" | "add";
+export type AppView = "events" | "timeline" | "footprint" | "venues" | "statistics" | "analytics" | "tickets" | "add";
 
 interface HeaderProps {
   activeView: AppView;
@@ -40,6 +40,7 @@ interface HeaderProps {
 const navItems: Array<{ view: AppView; labelKey: string; icon: LucideIcon }> = [
   { view: "events", labelKey: "nav.events", icon: Ticket },
   { view: "timeline", labelKey: "nav.timeline", icon: CalendarDays },
+  { view: "footprint", labelKey: "nav.footprint", icon: Map },
   { view: "venues", labelKey: "nav.venues", icon: MapPinned },
   { view: "statistics", labelKey: "nav.statistics", icon: BarChart3 },
   { view: "analytics", labelKey: "nav.analytics", icon: BarChart3 },

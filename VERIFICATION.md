@@ -17,6 +17,19 @@ Verification date: 2026-06-07
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## Footprint Map V1
+
+- Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.
+- Map library: Leaflet + React Leaflet with OpenStreetMap tiles and visible attribution.
+- Marker rendering: custom `DivIcon` CSS markers are used, avoiding Leaflet default marker asset path issues under Vite.
+- Coordinate resolution: map points use existing coordinate resolution order: event latitude/longitude snapshot, built-in venue id, custom venue id, then custom venue name/city snapshot match.
+- Custom venue support: saved `customVenues` with latitude/longitude can produce markers without automatic geocoding.
+- Missing coordinate handling: records without valid coordinates are listed below the map and are not rendered as markers.
+- Filters: V1 supports all-years/single-year filtering and all-countries/single-country filtering without mutating event data.
+- Popup content: marker popups show title, artist, venue, date, location, doors/start time when present, and weather/temperature when present.
+- Mobile layout: map height is constrained for mobile, filters wrap, popup width is constrained, and bottom navigation spacing is preserved.
+- Regression scope: this pass does not add Supabase SQL, change RLS, modify events/tickets/custom venues schema, change Ticket Management V2, change Backup format, modify Analytics logic, add geocoding, add route animation, add heatmaps, or reintroduce Recharts `ResponsiveContainer`.
+
 ## Venue Thumbnail Accuracy V1
 
 - Layout config: added `src/data/venueThumbnailLayouts.ts` with schematic thumbnail layout metadata for selected high-priority built-in venues.
