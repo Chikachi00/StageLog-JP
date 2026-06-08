@@ -256,6 +256,7 @@ custom venue 相关 handler 包括 `handleCreateCustomVenue`、`handleUpdateCust
 - `TicketManager`：展示 ticket group card、按 `ticketGroupKey` 聚合同一场公演的多轮抽选，并提供新增轮次、编辑轮次、删除轮次和从 ticket 创建 event 的入口。
 - `VenueCombobox`：统一场馆选择入口，合并 built-in venues、正式 `customVenues` 和 recent inferred venues，并支持 inline 创建 customVenue。
 - `CustomVenuesManager`：自定义场馆库管理 UI，支持新增、编辑、删除、搜索和 event/ticket usage count。
+- `FootprintMapPage` / `FootprintMap`：足迹图页面和地图组件，负责统计摘要、年份/国家筛选、Leaflet 地图容器、marker / popup 和缺少坐标记录提示。
 - `BackupPanel`：JSON backup export/import 的 UI。
 - `Analytics` 和 `ChartFrame`：数据分析和 Recharts 稳定渲染。图表使用 ChartFrame + ResizeObserver 测量尺寸，不再依赖 ResponsiveContainer。
 - `Timeline`：按年份展示参战记录时间线，后续加入了日期列、节点、竖线、时间 badge、天气 badge 和 upcoming/completed 状态 badge。
@@ -292,6 +293,7 @@ custom venue 相关 handler 包括 `handleCreateCustomVenue`、`handleUpdateCust
 - `ticketUtils`：`ticketGroupKey` 生成/归一化、票务数量和金额读取、分组相关计算。
 - `analyticsUtils`：把 events 和 tickets 转成 Analytics V1/V2 所需的图表数据。
 - `venueSearchUtils`：场馆搜索、搜索文本归一化、历史自定义场馆提取、custom venue id 生成，以及 custom venue 天气坐标解析。
+- `footprintMapUtils`：把 `EventRecord` 派生为地图点，按 event snapshot、built-in venues、customVenues 解析坐标，并负责年份/国家筛选和缺少坐标记录计算。
 - `dateUtils`：日期、时间、doors/start 展示格式和排序。
 - `seatMapUtils`：内置座位图查找和座位图兼容判断。
 - `statisticsUtils`、`weatherUtils`：统计和天气展示辅助函数。
@@ -302,11 +304,12 @@ custom venue 相关 handler 包括 `handleCreateCustomVenue`、`handleUpdateCust
 
 - `venues.ts`：内置日本 live venue 数据，包括英文名、日文/中文名、aliases、城市、地区、坐标、category、capacity、seat map 支持和 thumbnail 信息。
 - `seatMaps.ts`：数据驱动的内置场馆 seat map 定义。
+- `venueThumbnailLayouts.ts`：少量重点场馆的 dedicated schematic thumbnail layout 配置。未配置场馆继续使用 generator fallback；这些 layout 是 illustrative schematic，不是 official seat map，也没有标为 verified。
 - `sampleEvents.ts`：示例参战记录，用于空状态体验和本地验证。
 
 #### 0.8 `src/i18n`、`src/context` 和 `src/lib`
 
-- `src/i18n`：中文/英文文案资源和 i18next 初始化。VenueCombobox、CustomVenuesManager、Ticket V2、Timeline、Backup、weather、seat map、Analytics 等文案都在这里维护。
+- `src/i18n`：中文/英文文案资源和 i18next 初始化。VenueCombobox、CustomVenuesManager、Ticket V2、Timeline、Footprint Map、Backup、weather、seat map、Analytics 等文案都在这里维护。
 - `src/context`：Auth 和 user settings 上下文，封装 Supabase session、cloud/local mode 所需的用户状态，以及 theme/language/profile 相关状态。
 - `src/lib/supabase.ts`：Supabase client 初始化，读取 Vite 环境变量。前端只使用 anon/publishable key，不使用 service role key。
 
@@ -682,13 +685,13 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 ### 15. 当前架构总结
 
-当前 StageLog JP 架构包括 React + Vite + TypeScript、Supabase Auth、Supabase Database + RLS、Supabase Storage for event images、localStorage fallback、built-in venues、custom_venues、events、ticket_applications、analyticsUtils、backupService、ChartFrame + ResizeObserver、VenueCombobox 和 CustomVenuesManager。
+当前 StageLog JP 架构包括 React + Vite + TypeScript、Supabase Auth、Supabase Database + RLS、Supabase Storage for event images、localStorage fallback、built-in venues、custom_venues、events、ticket_applications、analyticsUtils、backupService、ChartFrame + ResizeObserver、VenueCombobox、CustomVenuesManager、FootprintMapPage / FootprintMap / footprintMapUtils，以及 venue thumbnail generic fallback + dedicated schematic layouts。
 
-核心数据流是：events 和 tickets 保存自己的 venue snapshots；built-in venues 提供标准场馆信息；customVenues 提供用户自己的场馆库；VenueCombobox 合并 built-in、customVenues 和 recent inferred venues；backup 同时保留 customVenues 和 record snapshots；analytics 从 events / ticketApplications 派生统计结果。
+核心数据流是：events 和 tickets 保存自己的 venue snapshots；built-in venues 提供标准场馆信息、坐标、座位图和缩略图；customVenues 提供用户自己的场馆库和可复用经纬度；VenueCombobox 合并 built-in、customVenues 和 recent inferred venues；Footprint Map 从 events、built-in venues 和 customVenues 派生地图点，不新增持久化数据模型；backup 同时保留 customVenues 和 record snapshots；analytics 从 events / ticketApplications 派生统计结果。
 
 ### 16. 已知限制
 
-当前已知限制包括：不支持自动汇率 API；不支持自动 geocoding；不支持自定义场馆座位图；删除 customVenue 不会批量更新历史 records；暂不支持 custom venue merge / dedup；customVenue 删除后，历史 records 依赖 venue snapshot；大 bundle 可能出现 Vite chunk size warning；cloud mode 依赖 Supabase SQL migration 和 RLS 配置正确；custom venue weather 依赖经纬度。
+当前已知限制包括：不支持自动汇率 API；不支持自动 geocoding；Footprint Map 只显示有合法 latitude / longitude 的记录；Footprint Map 暂不支持路线动画、热力图、marker clustering 或地区着色；不支持自定义场馆座位图；删除 customVenue 不会批量更新历史 records；暂不支持 custom venue merge / dedup；customVenue 删除后，历史 records 依赖 venue snapshot；场馆缩略图是 illustrative schematic，不是 official seat map，当前 refined thumbnails 也不是 verified official layout；大 bundle 可能出现 Vite chunk size warning；cloud mode 依赖 Supabase SQL migration 和 RLS 配置正确；custom venue weather 依赖经纬度。
 
 这些限制是有意保留的范围控制，不应在没有明确设计前通过大范围重构解决。
 
@@ -771,6 +774,34 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 **Implementation**：Timeline 保留现有年份分组和 `sortByDateDesc`，但把展示改成更接近时间线：年份 header 更明显，event 左侧有日期列、节点圆点和竖向连接线，右侧是 timeline-specific card。开场、开演和天气变成 badge；未来活动和已完成活动用 UI-only 状态 badge 显示 Upcoming / Completed 或 予定 / 已完成。移动端改为单列/弱化节点，避免横向溢出。
 
 **Result**：Timeline 更像时间线而不是普通列表，同时不影响 EventForm、Ticket Management V2、Analytics、Backup 或 Supabase schema。
+
+#### 20.7 Footprint Map V1 / 足迹图 V1
+
+**Goal**：把已有参战记录按 latitude / longitude 显示在地图上，形成覆盖日本、中国和周边旅行范围的 live / event 足迹视图。
+
+**Problem**：Timeline 和 Analytics 能说明活动发生的时间和统计分布，但不能直观看出用户去过哪些地点。events、built-in venues 和 Custom Venues B-lite 中已经存在坐标数据，因此可以复用这些数据做空间视图，而不需要新增数据库表。
+
+**Design Decision**：使用 Leaflet + React Leaflet + OpenStreetMap 公开底图。Footprint Map 不新增 Supabase SQL，不使用 Google Maps API，不需要地图 API key，也不做自动 geocoding。坐标只从项目已有数据中解析。
+
+**Implementation**：新增 `FootprintMapPage`、`FootprintMap` 和 `footprintMapUtils`。`footprintMapUtils` 从 `EventRecord` 构建 `FootprintPoint`，坐标解析优先级是：event 自己的 latitude / longitude snapshot、built-in venue by `venueId`、customVenue by `venueId`、customVenue by normalized `venueName + city`，最后归入 missing / invalid coordinates。页面支持年份筛选、国家筛选、统计摘要、缺少坐标记录列表、marker popup，以及对可见 marker 自动 `fitBounds`。Marker 使用自定义 DivIcon，避免 Leaflet 默认 marker asset 在 Vite 下的路径问题。
+
+**Result**：Footprint Map 把 events、venues、customVenues、coordinates、weather snapshots 和 timeline-style metadata 连接成空间可视化。它是基于现有记录的派生视图，不是新的持久化数据模型。
+
+**Limitations**：只显示有合法 latitude / longitude 的记录；缺少或无效坐标会单独列出；不支持自动 geocoding、路线动画、热力图、marker clustering 或地区着色；OpenStreetMap attribution 会保留显示。
+
+#### 20.8 Venue Thumbnail Accuracy Audit and Schematic Refinement / 场馆缩略图审计与示意图定稿
+
+**Goal**：改善内置 venue thumbnail 过于模板化的问题，让重点场馆更容易区分，同时避免复制官方图片或声称官方座位图准确性。
+
+**Problem**：早期 thumbnail 主要依赖 category fallback。它们能表达大致场馆类型，但 K-Arena、dome、exhibition hall、livehouse 等场馆之间的结构差异不够明显。
+
+**Design Decision**：先区分 repository 内部事实和现实场馆结构推测，再小范围重画。项目新增 audit 文档，然后对 Priority 1 场馆做 project-owned schematic SVG refinement。缩略图状态概念上区分 generic / schematic / verified，但当前 refined thumbnails 仍然只是 `schematic`，没有任何场馆标为 verified。
+
+**Implementation**：`VENUE_THUMBNAIL_AUDIT.md` 盘点 38 个 built-in venues 和 38 个 generated thumbnails，记录 confidence / sourceNeeded，并区分 project-internal facts 和 real-world assumptions。Venue Thumbnail Layout V1 为 11 个 Priority 1 venues 添加 dedicated schematic layout：K-Arena Yokohama、Pia Arena MM、Yokohama Arena、Ariake Arena、Tokyo Dome、Belluna Dome、Makuhari Messe、Zepp Haneda、Zepp DiverCity、Zepp Shinjuku、KT Zepp Yokohama。Venue Thumbnail V2 手工 refine 8 个重点场馆：K-Arena Yokohama、Tokyo Dome、Belluna Dome、Pia Arena MM、Yokohama Arena、Ariake Arena、Makuhari Messe、Zepp Haneda TOKYO。V2 减少内部说明文字，强化 silhouette、outer ring、fan-shaped bowl、exhibition-hall geometry 和 livehouse structure。
+
+**Result**：Priority venue thumbnails 不再完全依赖 generic fallback。它们作为项目自制 illustrative schematic 更有区分度，同时 generator 仍保留未配置场馆的 fallback 行为。
+
+**Limitations**：这些缩略图不是 official seat map，没有复制官方场馆图片，没有 hotlink 外部图片，也不是 verified official layout。如果未来要把某个场馆从 schematic 提升到 verified，需要人工 reference check 和明确 source policy。
 
 ---
 
@@ -1020,6 +1051,7 @@ This centralized style approach made fast iteration and consistent visual polish
 - `TicketManager`: renders ticket group cards, groups rounds by `ticketGroupKey`, and handles add-round, edit-round, delete-round, and create-event-from-ticket entry points.
 - `VenueCombobox`: the unified venue selector. It merges built-in venues, saved `customVenues`, and recent inferred venues, and supports inline custom venue creation.
 - `CustomVenuesManager`: user-owned custom venue library UI for create, edit, delete, search, and event/ticket usage counts.
+- `FootprintMapPage` / `FootprintMap`: Footprint Map page and Leaflet map component, including summary stats, year/country filters, markers, popups, and missing-coordinate records.
 - `BackupPanel`: JSON backup export/import UI.
 - `Analytics` and `ChartFrame`: analytics dashboards and stable Recharts rendering. Charts use ChartFrame + ResizeObserver instead of ResponsiveContainer.
 - `Timeline`: chronological event display. Later iterations added a date column, nodes, connector lines, time badges, weather badges, and upcoming/completed status badges.
@@ -1056,6 +1088,7 @@ This centralized style approach made fast iteration and consistent visual polish
 - `ticketUtils`: `ticketGroupKey` generation/normalization, ticket quantity helpers, amount helpers, and grouping-related calculations.
 - `analyticsUtils`: transforms events and tickets into chart-ready data for Analytics V1/V2.
 - `venueSearchUtils`: venue search, search text normalization, historical custom venue extraction, custom venue id generation, and custom venue weather coordinate resolution.
+- `footprintMapUtils`: derives map points from `EventRecord`, resolves coordinates from event snapshots, built-in venues, and custom venues, and handles year/country filtering plus missing-coordinate records.
 - `dateUtils`: date/time formatting, doors/start display helpers, and date sorting.
 - `seatMapUtils`: built-in seat map lookup and seat map compatibility helpers.
 - `statisticsUtils`, `weatherUtils`: statistics and weather display helpers.
@@ -1066,11 +1099,12 @@ This centralized style approach made fast iteration and consistent visual polish
 
 - `venues.ts`: built-in Japanese live venue data, including localized names, aliases, city, region, coordinates, category, capacity, seat map support, and thumbnail metadata.
 - `seatMaps.ts`: data-driven seat map definitions for supported built-in venues.
+- `venueThumbnailLayouts.ts`: dedicated schematic thumbnail layout metadata for selected high-priority venues. Unconfigured venues continue using generator fallback; these layouts are illustrative schematics, not official seat maps, and are not marked verified.
 - `sampleEvents.ts`: sample event records used for empty-state onboarding and local verification.
 
 #### 0.8 `src/i18n`, `src/context`, and `src/lib`
 
-- `src/i18n`: i18next resources and initialization for Chinese and English UI text. VenueCombobox, CustomVenuesManager, Ticket V2, Timeline, Backup, weather, seat map, and Analytics text live here.
+- `src/i18n`: i18next resources and initialization for Chinese and English UI text. VenueCombobox, CustomVenuesManager, Ticket V2, Timeline, Footprint Map, Backup, weather, seat map, and Analytics text live here.
 - `src/context`: Auth and user settings contexts for Supabase session state, user settings, theme/language, and cloud/local mode behavior.
 - `src/lib/supabase.ts`: Supabase client initialization from Vite environment variables. The frontend uses the anon/publishable key, not a service role key.
 
@@ -1767,6 +1801,9 @@ Current architecture:
 - `ChartFrame + ResizeObserver` for stable Recharts sizing.
 - `VenueCombobox` for built-in/custom/recent-inferred venue search.
 - `CustomVenuesManager` for custom venue library CRUD.
+- `FootprintMapPage`, `FootprintMap`, and `footprintMapUtils` for derived map visualization from event snapshots, built-in venues, and custom venue coordinates.
+- Leaflet / React Leaflet with OpenStreetMap tiles for the Footprint Map; no Google Maps API key is required.
+- Venue thumbnail generation with generic fallback layouts and selected dedicated schematic layouts.
 
 ### 16. Known Limitations
 
@@ -1774,11 +1811,15 @@ Current known limitations:
 
 - No automatic exchange-rate API.
 - No automatic geocoding.
+- Footprint Map only displays records with valid latitude / longitude.
+- Footprint Map does not include route animation, heatmap, marker clustering, or region coloring.
 - No custom venue seat maps.
 - Deleting a custom venue does not batch-update historical records.
 - Custom venue merge/dedup tooling is not implemented.
 - After customVenue deletion, historical records depend on their stored venue snapshots.
 - Custom venue weather lookup requires latitude and longitude.
+- Venue thumbnails are illustrative schematics, not official seat maps.
+- Current refined venue thumbnails are schematic and are not marked verified.
 - Large bundles may trigger the Vite chunk size warning.
 - Cloud mode depends on Supabase SQL migrations and RLS policies being correctly applied.
 - Some cloud and mobile flows require manual browser/device verification.
@@ -1880,3 +1921,31 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Implementation**: Timeline keeps the existing year grouping and `sortByDateDesc` ordering, but the display now looks more like a timeline: stronger year headers, a date column, node dots, vertical connector lines, and timeline-specific cards. Doors, start time, and weather are shown as badges. Upcoming/completed status is calculated in UI from `event.date` and displayed as lightweight badges. Mobile layout uses a simplified single-column version to avoid horizontal overflow.
 
 **Result**: Timeline now reads as a timeline rather than a regular list, without affecting EventForm, Ticket Management V2, Analytics, Backup, or Supabase schema.
+
+#### 20.7 Footprint Map V1
+
+**Goal**: Show existing event records on a map by latitude / longitude, creating a spatial view of live/event history across Japan, China, and nearby travel regions.
+
+**Problem**: Timeline and Analytics could explain when events happened and how they aggregated statistically, but they could not show where the user had actually gone. Events, built-in venues, and Custom Venues B-lite already contained coordinate data, so a map view could be derived without adding a database table.
+
+**Design Decision**: Use Leaflet + React Leaflet with OpenStreetMap public tiles. The Footprint Map does not add Supabase SQL, does not use Google Maps API, does not require a map API key, and does not perform automatic geocoding. Coordinates are resolved from existing project data only.
+
+**Implementation**: The feature added `FootprintMapPage`, `FootprintMap`, and `footprintMapUtils`. `footprintMapUtils` builds `FootprintPoint` values from `EventRecord` using this coordinate priority: event latitude / longitude snapshot, built-in venue by `venueId`, customVenue by `venueId`, customVenue by normalized `venueName + city`, then missing / invalid coordinates. The page supports year and country filters, summary counts, a missing-coordinate list, marker popups with title / artist / venue / date / location / doors-start / weather, and `fitBounds` for visible markers. Markers use custom DivIcon styling to avoid Leaflet default marker asset path issues in Vite.
+
+**Result**: Footprint Map connects events, venues, customVenues, coordinates, weather snapshots, and timeline-style metadata into a spatial visualization. It is a derived view over existing records, not a new persisted data model.
+
+**Limitations**: It only displays records with valid latitude / longitude. Missing or invalid coordinates are listed separately. It does not include automatic geocoding, route animation, heatmaps, marker clustering, or region coloring. OpenStreetMap attribution remains visible.
+
+#### 20.8 Venue Thumbnail Accuracy Audit and Schematic Refinement
+
+**Goal**: Improve built-in venue thumbnails so high-impact venues are more visually distinguishable, while avoiding copied official images or claims of official seat-map accuracy.
+
+**Problem**: The original venue thumbnails were mostly category fallback templates. They communicated a broad venue type, but they did not make K-Arena, dome venues, exhibition halls, or livehouses feel meaningfully different.
+
+**Design Decision**: Separate repository facts from real-world assumptions before redrawing. The project added an audit document and then refined a small priority set with project-owned schematic SVG generation. Thumbnails are labeled conceptually as generic / schematic / verified, but current refined thumbnails remain `schematic`; none are marked verified.
+
+**Implementation**: `VENUE_THUMBNAIL_AUDIT.md` inventories 38 built-in venues and 38 generated thumbnails, records confidence and source needs, and distinguishes project-internal facts from venue-structure assumptions. Venue Thumbnail Layout V1 added dedicated schematic layouts for 11 Priority 1 venues: K-Arena Yokohama, Pia Arena MM, Yokohama Arena, Ariake Arena, Tokyo Dome, Belluna Dome, Makuhari Messe, Zepp Haneda, Zepp DiverCity, Zepp Shinjuku, and KT Zepp Yokohama. Venue Thumbnail V2 manually refined 8 venues: K-Arena Yokohama, Tokyo Dome, Belluna Dome, Pia Arena MM, Yokohama Arena, Ariake Arena, Makuhari Messe, and Zepp Haneda TOKYO. V2 reduced internal explanatory text and emphasized silhouettes, outer rings, fan-shaped bowls, exhibition-hall geometry, and livehouse structure.
+
+**Result**: Priority venue thumbnails no longer rely only on generic fallback. They are more distinct as project-owned illustrative schematics, while the generator still preserves fallback behavior for unconfigured venues.
+
+**Limitations**: These thumbnails are not official seat maps, do not copy official venue images, do not hotlink external images, and are not verified official layouts. Moving a venue from schematic to verified would require manual reference checks and a clear source policy.

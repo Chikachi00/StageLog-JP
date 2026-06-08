@@ -38,6 +38,14 @@ Verification date: 2026-06-07
 - Command: `npm.cmd run generate:venue-thumbnails` generated 38 thumbnails and used 11 schematic layouts.
 - Scope: thumbnails are project-owned illustrative schematics only. They are not official venue seat maps, do not copy official images, and do not change Event/Ticket/Analytics/Backup/Supabase logic.
 
+## Venue Thumbnail V2 Refined Schematics
+
+- Scope: V2 manually refined only the priority set of 8 venues: K-Arena Yokohama, Tokyo Dome, Belluna Dome, Pia Arena MM, Yokohama Arena, Ariake Arena, Makuhari Messe, and Zepp Haneda TOKYO.
+- Visual goal: stronger silhouettes, clearer stage placement, more distinct fan/dome/arena/exhibition/livehouse structure, and less internal explanatory text.
+- Status: refined thumbnails remain `schematic`; none are marked `verified`.
+- Fallback: unconfigured venues continue using the existing generator fallback.
+- Source policy: no official seat maps, official venue images, downloaded external images, or hotlinked images are copied into the repository.
+
 ## Timeline UI V1 Polish
 
 - Timeline visual layout: Timeline now uses year headers, a date column, timeline nodes, vertical connector lines, and timeline-specific event cards.
