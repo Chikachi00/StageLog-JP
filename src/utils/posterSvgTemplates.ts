@@ -53,7 +53,7 @@ interface TicketDrawOptions {
   height: number;
   index: number;
   total: number;
-  variant: "large" | "medium" | "compact" | "report";
+  variant: "large" | "medium" | "compact" | "mini";
   palette: PosterThemePalette;
   templateOptions: SharePosterTemplateOptions;
 }
@@ -72,6 +72,7 @@ export interface YearlyReportPosterOptions extends SharePosterTemplateOptions {
 
 const fontStack = "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
 const monoStack = "Consolas, SFMono-Regular, ui-monospace, monospace";
+const DEBUG_POSTER_LAYOUT = false;
 
 const palettes: Record<SharePosterTheme, PosterThemePalette> = {
   sakura: {
@@ -267,14 +268,14 @@ const hashString = (value: string) => {
 
 const createPosterBarcode = (seed: string, x: number, y: number, width: number, height: number, color: string) => {
   const hash = hashString(seed);
-  const barCount = 12 + (hash % 7);
+  const barCount = width < 40 ? 8 : 10 + (hash % 5);
   let cursor = x;
   const bars: string[] = [];
 
   for (let index = 0; index < barCount; index += 1) {
     const stepHash = hashString(`${seed}-${index}`);
-    const barWidth = 1.5 + (stepHash % 4) * 0.65;
-    const gap = 2 + ((stepHash >>> 3) % 3) * 0.45;
+    const barWidth = 1.4 + (stepHash % 4) * 0.55;
+    const gap = 2.2 + ((stepHash >>> 3) % 3) * 0.4;
     const barHeight = height - ((stepHash >>> 5) % 5) * 3;
     const yOffset = (height - barHeight) / 2;
 
@@ -282,7 +283,7 @@ const createPosterBarcode = (seed: string, x: number, y: number, width: number, 
       break;
     }
 
-    bars.push(rect(cursor, y + yOffset, barWidth, barHeight, { fill: color, radius: 1, opacity: 0.46 }));
+    bars.push(rect(cursor, y + yOffset, barWidth, barHeight, { fill: color, radius: 1, opacity: 0.42 }));
     cursor += barWidth + gap;
   }
 
@@ -362,76 +363,92 @@ const getTicketTypography = (variant: TicketDrawOptions["variant"]) => {
     return { title: 20, date: 13, meta: 13, venue: 12, titleChars: 21, venueChars: 34, artistChars: 26, badgeCompact: false };
   }
 
-  if (variant === "report") {
-    return { title: 16, date: 11, meta: 11, venue: 10, titleChars: 18, venueChars: 28, artistChars: 24, badgeCompact: true };
+  if (variant === "mini") {
+    return { title: 15, date: 10, meta: 10, venue: 9, titleChars: 15, venueChars: 20, artistChars: 18, badgeCompact: true };
   }
 
   return { title: 16, date: 11, meta: 11, venue: 10, titleChars: 17, venueChars: 28, artistChars: 22, badgeCompact: true };
 };
 
-const renderTicketStub = (event: EventRecord, draw: TicketDrawOptions) => {
+const renderPosterTicketCard = (event: EventRecord, draw: TicketDrawOptions) => {
   const { x, y, width, height, index, total, variant, palette, templateOptions } = draw;
-  const stubWidth = variant === "large" ? 112 : variant === "medium" ? 88 : 82;
-  const padding = variant === "large" ? 22 : 16;
-  const mainWidth = width - stubWidth;
-  const contentWidth = mainWidth - padding * 2;
-  const stubX = x + mainWidth;
+  const stubWidth = variant === "large" ? 96 : variant === "medium" ? 88 : 82;
+  const padding = variant === "large" ? 20 : variant === "medium" ? 16 : 14;
+  const dividerX = x + width - stubWidth;
+  const mainX = x + padding;
+  const mainY = y + padding;
+  const mainWidth = Math.max(120, dividerX - x - padding * 2 - 8);
+  const mainHeight = Math.max(40, height - padding * 2);
+  const mainRight = dividerX - 12;
+  const stubX = dividerX + 12;
+  const stubY = y + padding;
+  const stubRight = x + width - padding;
+  const stubWidthInner = Math.max(30, stubRight - stubX);
+  const stubHeightInner = Math.max(40, height - padding * 2);
   const type = getTicketTypography(variant);
   const compact = type.badgeCompact;
   const titleLines = wrapTextByChars(event.title, type.titleChars, 2);
   const artist = truncateText(event.artist, type.artistChars);
   const venueLabel = truncateText([event.venueName, getEventLocationLabel(event)].filter(Boolean).join(" / "), type.venueChars);
-  const badges = getOptionalEventBadges(event, templateOptions.privacy, templateOptions.text, compact);
+  const canShowBadges = variant === "large" || variant === "medium";
+  const badges = canShowBadges ? getOptionalEventBadges(event, templateOptions.privacy, templateOptions.text, compact) : [];
   const code = getEventCode(event).replace(/^SL-/, "");
-  const clipId = `ticketClip${index}-${hashString(`${event.id}-${event.date}`)}`;
-  const stubClipId = `ticketStubClip${index}-${hashString(`${event.title}-${event.date}`)}`;
-  const titleY = y + (variant === "large" ? 86 : variant === "medium" ? 65 : 55);
-  const lineHeight = variant === "large" ? 30 : variant === "medium" ? 24 : 20;
-  const artistY = titleY + lineHeight * Math.max(1, titleLines.length) + (variant === "large" ? 18 : 11);
-  const venueY = artistY + (variant === "large" ? 24 : 18);
-  const badgeY = Math.min(y + height - (compact ? 34 : 42), venueY + (variant === "large" ? 22 : 18));
-  const barcodeWidth = variant === "large" ? 58 : 52;
-  const barcodeHeight = variant === "large" ? 66 : 52;
-  const barcodeX = stubX + (stubWidth - barcodeWidth) / 2;
-  const barcodeY = y + (height - barcodeHeight) / 2 - (variant === "compact" ? 6 : 12);
+  const hash = hashString(`${event.id}-${event.date}-${index}`);
+  const mainClipId = `poster-main-clip-${index}-${hash}`;
+  const stubClipId = `poster-stub-clip-${index}-${hash}`;
+  const titleY = mainY + (variant === "large" ? 62 : variant === "medium" ? 49 : 34);
+  const lineHeight = variant === "large" ? 29 : variant === "medium" ? 23 : 17;
+  const artistY = titleY + lineHeight * Math.max(1, titleLines.length) + (variant === "large" ? 18 : variant === "medium" ? 11 : 8);
+  const venueY = artistY + (variant === "large" ? 23 : variant === "medium" ? 17 : 14);
+  const badgeY = Math.min(y + height - padding - (compact ? 25 : 29), venueY + (variant === "large" ? 22 : 17));
+  const barcodeWidth = Math.max(26, Math.min(stubWidthInner - 20, variant === "large" ? 50 : 44));
+  const barcodeHeight = Math.max(24, Math.min(44, height * 0.32));
+  const barcodeX = stubX + (stubWidthInner - barcodeWidth) / 2;
+  const barcodeY = y + height * 0.38;
+  const debug = DEBUG_POSTER_LAYOUT
+    ? `${rect(mainX, mainY, mainWidth, mainHeight, { stroke: "#ff3b30", dash: "4 4", strokeWidth: 1 })}${rect(stubX, stubY, stubWidthInner, stubHeightInner, { stroke: "#2563eb", dash: "4 4", strokeWidth: 1 })}`
+    : "";
 
   return `
-    <clipPath id="${clipId}">${rect(x, y, width, height, { fill: "#fff", radius: 24 })}</clipPath>
-    <clipPath id="${stubClipId}">${rect(stubX + 1, y + 16, stubWidth - 2, height - 32, { fill: "#fff", radius: 16 })}</clipPath>
+    <defs>
+      <clipPath id="${mainClipId}">${rect(mainX, mainY, mainWidth, mainHeight, { fill: "#fff", radius: 14 })}</clipPath>
+      <clipPath id="${stubClipId}">${rect(stubX, stubY, stubWidthInner, stubHeightInner, { fill: "#fff", radius: 12 })}</clipPath>
+    </defs>
     <g>
       ${rect(x + 7, y + 9, width, height, { fill: palette.shadow, radius: 24, opacity: 0.9 })}
       ${rect(x, y, width, height, { fill: palette.card, stroke: palette.border, radius: 24, strokeWidth: 2 })}
       ${rect(x, y, 8, height, { fill: palette.accent, radius: 24, opacity: 0.94 })}
-      <line x1="${stubX}" y1="${y + 18}" x2="${stubX}" y2="${y + height - 18}" stroke="${palette.border}" stroke-width="2.4" stroke-dasharray="7 9"/>
-      ${circle(stubX, y, 11, palette.background)}
-      ${circle(stubX, y + height, 11, palette.background)}
-      <g clip-path="url(#${clipId})">
-        ${text(formatPosterDate(event.date), x + padding + 8, y + (variant === "large" ? 43 : 34), {
+      <line x1="${dividerX}" y1="${y + 18}" x2="${dividerX}" y2="${y + height - 18}" stroke="${palette.border}" stroke-width="2.4" stroke-dasharray="7 9"/>
+      ${circle(dividerX, y, 11, palette.background)}
+      ${circle(dividerX, y + height, 11, palette.background)}
+      ${debug}
+      <g clip-path="url(#${mainClipId})">
+        ${text(formatPosterDate(event.date), mainX, mainY + (variant === "large" ? 18 : 15), {
           size: type.date,
           weight: 900,
           fill: palette.accent,
           letterSpacing: 1.1,
         })}
-        ${renderSvgTextLines(titleLines, x + padding + 8, titleY, {
+        ${renderSvgTextLines(titleLines, mainX, titleY, {
           size: type.title,
           weight: 950,
           fill: palette.ink,
           lineHeight,
         })}
-        ${text(artist, x + padding + 8, artistY, { size: type.meta, weight: 850, fill: palette.accent2 })}
-        ${text(venueLabel, x + padding + 8, venueY, { size: type.venue, weight: 780, fill: palette.muted })}
-        ${renderBadgeRow(badges, x + padding + 8, badgeY, contentWidth, palette, compact)}
+        ${text(artist, mainX, artistY, { size: type.meta, weight: 850, fill: palette.accent2 })}
+        ${text(venueLabel, mainX, venueY, { size: type.venue, weight: 780, fill: palette.muted })}
+        ${renderBadgeRow(badges, mainX, badgeY, mainRight - mainX, palette, compact)}
       </g>
       <g clip-path="url(#${stubClipId})">
         ${createPosterBarcode(`${event.id}-${event.title}-${event.date}`, barcodeX, barcodeY, barcodeWidth, barcodeHeight, palette.barcode)}
-        ${text(`${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`, stubX + stubWidth / 2, y + height - 30, {
+        ${text(`${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`, stubX + stubWidthInner / 2, y + height - padding - 20, {
           size: variant === "large" ? 18 : 14,
           weight: 950,
           fill: palette.accent,
           anchor: "middle",
           family: monoStack,
         })}
-        ${text(code.slice(0, 8), stubX + stubWidth / 2, y + height - 12, {
+        ${text(code.slice(0, 8), stubX + stubWidthInner / 2, y + height - padding - 5, {
           size: variant === "large" ? 10 : 8,
           weight: 850,
           fill: palette.muted,
@@ -512,7 +529,7 @@ export const generateSelectedEventsPosterSvg = (
     .map((event, index) => {
       const column = index % grid.columns;
       const row = Math.floor(index / grid.columns);
-      return renderTicketStub(event, {
+      return renderPosterTicketCard(event, {
         x: grid.startX + column * (grid.width + grid.gapX),
         y: grid.startY + row * (grid.height + grid.gapY),
         width: grid.width,
@@ -608,14 +625,14 @@ export const generateYearlyReportPosterSvg = (
     .map((event, index) => {
       const column = index % 2;
       const row = Math.floor(index / 2);
-      return renderTicketStub(event, {
+      return renderPosterTicketCard(event, {
         x: 106 + column * 448,
         y: 610 + row * 135,
         width: 420,
         height: 118,
         index,
         total: visibleEvents.length,
-        variant: "report",
+        variant: "mini",
         palette,
         templateOptions: compactOptions,
       });

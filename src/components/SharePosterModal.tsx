@@ -384,27 +384,31 @@ export function SharePosterModal({ events, isOpen, theme, ticketApplications, on
               ))}
             </fieldset>
 
-            {feedback ? <p className="share-poster-feedback">{feedback}</p> : null}
-            {exportError ? <p className="share-poster-error">{exportError}</p> : null}
-
-            <div className="share-poster-modal__actions">
-              <button className="primary-button" type="button" disabled={!hasPosterContent} onClick={downloadSvg}>
-                <Download size={16} aria-hidden="true" />
-                {t("sharePoster.downloadSvg")}
-              </button>
-              <button className="ghost-button" type="button" disabled={!hasPosterContent || isExportingPng} onClick={downloadPng}>
-                <FileImage size={16} aria-hidden="true" />
-                {isExportingPng ? t("sharePoster.exportingPng") : t("sharePoster.downloadPng")}
-              </button>
-              <button className="ghost-button" type="button" onClick={copyGitHubLink}>
-                <Copy size={16} aria-hidden="true" />
-                {t("sharePoster.copyGithub")}
-              </button>
-            </div>
           </section>
 
           <SharePosterPreview emptyMessage={emptyMessage} isEmpty={!hasPosterContent} svgString={svgString} />
         </div>
+
+        <footer className="share-poster-modal__footer">
+          <div className="share-poster-modal__messages" aria-live="polite">
+            {feedback ? <p className="share-poster-feedback">{feedback}</p> : null}
+            {exportError ? <p className="share-poster-error">{exportError}</p> : null}
+          </div>
+          <div className="share-poster-modal__actions">
+            <button className="primary-button" type="button" disabled={!hasPosterContent} onClick={downloadSvg}>
+              <Download size={16} aria-hidden="true" />
+              {t("sharePoster.downloadSvg")}
+            </button>
+            <button className="ghost-button" type="button" disabled={!hasPosterContent || isExportingPng} onClick={downloadPng}>
+              <FileImage size={16} aria-hidden="true" />
+              {isExportingPng ? t("sharePoster.exportingPng") : t("sharePoster.downloadPng")}
+            </button>
+            <button className="ghost-button" type="button" onClick={copyGitHubLink}>
+              <Copy size={16} aria-hidden="true" />
+              {t("sharePoster.copyGithub")}
+            </button>
+          </div>
+        </footer>
       </section>
     </div>
   );

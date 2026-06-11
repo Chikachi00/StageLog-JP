@@ -4503,7 +4503,10 @@ textarea:focus {
   z-index: 100;
   display: grid;
   place-items: center;
+  width: 100vw;
+  min-width: 0;
   padding: clamp(0.75rem, 2vw, 1.5rem);
+  overflow: hidden;
 }
 
 .share-poster-modal__backdrop {
@@ -4518,9 +4521,13 @@ textarea:focus {
 
 .share-poster-modal__panel {
   position: relative;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   width: min(1180px, 100%);
-  max-height: min(92dvh, 980px);
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  min-height: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
   border-radius: 1rem;
@@ -4533,6 +4540,7 @@ textarea:focus {
 }
 
 .share-poster-modal__header {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -4569,14 +4577,18 @@ textarea:focus {
 .share-poster-modal__body {
   display: grid;
   grid-template-columns: minmax(320px, 0.78fr) minmax(360px, 1fr);
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .share-poster-modal__controls,
 .share-poster-modal__preview {
   min-width: 0;
+  min-height: 0;
   padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .share-poster-modal__controls {
@@ -4672,7 +4684,7 @@ textarea:focus {
 
 .poster-event-selector__list {
   display: grid;
-  max-height: 18rem;
+  max-height: min(18rem, 36dvh);
   gap: 0.45rem;
   overflow: auto;
   padding-right: 0.2rem;
@@ -4753,6 +4765,20 @@ textarea:focus {
   background: rgba(180, 35, 24, 0.08);
   color: #b42318;
   font-weight: 850;
+}
+
+.share-poster-modal__footer {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  background: color-mix(in srgb, var(--surface-paper) 94%, transparent);
+}
+
+.share-poster-modal__messages {
+  display: grid;
+  gap: 0.45rem;
 }
 
 .share-poster-modal__actions {
@@ -4839,11 +4865,17 @@ textarea:focus {
 
   .share-poster-modal__body {
     grid-template-columns: 1fr;
+    overflow: auto;
   }
 
   .share-poster-modal__controls {
     border-right: 0;
     border-bottom: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+    overflow: visible;
+  }
+
+  .share-poster-modal__preview {
+    overflow: visible;
   }
 }
 
@@ -4900,11 +4932,14 @@ textarea:focus {
 
   .share-poster-modal {
     align-items: stretch;
-    padding: 0.5rem;
+    padding: 0.75rem;
   }
 
   .share-poster-modal__panel {
-    max-height: 96dvh;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
   }
 
   .share-poster-modal__header,

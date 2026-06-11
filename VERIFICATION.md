@@ -71,6 +71,17 @@ Verification date: 2026-06-07
 - Regression scope: no new page, navigation tab, Supabase SQL, schema change, Backup format change, Ticket V2 model change, Analytics logic change, or Footprint Map logic change.
 - Manual checks required: preview 8-event and 12-event selected posters, a yearly report poster, long JP/CN/EN titles, all poster themes, SVG download, and PNG download.
 
+## Share Poster Critical Layout Fix
+
+- Modal accessibility: Share Poster modal uses fixed header/body/footer structure so SVG / PNG download actions remain reachable in short desktop windows and mobile widths.
+- Modal scrolling: controls and preview can scroll without clipping the modal footer; mobile layout stacks content without horizontal overflow.
+- Ticket boundaries: every SVG ticket uses separate main and stub clip paths, with the perforation line treated as a hard boundary.
+- Main content: date, title, artist, venue, and badges are clipped to the main information area and cannot cross into the barcode stub.
+- Stub content: barcode, record code, and index label are clipped to the stub area and cannot cross into the main information area.
+- Layout cases: selected poster should be checked for 2, 6, 8, and 12 events; yearly report should keep stats, insights, tickets, and footer separated.
+- Regression scope: no new page, navigation tab, ownerName, selection board template, Supabase SQL, schema change, Backup format change, Ticket V2 change, Analytics change, or Footprint Map change.
+- Manual checks required: desktop 1366x768 modal reachability, mobile-width modal reachability, long JP/CN/EN titles, SVG download, and PNG download.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.

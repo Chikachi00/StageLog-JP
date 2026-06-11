@@ -860,6 +860,16 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 **Result**：导出的 SVG / PNG 更像专门设计的票根分享图，而不是把网页卡片硬塞进海报。长标题会自动整理为多行并 clamp，footer、barcode、票根编号和统计区都保留在固定区域内。此更新没有新增页面、导航、数据库字段或任何业务数据写入。
 
+#### 20.14 Share Poster Critical Layout Fix / 分享海报关键布局修复
+
+**Goal**：修复 Share Poster Studio 的两个可用性问题：modal 在低高度桌面和移动端无法稳定触达下载按钮，以及 SVG 票根内部文字 / barcode 仍可能跨过虚线分界线。
+
+**Design Decision**：不新增模板、页面、导航或数据字段。Modal 改为 header / body / footer 三段式布局，footer 中的下载按钮固定在弹窗内部底部；body 的 controls 和 preview 各自滚动。SVG 票根不再把虚线当作单纯装饰，而是用 `dividerX` 计算主信息区和副券区的硬边界。
+
+**Implementation**：统一 `renderPosterTicketCard` 的内部坐标计算，为每张 ticket 创建 `mainClip` 和 `stubClip`。主信息文字、badge 只进入 main clip；barcode、record code、序号只进入 stub clip。Compact / mini 票根只保留核心信息，避免为了显示更多字段而挤压标题。Selected poster 和 yearly report 继续复用同一个 ticket renderer，减少两套坐标分别出错的风险。
+
+**Result**：Share Poster modal 在桌面和移动端都可以滚动操作并触达 SVG / PNG 下载按钮。导出的 SVG / PNG 中，虚线分界线成为实际布局边界，文字不会进入副券区，barcode 不会进入主信息区，footer 和票根 board 不再互相覆盖。此修复仍不改变 schema、Backup、Ticket V2、Analytics 或 Footprint Map。
+
 ---
 
 ## English Version
@@ -2063,3 +2073,13 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Implementation**: Added SVG text helpers for escaping, character-based wrapping, truncation, and line clamp. The Selected Events Poster now switches between large, medium, and compact ticket layouts for 1-4, 5-8, and 9-12 selected events. Each ticket has a left information area and a right stub area. The Yearly Report Poster now reads as a yearly report with large stats, an insight strip, and a representative compact ticket board. Barcode rendering now uses deterministic SVG rect bars based on event id/title/date and is confined to the stub area with lower opacity.
 
 **Result**: Exported SVG and PNG posters now look more like designed share posters instead of compressed web cards. Long titles are arranged into SVG `text`/`tspan` lines and clamped; footer, barcode, ticket numbers, and stat sections stay inside their intended regions. This pass adds no page, navigation tab, database field, or business-data write path.
+
+#### 20.14 Share Poster Critical Layout Fix
+
+**Goal**: Fix two usability problems in Share Poster Studio: the modal could hide the download actions in short desktop or mobile viewports, and SVG ticket content could still cross the perforation line between the main text area and the stub area.
+
+**Design Decision**: Do not add templates, pages, navigation, or data fields. The modal now uses a header / body / footer structure, with export actions kept in the modal footer. The body keeps controls and preview independently scrollable. In the SVG templates, the perforation line is treated as a real `dividerX` layout boundary, not just decoration.
+
+**Implementation**: Unified ticket drawing around `renderPosterTicketCard`. Each ticket now creates separate `mainClip` and `stubClip` regions. Main text and badges render only inside the main clip; barcode, record code, and index label render only inside the stub clip. Compact and mini tickets keep only core fields so small layouts do not overlap. Selected poster and yearly report templates both reuse the same ticket renderer.
+
+**Result**: The modal remains operable on desktop and mobile, and SVG / PNG exports keep ticket content inside hard layout boundaries. Text no longer enters the stub area, barcode no longer enters the main information area, and footer/ticket sections avoid overlap. This fix still does not change schema, Backup, Ticket V2, Analytics, or Footprint Map.
