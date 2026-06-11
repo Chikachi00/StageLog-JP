@@ -4621,6 +4621,18 @@ textarea:focus {
   font-weight: 850;
 }
 
+.share-poster-layout-hint {
+  margin: -0.2rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--accent) 7%, var(--paper));
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .poster-event-selector,
 .poster-year-section,
 .share-poster-privacy {

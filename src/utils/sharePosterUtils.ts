@@ -115,7 +115,7 @@ export const getSeatSummary = (event: EventRecord) => {
     event.seat?.number ? `No. ${event.seat.number}` : "",
   ].filter(Boolean);
 
-  return parts.join(" · ");
+  return parts.join(" / ");
 };
 
 export const getEventCode = (event: EventRecord) =>
@@ -131,7 +131,7 @@ export const truncatePosterText = (value: string, maxLength: number) => {
     return normalized;
   }
 
-  return `${normalized.slice(0, Math.max(0, maxLength - 1))}…`;
+  return `${normalized.slice(0, Math.max(0, maxLength - 3))}...`;
 };
 
 export const formatPosterDate = (date: string) => {

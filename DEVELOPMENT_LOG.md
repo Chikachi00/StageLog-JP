@@ -850,6 +850,16 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 **Result**：Share Poster Studio 把已有参战记录、票务轮次和视觉皮肤连接成可导出的分享图工具，同时保持数据只读和 derived output。它没有改变记录保存逻辑、Cloud / Local mode、Analytics、Footprint Map 或 Backup。
 
+#### 20.13 Share Poster Layout Polish V1 / 分享海报排版优化 V1
+
+**Goal**：不新增功能，只把 Share Poster Studio 生成的 SVG 海报从“可用预览”提升到更适合直接分享的排版质量。重点是长日文 / 中文 / 英文标题不溢出、票根层级更清楚、barcode 不再干扰阅读。
+
+**Design Decision**：继续使用纯 SVG string，不使用 AI 生图、外部图片、web font、`foreignObject`、D3 或截图导出库。所有海报仍是 1080 x 1350 固定画布；优化集中在 `posterSvgTemplates` 的文本排版、票根布局、年度报告布局和 barcode 生成逻辑，不改变 events、tickets、Backup、Analytics、Footprint Map 或 schema。
+
+**Implementation**：新增 SVG 文本 helper，包括 escape、字符估算换行、截断和 line clamp。Selected Events Poster 会根据 1-4、5-8、9-12 场切换大票根、中票根和 compact 票根布局；每张票根都有左侧主信息区和右侧副券区。Yearly Report Poster 改为年度报告结构，上方显示大数字统计和 insight strip，下方只放代表性 compact ticket board。Barcode 改为基于 event id/title/date 的 deterministic rect bars，限制在副券区内，降低不透明度和尺寸。
+
+**Result**：导出的 SVG / PNG 更像专门设计的票根分享图，而不是把网页卡片硬塞进海报。长标题会自动整理为多行并 clamp，footer、barcode、票根编号和统计区都保留在固定区域内。此更新没有新增页面、导航、数据库字段或任何业务数据写入。
+
 ---
 
 ## English Version
@@ -2043,3 +2053,13 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Implementation**: Added `SharePosterModal` and `SharePosterPreview`, with SVG generation and export split into `sharePosterUtils`, `posterSvgTemplates`, and `svgExportUtils`. The modal supports Selected Events Poster and Yearly Report Poster modes. Selected mode allows up to 12 events for readable layout; yearly mode derives years and summary stats from event dates and ticket applications. Privacy toggles control seat, price/spending, notes, weather, ticket type, and StageLog JP / GitHub attribution. Posters use a fixed 1080 x 1350 canvas and can include `github.com/Chikachi00/StageLog-JP` at the bottom.
 
 **Result**: Share Poster Studio connects the existing live record archive, ticket data, and visual identity into an exportable sharing artifact while keeping the data model read-only. It does not change record saving, Cloud / Local mode, Analytics, Footprint Map, or Backup.
+
+#### 20.13 Share Poster Layout Polish V1
+
+**Goal**: Improve the SVG poster output quality without adding features. The focus was making long Japanese, Chinese, and English titles wrap or clamp safely, giving ticket stubs clearer hierarchy, and making barcode decoration feel controlled instead of intrusive.
+
+**Design Decision**: Keep the generator as pure SVG strings. Do not use AI image generation, external images, web fonts, `foreignObject`, D3, or DOM screenshot libraries. Posters remain fixed at 1080 x 1350. The work stays inside `posterSvgTemplates` layout logic, small modal copy, and verification notes; it does not change events, tickets, Backup, Analytics, Footprint Map, or schema.
+
+**Implementation**: Added SVG text helpers for escaping, character-based wrapping, truncation, and line clamp. The Selected Events Poster now switches between large, medium, and compact ticket layouts for 1-4, 5-8, and 9-12 selected events. Each ticket has a left information area and a right stub area. The Yearly Report Poster now reads as a yearly report with large stats, an insight strip, and a representative compact ticket board. Barcode rendering now uses deterministic SVG rect bars based on event id/title/date and is confined to the stub area with lower opacity.
+
+**Result**: Exported SVG and PNG posters now look more like designed share posters instead of compressed web cards. Long titles are arranged into SVG `text`/`tspan` lines and clamped; footer, barcode, ticket numbers, and stat sections stay inside their intended regions. This pass adds no page, navigation tab, database field, or business-data write path.

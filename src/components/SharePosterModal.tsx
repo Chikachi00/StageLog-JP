@@ -290,6 +290,7 @@ export function SharePosterModal({ events, isOpen, theme, ticketApplications, on
                 ))}
               </select>
             </label>
+            <p className="share-poster-layout-hint">{t("sharePoster.layoutHint")}</p>
 
             {mode === "selected" ? (
               <section className="poster-event-selector">
@@ -328,9 +329,9 @@ export function SharePosterModal({ events, isOpen, theme, ticketApplications, on
                           <span>
                             <strong>{event.title}</strong>
                             <small>
-                              {event.date} · {event.artist} · {event.venueName}
+                              {event.date} / {event.artist} / {event.venueName}
                               {[event.city, event.country].filter(Boolean).length > 0
-                                ? ` · ${[event.city, event.country].filter(Boolean).join(", ")}`
+                                ? ` / ${[event.city, event.country].filter(Boolean).join(", ")}`
                                 : ""}
                             </small>
                           </span>

@@ -61,6 +61,16 @@ Verification date: 2026-06-07
 - Regression scope: no Supabase SQL, schema/RLS changes, Backup format changes, Ticket V2 model changes, Analytics logic changes, Footprint Map logic changes, AI image generation, official assets, D3, or large export libraries.
 - Manual checks required: test modal open/close, selected/yearly modes, SVG/PNG download, GitHub link copy, privacy toggles, Sakura/Ocean/Night/Classic readability, and mobile modal overflow.
 
+## Share Poster Layout Polish V1
+
+- SVG text layout: long Japanese, Chinese, and English titles are wrapped or clamped with SVG `text` / `tspan` helpers instead of relying on single-line text.
+- Selected Events Poster: layout has distinct 1-4, 5-8, and 9-12 event modes, with ticket sizes adjusted for readability.
+- Yearly Report Poster: report layout uses large yearly stats, an insight strip, and a compact representative ticket board instead of a plain card stack.
+- Barcode: decorative barcode is deterministic, built from SVG `rect` bars, and confined to the right ticket stub area.
+- Export quality: SVG still downloads as native SVG and PNG export still uses canvas from the SVG string; no external images, web fonts, AI generation, or `foreignObject` are used.
+- Regression scope: no new page, navigation tab, Supabase SQL, schema change, Backup format change, Ticket V2 model change, Analytics logic change, or Footprint Map logic change.
+- Manual checks required: preview 8-event and 12-event selected posters, a yearly report poster, long JP/CN/EN titles, all poster themes, SVG download, and PNG download.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.
