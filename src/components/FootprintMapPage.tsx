@@ -10,6 +10,9 @@ import {
   getFootprintCountryOptions,
   getFootprintYearOptions,
   getMissingCoordinateEvents,
+  getUnlockedCities,
+  getUnlockedVenues,
+  type FootprintUnlockItem,
 } from "../utils/footprintMapUtils";
 import { FootprintMap } from "./FootprintMap";
 
@@ -20,6 +23,23 @@ interface FootprintMapPageProps {
 }
 
 const ALL = "all";
+const UNLOCK_VISIBLE_LIMIT = 10;
+
+const renderUnlockChips = (items: FootprintUnlockItem[]) => {
+  const visibleItems = items.slice(0, UNLOCK_VISIBLE_LIMIT);
+  const hiddenCount = Math.max(items.length - visibleItems.length, 0);
+
+  return (
+    <div className="footprint-unlock-chip-list">
+      {visibleItems.map((item) => (
+        <span className="footprint-unlock-chip" key={item.key} title={`${item.label} (${item.count})`}>
+          {item.label}
+        </span>
+      ))}
+      {hiddenCount > 0 ? <span className="footprint-unlock-more">+{hiddenCount}</span> : null}
+    </div>
+  );
+};
 
 export function FootprintMapPage({ events, venues, customVenues }: FootprintMapPageProps) {
   const { t } = useTranslation();
@@ -56,6 +76,8 @@ export function FootprintMapPage({ events, venues, customVenues }: FootprintMapP
     () => new Set(points.map((point) => point.venueName).filter(Boolean)).size,
     [points],
   );
+  const unlockedCities = useMemo(() => getUnlockedCities(points), [points]);
+  const unlockedVenues = useMemo(() => getUnlockedVenues(points), [points]);
 
   return (
     <section className="footprint-page">
@@ -100,6 +122,20 @@ export function FootprintMapPage({ events, venues, customVenues }: FootprintMapP
           missing: missingEvents.length,
         })}
       </p>
+
+      <section className="footprint-unlock-strip" aria-label={t("footprint.inCurrentFilters")}>
+        <div className="footprint-unlock-strip__header">
+          <span>{t("footprint.inCurrentFilters")}</span>
+        </div>
+        <div className="footprint-unlock-section">
+          <h3>{t("footprint.unlockedCities")}</h3>
+          {unlockedCities.length > 0 ? renderUnlockChips(unlockedCities) : <p>{t("common.noData")}</p>}
+        </div>
+        <div className="footprint-unlock-section">
+          <h3>{t("footprint.unlockedVenues")}</h3>
+          {unlockedVenues.length > 0 ? renderUnlockChips(unlockedVenues) : <p>{t("common.noData")}</p>}
+        </div>
+      </section>
 
       <section className="footprint-map-card">
         {points.length > 0 ? (

@@ -5,6 +5,7 @@ import type { TicketApplication } from "../types/ticket";
 import { formatDate, getCurrentYear } from "../utils/dateUtils";
 import { countByValue, getAverageTemperature, getTicketApplicationStats } from "../utils/statisticsUtils";
 import { formatCurrencyAmount } from "../utils/ticketUtils";
+import { LiveCalendarHeatmap } from "./LiveCalendarHeatmap";
 
 interface StatisticsProps {
   events: EventRecord[];
@@ -132,6 +133,8 @@ export function Statistics({ events, ticketApplications }: StatisticsProps) {
           <strong>{topEntry(venueCounts, t("common.noData"))}</strong>
         </article>
       </div>
+
+      <LiveCalendarHeatmap events={events} />
 
       <section className="distribution-grid">
         <DistributionList title={t("stats.eventsByYear")} items={yearCounts} noDataLabel={t("common.noData")} />

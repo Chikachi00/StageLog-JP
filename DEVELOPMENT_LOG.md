@@ -257,6 +257,8 @@ custom venue 相关 handler 包括 `handleCreateCustomVenue`、`handleUpdateCust
 - `VenueCombobox`：统一场馆选择入口，合并 built-in venues、正式 `customVenues` 和 recent inferred venues，并支持 inline 创建 customVenue。
 - `CustomVenuesManager`：自定义场馆库管理 UI，支持新增、编辑、删除、搜索和 event/ticket usage count。
 - `FootprintMapPage` / `FootprintMap`：足迹图页面和地图组件，负责统计摘要、年份/国家筛选、Leaflet 地图容器、marker / popup 和缺少坐标记录提示。
+- `TicketWall` / `TicketWallCard`：把筛选后的参战记录渲染为 compact ticket stubs，用于更偏“票根收藏墙”的个人记忆视图。
+- `LiveCalendarHeatmap`：在 Statistics 页面把 event dates 渲染成年份日历热力图。
 - `BackupPanel`：JSON backup export/import 的 UI。
 - `Analytics` 和 `ChartFrame`：数据分析和 Recharts 稳定渲染。图表使用 ChartFrame + ResizeObserver 测量尺寸，不再依赖 ResponsiveContainer。
 - `Timeline`：按年份展示参战记录时间线，后续加入了日期列、节点、竖线、时间 badge、天气 badge 和 upcoming/completed 状态 badge。
@@ -294,6 +296,7 @@ custom venue 相关 handler 包括 `handleCreateCustomVenue`、`handleUpdateCust
 - `analyticsUtils`：把 events 和 tickets 转成 Analytics V1/V2 所需的图表数据。
 - `venueSearchUtils`：场馆搜索、搜索文本归一化、历史自定义场馆提取、custom venue id 生成，以及 custom venue 天气坐标解析。
 - `footprintMapUtils`：把 `EventRecord` 派生为地图点，按 event snapshot、built-in venues、customVenues 解析坐标，并负责年份/国家筛选和缺少坐标记录计算。
+- `liveCalendarUtils`：从 event date 派生年份、日期计数、月份分块和 heatmap level，不修改原始 event 数据。
 - `dateUtils`：日期、时间、doors/start 展示格式和排序。
 - `seatMapUtils`：内置座位图查找和座位图兼容判断。
 - `statisticsUtils`、`weatherUtils`：统计和天气展示辅助函数。
@@ -803,6 +806,20 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 **Limitations**：这些缩略图不是 official seat map，没有复制官方场馆图片，没有 hotlink 外部图片，也不是 verified official layout。如果未来要把某个场馆从 schematic 提升到 verified，需要人工 reference check 和明确 source policy。
 
+#### 20.9 Personal Visuals V1 / 个人记忆可视化 V1
+
+**Goal**：让 StageLog JP 在保持数据管理能力的同时，更像个人 live / 推し活数字档案馆。这个阶段不做成就徽章系统，也不做 Oshi Profile，而是把已有参战数据转换成更有记忆感的视觉表达。
+
+**Problem**：Event cards、Timeline、Footprint Map 和 Analytics 已经能管理和分析数据，但“看过很多场之后的收藏感”还不够强。用户希望看到票根墙、已点亮城市/会场，以及类似贡献图的参战日期分布。
+
+**Design Decision**：Personal Visuals V1 全部作为 derived visualization 实现，不新增 Supabase SQL，不修改 events / tickets / custom venues schema，不改变 Backup 格式，也不引入 D3 或新的大型图表库。Ticket Wall 复用 EventList 当前筛选结果；Footprint Unlock Strip 复用 Footprint Map 当前筛选后的 valid coordinate points；Live Calendar Heatmap 只从 event date 派生日历格子。
+
+**Implementation**：新增 `TicketWall` 和 `TicketWallCard`，在参战记录页提供“详细卡片 / 票根墙”切换。票根墙以 compact ticket stub 展示日期、标题、艺人、场馆、城市/国家、开场/开演、天气温度和 upcoming/completed 状态，并复用现有 edit flow。`footprintMapUtils` 增加 `getUnlockedCities` 和 `getUnlockedVenues`，`FootprintMapPage` 在地图上方显示当前筛选范围内的已点亮城市和已解锁会场。新增 `LiveCalendarHeatmap` 和 `liveCalendarUtils`，在 Statistics 页面按年份渲染 12 个月分块的参战日历，同一天多场记录会提升颜色等级。
+
+**Result**：三个视觉模块把已有 events、venue snapshots、customVenues 坐标和日期数据转成更个人化的记忆视图，但没有改变任何持久化数据模型。它们不使用官方图片、logo 或版权素材，也不影响 Ticket Management V2、Backup、Analytics 图表底层或 Footprint Map 的 Leaflet 基础逻辑。
+
+**Limitations**：V1 不包含成就系统、Oshi Profile、路线动画、地图热力图、marker clustering 或自动 geocoding。Ticket Wall 和 Live Calendar 都是轻量前端视图；点击日期、按艺人筛选日历、多选地图解锁项等交互可以作为后续小迭代。
+
 ---
 
 ## English Version
@@ -1052,6 +1069,8 @@ This centralized style approach made fast iteration and consistent visual polish
 - `VenueCombobox`: the unified venue selector. It merges built-in venues, saved `customVenues`, and recent inferred venues, and supports inline custom venue creation.
 - `CustomVenuesManager`: user-owned custom venue library UI for create, edit, delete, search, and event/ticket usage counts.
 - `FootprintMapPage` / `FootprintMap`: Footprint Map page and Leaflet map component, including summary stats, year/country filters, markers, popups, and missing-coordinate records.
+- `TicketWall` / `TicketWallCard`: compact ticket-stub visualization for filtered event records.
+- `LiveCalendarHeatmap`: yearly event-date heatmap shown in Statistics.
 - `BackupPanel`: JSON backup export/import UI.
 - `Analytics` and `ChartFrame`: analytics dashboards and stable Recharts rendering. Charts use ChartFrame + ResizeObserver instead of ResponsiveContainer.
 - `Timeline`: chronological event display. Later iterations added a date column, nodes, connector lines, time badges, weather badges, and upcoming/completed status badges.
@@ -1089,6 +1108,7 @@ This centralized style approach made fast iteration and consistent visual polish
 - `analyticsUtils`: transforms events and tickets into chart-ready data for Analytics V1/V2.
 - `venueSearchUtils`: venue search, search text normalization, historical custom venue extraction, custom venue id generation, and custom venue weather coordinate resolution.
 - `footprintMapUtils`: derives map points from `EventRecord`, resolves coordinates from event snapshots, built-in venues, and custom venues, and handles year/country filtering plus missing-coordinate records.
+- `liveCalendarUtils`: derives years, day counts, month blocks, and heatmap levels from event dates without changing event data.
 - `dateUtils`: date/time formatting, doors/start display helpers, and date sorting.
 - `seatMapUtils`: built-in seat map lookup and seat map compatibility helpers.
 - `statisticsUtils`, `weatherUtils`: statistics and weather display helpers.
@@ -1949,3 +1969,17 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Result**: Priority venue thumbnails no longer rely only on generic fallback. They are more distinct as project-owned illustrative schematics, while the generator still preserves fallback behavior for unconfigured venues.
 
 **Limitations**: These thumbnails are not official seat maps, do not copy official venue images, do not hotlink external images, and are not verified official layouts. Moving a venue from schematic to verified would require manual reference checks and a clear source policy.
+
+#### 20.9 Personal Visuals V1
+
+**Goal**: Make StageLog JP feel more like a personal live-event memory archive while keeping the existing data-management foundation. This iteration intentionally avoids achievement badges and Oshi Profile features.
+
+**Problem**: Event cards, Timeline, Footprint Map, and Analytics already manage and analyze records, but they do not fully express the collected-memory feeling of many attended events. The user wanted a ticket-stub wall, unlocked places on the map, and a calendar-style view of live dates.
+
+**Design Decision**: Personal Visuals V1 is implemented entirely as derived frontend visualization. It adds no Supabase SQL, does not modify event/ticket/custom venue schemas, does not change Backup format, and does not introduce D3 or another large charting library. Ticket Wall reuses the current filtered event list, Footprint Unlock Strip reuses filtered valid map points, and Live Calendar Heatmap derives day counts from event dates.
+
+**Implementation**: Added `TicketWall` and `TicketWallCard`, with a Detailed Cards / Ticket Wall toggle on the events page. Ticket stubs show date, title, artist, venue, city/country, doors/start time, optional weather temperature, and upcoming/completed status while reusing the existing edit flow. `footprintMapUtils` now exposes `getUnlockedCities` and `getUnlockedVenues`, and `FootprintMapPage` renders unlocked city/venue chips for the current filters. Added `LiveCalendarHeatmap` and `liveCalendarUtils` so Statistics can show a yearly, month-blocked event-date heatmap with stronger levels for multiple events on the same day.
+
+**Result**: The three modules turn existing events, venue snapshots, custom venue coordinates, and dates into more personal visual memory surfaces without changing the persisted data model. They use no official images, logos, or copyrighted assets, and they do not affect Ticket Management V2, Backup, Analytics chart infrastructure, or Footprint Map's Leaflet base logic.
+
+**Limitations**: V1 does not include an achievement system, Oshi Profile, route animation, map heatmaps, marker clustering, or automatic geocoding. Ticket Wall and Live Calendar are lightweight frontend views; date clicking, artist-filtered calendars, or richer unlock interactions can remain future small iterations.

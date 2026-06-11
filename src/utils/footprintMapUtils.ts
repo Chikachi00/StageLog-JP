@@ -32,6 +32,12 @@ export interface MissingCoordinateEvent {
   reason: "missing" | "invalid";
 }
 
+export interface FootprintUnlockItem {
+  key: string;
+  label: string;
+  count: number;
+}
+
 interface FootprintFilter {
   year?: string;
   country?: string;
@@ -131,6 +137,58 @@ export const getFootprintCountryOptions = (
 
 export const filterFootprintPoints = (points: FootprintPoint[], filters: FootprintFilter = {}) =>
   points.filter((point) => matchesFootprintFilter(point, filters));
+
+const sortUnlockItems = (items: FootprintUnlockItem[]) =>
+  items.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+export const getUnlockedCities = (points: FootprintPoint[]): FootprintUnlockItem[] => {
+  const cityMap = new Map<string, FootprintUnlockItem>();
+
+  points.forEach((point) => {
+    const city = point.city?.trim();
+
+    if (!city) {
+      return;
+    }
+
+    const country = point.country?.trim();
+    const key = [city.toLowerCase(), country?.toLowerCase()].filter(Boolean).join("|");
+    const label = [city, country].filter(Boolean).join(" / ");
+    const existing = cityMap.get(key);
+
+    cityMap.set(key, {
+      key,
+      label,
+      count: (existing?.count || 0) + 1,
+    });
+  });
+
+  return sortUnlockItems(Array.from(cityMap.values()));
+};
+
+export const getUnlockedVenues = (points: FootprintPoint[]): FootprintUnlockItem[] => {
+  const venueMap = new Map<string, FootprintUnlockItem>();
+
+  points.forEach((point) => {
+    const venueName = point.venueName?.trim();
+
+    if (!venueName) {
+      return;
+    }
+
+    const city = point.city?.trim();
+    const key = [venueName.toLowerCase(), city?.toLowerCase()].filter(Boolean).join("|");
+    const existing = venueMap.get(key);
+
+    venueMap.set(key, {
+      key,
+      label: venueName,
+      count: (existing?.count || 0) + 1,
+    });
+  });
+
+  return sortUnlockItems(Array.from(venueMap.values()));
+};
 
 export const getMissingCoordinateEvents = (
   events: EventRecord[],

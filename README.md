@@ -43,6 +43,7 @@ StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务�
 #### 参战记录
 
 - 创建、编辑、删除和筛选参战记录。
+- 支持“详细卡片”和“票根墙”两种展示方式；票根墙会复用当前筛选结果，以 compact ticket stub 形式展示参战记忆。
 - 记录艺人、活动标题、日期、场馆、座位、票种、备注和图片。
 - 同时支持开场时间和开演时间。
 - Cloud mode 下活动图片上传到 Supabase Storage；本地模式下使用浏览器本地预览。
@@ -64,6 +65,7 @@ StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务�
 
 - Timeline 按年份展示参战记录，并显示活动时间、天气、场馆和状态信息。
 - Footprint Map / 足迹图会把有合法经纬度的参战记录显示为地图 marker。
+- 足迹图会在当前年份 / 国家筛选范围内显示“已点亮城市”和“已解锁会场”视觉条。
 - 地图点来自 event 场馆快照、内置场馆和自定义场馆坐标。
 - 地图视图适合中国 + 日本范围，支持年份筛选和国家筛选。
 - 缺少坐标或坐标无效的记录会单独列出，不会导致地图报错。
@@ -85,6 +87,7 @@ StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务�
 #### 数据分析
 
 - 参战趋势：年度、月度和累计参战数。
+- Statistics 页面包含参战日历热力图，以年度日历形式显示 event date 分布；同一天多场记录会用更深颜色表示。
 - 艺人 / 场馆 / 地区分布。
 - 天气分析：天气类型、气温、降水、风速和极端天气记录。
 - 票务分析：状态、平台分布、当选率、支出和平均票价。
@@ -294,6 +297,7 @@ The project is designed around the real workflow of Japanese concerts and stage 
 #### Event Tracking
 
 - Create, edit, delete, and filter live event records.
+- Switch between detailed event cards and a compact Ticket Wall that reuses the current event filters.
 - Track artist, title, date, venue, seat, ticket type, notes, and images.
 - Store both doors open time and show start time.
 - Upload event images to Supabase Storage in cloud mode; use local image previews in guest mode.
@@ -315,6 +319,7 @@ The project is designed around the real workflow of Japanese concerts and stage 
 
 - Timeline view displays event records by year with event time, weather, venue, and status metadata.
 - Footprint Map displays event records with valid coordinates as map markers.
+- Footprint Map includes an unlock strip for cities and venues in the current year/country filters.
 - Map points are derived from event venue snapshots, built-in venues, and custom venues.
 - The map is friendly to China + Japan travel patterns and supports year and country filters.
 - Records without valid coordinates are listed separately instead of breaking the map.
@@ -336,6 +341,7 @@ The project is designed around the real workflow of Japanese concerts and stage 
 #### Analytics Dashboard
 
 - Attendance trends by year, month, and cumulative count.
+- Live Calendar Heatmap visualizes event dates by year, with darker cells for multiple records on the same day.
 - Artist, venue, and region distribution charts.
 - Weather analytics for weather type, temperature, precipitation, wind, and weather extremes.
 - Ticket analytics for status, platform distribution, win rate, spending, and average ticket price.

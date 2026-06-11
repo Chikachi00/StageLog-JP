@@ -17,6 +17,16 @@ Verification date: 2026-06-07
 - `vite build`: passed.
 - Build warning: one JavaScript chunk is larger than 500 kB after minification. This is not a build failure.
 
+## Personal Visuals V1
+
+- Ticket Wall: EventList now provides a Detailed Cards / Ticket Wall toggle; Ticket Wall uses the already-filtered event array and does not mutate event data.
+- Ticket Wall cards: compact ticket stubs show date, title, artist, venue/location, doors/start time, optional temperature, upcoming/completed status, and reuse the existing event edit handler.
+- Footprint Unlock Strip: Footprint Map shows unlocked city and venue chips from the current filtered valid coordinate points.
+- Unlock calculation: missing/invalid coordinate records are not counted as unlocked cities or venues.
+- Live Calendar Heatmap: Statistics renders a yearly event-date heatmap from existing event dates with deeper levels for multiple records on the same day.
+- Scope: no Supabase SQL, schema, RLS, Backup format, Ticket Management V2 model, Footprint Map base Leaflet logic, D3, achievement system, Oshi Profile, or copyright assets were added.
+- Manual checks required: confirm the Ticket Wall toggle works with search/year/artist/venue filters, Footprint unlock chips update with year/country filters, the heatmap year selector works, and mobile layout does not overflow.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.
