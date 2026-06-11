@@ -1,4 +1,4 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { EventRecord } from "../types/event";
@@ -21,6 +21,7 @@ export function LiveCalendarHeatmap({ events }: LiveCalendarHeatmapProps) {
   const { i18n, t } = useTranslation();
   const yearOptions = useMemo(() => getLiveCalendarYears(events), [events]);
   const [selectedYear, setSelectedYear] = useState(() => getDefaultLiveCalendarYear(events));
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     if (yearOptions.length === 0) {
@@ -38,35 +39,58 @@ export function LiveCalendarHeatmap({ events }: LiveCalendarHeatmapProps) {
     [events, selectedYear],
   );
   const hasEventDates = months.some((month) => month.days.some((day) => day.count > 0));
+  const activeDays = useMemo(
+    () => months.reduce((total, month) => total + month.days.filter((day) => day.count > 0).length, 0),
+    [months],
+  );
+  const recordCount = useMemo(
+    () => months.reduce((total, month) => total + month.days.reduce((sum, day) => sum + day.count, 0), 0),
+    [months],
+  );
 
   return (
-    <section className="live-calendar-card">
+    <section className={`live-calendar-card ${isExpanded ? "is-expanded" : "is-collapsed"}`}>
       <div className="live-calendar-header">
         <div>
           <span className="eyebrow">{t("stats.liveCalendarEyebrow")}</span>
           <h2>{t("stats.liveCalendar")}</h2>
+          <p>
+            {selectedYear} ·{" "}
+            {activeDays === 1 ? t("stats.activeDay") : t("stats.activeDays", { count: activeDays })} ·{" "}
+            {recordCount === 1 ? t("stats.calendarRecord") : t("stats.calendarRecords", { count: recordCount })}
+          </p>
         </div>
-        <label className="live-calendar-year-select">
-          {t("stats.selectYear")}
-          <select
-            disabled={yearOptions.length === 0}
-            value={selectedYear}
-            onChange={(event) => setSelectedYear(event.target.value)}
+        <div className="live-calendar-controls">
+          <label className="live-calendar-year-select">
+            {t("stats.selectYear")}
+            <select
+              disabled={yearOptions.length === 0}
+              value={selectedYear}
+              onChange={(event) => setSelectedYear(event.target.value)}
+            >
+              {yearOptions.length > 0 ? (
+                yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))
+              ) : (
+                <option value={selectedYear}>{selectedYear}</option>
+              )}
+            </select>
+          </label>
+          <button
+            className="ghost-button live-calendar-toggle"
+            type="button"
+            onClick={() => setIsExpanded((current) => !current)}
           >
-            {yearOptions.length > 0 ? (
-              yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))
-            ) : (
-              <option value={selectedYear}>{selectedYear}</option>
-            )}
-          </select>
-        </label>
+            {isExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+            {isExpanded ? t("stats.collapseCalendar") : t("stats.expandCalendar")}
+          </button>
+        </div>
       </div>
 
-      {hasEventDates ? (
+      {!isExpanded ? null : hasEventDates ? (
         <div className="live-calendar-scroll">
           <div className="live-calendar-grid">
             {months.map((month) => (

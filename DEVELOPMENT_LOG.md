@@ -820,6 +820,16 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 **Limitations**：V1 不包含成就系统、Oshi Profile、路线动画、地图热力图、marker clustering 或自动 geocoding。Ticket Wall 和 Live Calendar 都是轻量前端视图；点击日期、按艺人筛选日历、多选地图解锁项等交互可以作为后续小迭代。
 
+#### 20.10 Personal Visuals Polish V1 / 个人记忆可视化打磨 V1
+
+**Goal**：解决 Personal Visuals V1 初版 UI 的实际验收问题：参战日历默认占用统计页过多空间，视图切换按钮像临时按钮，票根墙卡片还不够像真正的票根收藏墙。
+
+**Design Decision**：继续只做前端 UI polish，不改 events、tickets、customVenues、Backup 或 Supabase schema。Live Calendar 保留原有按年份派生日历数据的逻辑，只增加 collapsed/expanded UI state。Ticket Wall 继续复用 EventList 当前筛选后的 events 和现有 edit flow，只调整结构和样式。
+
+**Implementation**：`LiveCalendarHeatmap` 默认折叠，只显示标题、年份选择器、当前年份 active days、当前年份 record count 和展开按钮；展开后才显示完整 heatmap。EventList 的“详细卡片 / 票根墙”切换改成 segmented control。`TicketWallCard` 改成横向 ticket stub：左侧主信息区展示日期、标题、艺人、场馆、时间和天气 badge；右侧副券区展示状态、barcode、短 record code 和小编辑按钮，并加入 perforation 撕票线视觉。
+
+**Result**：统计页首屏更轻，参战记录页切换控件更像统一 UI，票根墙更接近“票根收藏墙”而不是压缩版普通卡片。所有变化仍然是 derived visualization，不新增数据库字段，也不引入新库或版权素材。
+
 ---
 
 ## English Version
@@ -1983,3 +1993,13 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Result**: The three modules turn existing events, venue snapshots, custom venue coordinates, and dates into more personal visual memory surfaces without changing the persisted data model. They use no official images, logos, or copyrighted assets, and they do not affect Ticket Management V2, Backup, Analytics chart infrastructure, or Footprint Map's Leaflet base logic.
 
 **Limitations**: V1 does not include an achievement system, Oshi Profile, route animation, map heatmaps, marker clustering, or automatic geocoding. Ticket Wall and Live Calendar are lightweight frontend views; date clicking, artist-filtered calendars, or richer unlock interactions can remain future small iterations.
+
+#### 20.10 Personal Visuals Polish V1
+
+**Goal**: Address the first UI review of Personal Visuals V1: the Live Calendar took too much vertical space by default, the event view toggle looked temporary, and Ticket Wall cards still felt like compressed event cards instead of collectible ticket stubs.
+
+**Design Decision**: Keep this as frontend UI polish only. Do not change events, tickets, customVenues, Backup, or Supabase schema. Live Calendar keeps the existing derived year/day data and only adds collapsed/expanded UI state. Ticket Wall continues to use EventList's filtered events and the existing edit flow, with structural and CSS refinements.
+
+**Implementation**: `LiveCalendarHeatmap` is collapsed by default and shows a compact header with title, year selector, active-day count, record count, and an expand button; the full heatmap renders only after expansion. The Detailed Cards / Ticket Wall control was restyled as a segmented control. `TicketWallCard` now uses a horizontal ticket-stub layout: main content on the left, status/barcode/record code/edit button on the stub side, plus a perforation line.
+
+**Result**: The Statistics page is lighter on first view, the event view switcher feels integrated, and Ticket Wall reads more like a ticket collection wall. The polish remains a derived visualization layer with no new schema, new large library, or copyrighted assets.

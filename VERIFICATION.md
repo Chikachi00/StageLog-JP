@@ -27,6 +27,16 @@ Verification date: 2026-06-07
 - Scope: no Supabase SQL, schema, RLS, Backup format, Ticket Management V2 model, Footprint Map base Leaflet logic, D3, achievement system, Oshi Profile, or copyright assets were added.
 - Manual checks required: confirm the Ticket Wall toggle works with search/year/artist/venue filters, Footprint unlock chips update with year/country filters, the heatmap year selector works, and mobile layout does not overflow.
 
+## Personal Visuals Polish V1
+
+- Live Calendar: default state is collapsed, showing only title, year selector, active-day count, record count, and an expand button.
+- Live Calendar expand/collapse: expanded state renders the existing heatmap; collapsed state hides the month grid.
+- Year selector: remains usable in both collapsed and expanded states, and summary counts update with the selected year.
+- Event view toggle: Detailed Cards / Ticket Wall control is styled as a segmented control and keeps the same view-switching behavior.
+- Ticket Wall cards: layout now uses a horizontal ticket-stub structure with main content, perforation line, barcode stub, short record code, status badge, and compact edit button.
+- Regression scope: still no Supabase SQL, schema changes, Backup format changes, Ticket V2 model changes, Footprint Map Leaflet logic changes, D3, new UI framework, achievement system, Oshi Profile, or copyrighted assets.
+- Manual checks required: verify long titles clamp correctly, ticket cards do not overflow on mobile, and clicking the ticket or edit icon still opens the existing event edit flow.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.

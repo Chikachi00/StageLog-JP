@@ -57,10 +57,10 @@ export function EventList({
 
   return (
     <>
-      <section className="ticket-wall-toolbar" aria-label={t("events.viewMode")}>
-        <div className="ticket-view-toggle" role="group">
+      <section className="event-view-toolbar" aria-label={t("events.viewMode")}>
+        <div className="event-view-toggle" role="group">
           <button
-            className={viewMode === "cards" ? "is-active" : ""}
+            className={`event-view-toggle__button ${viewMode === "cards" ? "event-view-toggle__button--active" : ""}`}
             type="button"
             onClick={() => setViewMode("cards")}
           >
@@ -68,7 +68,7 @@ export function EventList({
             {t("events.detailedCards")}
           </button>
           <button
-            className={viewMode === "wall" ? "is-active" : ""}
+            className={`event-view-toggle__button ${viewMode === "wall" ? "event-view-toggle__button--active" : ""}`}
             type="button"
             onClick={() => setViewMode("wall")}
           >
