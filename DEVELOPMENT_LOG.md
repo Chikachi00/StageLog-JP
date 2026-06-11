@@ -2083,3 +2083,13 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Implementation**: Unified ticket drawing around `renderPosterTicketCard`. Each ticket now creates separate `mainClip` and `stubClip` regions. Main text and badges render only inside the main clip; barcode, record code, and index label render only inside the stub clip. Compact and mini tickets keep only core fields so small layouts do not overlap. Selected poster and yearly report templates both reuse the same ticket renderer.
 
 **Result**: The modal remains operable on desktop and mobile, and SVG / PNG exports keep ticket content inside hard layout boundaries. Text no longer enters the stub area, barcode no longer enters the main information area, and footer/ticket sections avoid overlap. This fix still does not change schema, Backup, Ticket V2, Analytics, or Footprint Map.
+
+#### 20.15 Share Poster Layout Safety Fix
+
+**Goal**: Fix the remaining SVG poster safety problems without adding new poster modes or changing the Share Poster workflow. The main issues were footer overlap, long titles still feeling too constrained, and ticket internals needing a stricter main / perforation / stub boundary.
+
+**Design Decision**: Keep the generator as pure SVG and make layout safety the first rule. Posters now share fixed safe areas for header, body, and footer. Ticket cards render only inside the body safe area, footer attribution renders only inside the footer safe area, and overflowing selected events are summarized with `+N more memories` instead of being squeezed into unreadable cards.
+
+**Implementation**: Selected Events Poster now uses a readable full-width horizontal ticket layout: large tickets for 1-4 events, medium tickets for 5-6 events, and compact tickets for larger selections. `renderPosterTicketCard` uses a strict three-zone model: main area for date/title/artist/venue/badges, perforation area for the dotted divider only, and stub area for barcode, record code, and index. Long titles are wrapped by estimated available main-area width, with CJK/Japanese text handled more conservatively than English. Barcode placement is centered inside the stub clip and cannot cross into the main area.
+
+**Result**: Footer attribution no longer covers poster content, tickets stay inside the body safe area, and long Japanese / Chinese / English titles cannot collide with the barcode or enter the stub area. When a selection is too large for the safe body region, the poster shows a compact `+N more memories` pill. This pass adds no feature, page, database field, external image, web font, AI generation, or schema change.

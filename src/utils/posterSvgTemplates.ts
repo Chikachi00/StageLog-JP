@@ -17,6 +17,13 @@ import {
 
 export const POSTER_WIDTH = 1080;
 export const POSTER_HEIGHT = 1350;
+const SAFE_MARGIN_X = 72;
+const HEADER_TOP = 64;
+const HEADER_BOTTOM = 220;
+const BODY_TOP = 250;
+const BODY_BOTTOM = 1160;
+const FOOTER_TOP = 1210;
+const FOOTER_BOTTOM = 1310;
 
 interface PosterThemePalette {
   background: string;
@@ -56,6 +63,23 @@ interface TicketDrawOptions {
   variant: "large" | "medium" | "compact" | "mini";
   palette: PosterThemePalette;
   templateOptions: SharePosterTemplateOptions;
+}
+
+interface TicketLayoutConfig {
+  width: number;
+  height: number;
+  paddingX: number;
+  paddingY: number;
+  stubWidth: number;
+  perforationWidth: number;
+  titleFontSize: number;
+  titleLineHeight: number;
+  titleMaxLines: number;
+  metaFontSize: number;
+  venueFontSize: number;
+  dateFontSize: number;
+  showBadges: boolean;
+  compact: boolean;
 }
 
 export interface SharePosterTemplateOptions {
@@ -212,6 +236,28 @@ export const wrapTextByChars = (value: unknown, maxCharsPerLine: number, maxLine
   return clamped;
 };
 
+const getCjkRatio = (value: string) => {
+  const chars = Array.from(value);
+
+  if (chars.length === 0) {
+    return 0;
+  }
+
+  const cjkCount = chars.filter((char) => /[\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]/.test(char)).length;
+  return cjkCount / chars.length;
+};
+
+const estimateCharsPerLine = (value: string, width: number, fontSize: number) => {
+  const cjkRatio = getCjkRatio(value);
+  const averageCharWidth = fontSize * (cjkRatio > 0.35 ? 0.92 : 0.56);
+  return Math.max(6, Math.floor(width / averageCharWidth));
+};
+
+const wrapTextByEstimatedWidth = (value: unknown, width: number, fontSize: number, maxLines: number) => {
+  const normalized = sanitizeSvgInput(value);
+  return wrapTextByChars(normalized, estimateCharsPerLine(normalized, width, fontSize), maxLines);
+};
+
 const renderSvgTextLines = (lines: string[], x: number, y: number, options: TextOptions = {}) => {
   if (lines.length === 0) {
     return "";
@@ -354,59 +400,123 @@ const renderBadgeRow = (badges: string[], x: number, y: number, maxWidth: number
   return parts.join("");
 };
 
-const getTicketTypography = (variant: TicketDrawOptions["variant"]) => {
+const getTicketLayoutConfig = (variant: TicketDrawOptions["variant"], width: number, height: number): TicketLayoutConfig => {
   if (variant === "large") {
-    return { title: 25, date: 15, meta: 15, venue: 13, titleChars: 26, venueChars: 42, artistChars: 32, badgeCompact: false };
+    return {
+      width,
+      height,
+      paddingX: 24,
+      paddingY: 18,
+      stubWidth: 96,
+      perforationWidth: 18,
+      titleFontSize: 24,
+      titleLineHeight: 28,
+      titleMaxLines: 3,
+      metaFontSize: 14,
+      venueFontSize: 12,
+      dateFontSize: 14,
+      showBadges: true,
+      compact: false,
+    };
   }
 
   if (variant === "medium") {
-    return { title: 20, date: 13, meta: 13, venue: 12, titleChars: 21, venueChars: 34, artistChars: 26, badgeCompact: false };
+    return {
+      width,
+      height,
+      paddingX: 22,
+      paddingY: 16,
+      stubWidth: 96,
+      perforationWidth: 18,
+      titleFontSize: 20,
+      titleLineHeight: 23,
+      titleMaxLines: 2,
+      metaFontSize: 13,
+      venueFontSize: 11,
+      dateFontSize: 12,
+      showBadges: true,
+      compact: false,
+    };
   }
 
-  if (variant === "mini") {
-    return { title: 15, date: 10, meta: 10, venue: 9, titleChars: 15, venueChars: 20, artistChars: 18, badgeCompact: true };
+  if (variant === "compact") {
+    return {
+      width,
+      height,
+      paddingX: 20,
+      paddingY: 14,
+      stubWidth: 96,
+      perforationWidth: 18,
+      titleFontSize: 17,
+      titleLineHeight: 19,
+      titleMaxLines: 2,
+      metaFontSize: 11,
+      venueFontSize: 10,
+      dateFontSize: 10,
+      showBadges: false,
+      compact: true,
+    };
   }
 
-  return { title: 16, date: 11, meta: 11, venue: 10, titleChars: 17, venueChars: 28, artistChars: 22, badgeCompact: true };
+  return {
+    width,
+    height,
+    paddingX: 18,
+    paddingY: 14,
+    stubWidth: 92,
+    perforationWidth: 18,
+    titleFontSize: 15,
+    titleLineHeight: 17,
+    titleMaxLines: 2,
+    metaFontSize: 10,
+    venueFontSize: 9,
+    dateFontSize: 9,
+    showBadges: false,
+    compact: true,
+  };
 };
 
 const renderPosterTicketCard = (event: EventRecord, draw: TicketDrawOptions) => {
   const { x, y, width, height, index, total, variant, palette, templateOptions } = draw;
-  const stubWidth = variant === "large" ? 96 : variant === "medium" ? 88 : 82;
-  const padding = variant === "large" ? 20 : variant === "medium" ? 16 : 14;
-  const dividerX = x + width - stubWidth;
-  const mainX = x + padding;
-  const mainY = y + padding;
-  const mainWidth = Math.max(120, dividerX - x - padding * 2 - 8);
-  const mainHeight = Math.max(40, height - padding * 2);
-  const mainRight = dividerX - 12;
-  const stubX = dividerX + 12;
-  const stubY = y + padding;
-  const stubRight = x + width - padding;
+  const layout = getTicketLayoutConfig(variant, width, height);
+  const ticketRight = x + width;
+  const perforationX = ticketRight - layout.stubWidth - layout.perforationWidth;
+  const stubX = ticketRight - layout.stubWidth;
+  const perforationCenterX = perforationX + layout.perforationWidth / 2;
+  const mainX = x + layout.paddingX;
+  const mainY = y + layout.paddingY;
+  const mainWidth = Math.max(120, perforationX - mainX - 12);
+  const mainHeight = Math.max(40, height - layout.paddingY * 2);
+  const stubY = y + layout.paddingY;
+  const stubRight = ticketRight - layout.paddingX;
   const stubWidthInner = Math.max(30, stubRight - stubX);
-  const stubHeightInner = Math.max(40, height - padding * 2);
-  const type = getTicketTypography(variant);
-  const compact = type.badgeCompact;
-  const titleLines = wrapTextByChars(event.title, type.titleChars, 2);
-  const artist = truncateText(event.artist, type.artistChars);
-  const venueLabel = truncateText([event.venueName, getEventLocationLabel(event)].filter(Boolean).join(" / "), type.venueChars);
-  const canShowBadges = variant === "large" || variant === "medium";
-  const badges = canShowBadges ? getOptionalEventBadges(event, templateOptions.privacy, templateOptions.text, compact) : [];
+  const stubHeightInner = Math.max(40, height - layout.paddingY * 2);
+  const titleLines = wrapTextByEstimatedWidth(event.title, mainWidth, layout.titleFontSize, layout.titleMaxLines);
+  const artistChars = estimateCharsPerLine(event.artist, mainWidth, layout.metaFontSize);
+  const venueText = [event.venueName, getEventLocationLabel(event)].filter(Boolean).join(" / ");
+  const venueChars = estimateCharsPerLine(venueText, mainWidth, layout.venueFontSize);
+  const artist = truncateText(event.artist, artistChars);
+  const venueLabel = truncateText(venueText, venueChars);
+  const badges = layout.showBadges ? getOptionalEventBadges(event, templateOptions.privacy, templateOptions.text, layout.compact) : [];
   const code = getEventCode(event).replace(/^SL-/, "");
   const hash = hashString(`${event.id}-${event.date}-${index}`);
   const mainClipId = `poster-main-clip-${index}-${hash}`;
   const stubClipId = `poster-stub-clip-${index}-${hash}`;
-  const titleY = mainY + (variant === "large" ? 62 : variant === "medium" ? 49 : 34);
-  const lineHeight = variant === "large" ? 29 : variant === "medium" ? 23 : 17;
-  const artistY = titleY + lineHeight * Math.max(1, titleLines.length) + (variant === "large" ? 18 : variant === "medium" ? 11 : 8);
-  const venueY = artistY + (variant === "large" ? 23 : variant === "medium" ? 17 : 14);
-  const badgeY = Math.min(y + height - padding - (compact ? 25 : 29), venueY + (variant === "large" ? 22 : 17));
-  const barcodeWidth = Math.max(26, Math.min(stubWidthInner - 20, variant === "large" ? 50 : 44));
-  const barcodeHeight = Math.max(24, Math.min(44, height * 0.32));
+  const titleY = mainY + (variant === "large" ? 44 : variant === "medium" ? 38 : 31);
+  const artistY = titleY + layout.titleLineHeight * Math.max(1, titleLines.length) + (variant === "large" ? 15 : 9);
+  const venueY = artistY + (variant === "large" ? 20 : 15);
+  const mainBottom = mainY + mainHeight;
+  const showArtist = artistY <= mainBottom - 8;
+  const showVenue = showArtist && venueY <= mainBottom - 6;
+  const badgeY = Math.min(y + height - layout.paddingY - 27, venueY + 17);
+  const visibleBadges = showVenue && badgeY > venueY + 14 ? badges : [];
+  const stubCenterX = stubX + stubWidthInner / 2;
+  const barcodeWidth = Math.max(20, Math.min(layout.stubWidth - 44, stubWidthInner - 28));
+  const barcodeHeight = Math.max(20, Math.min(variant === "compact" || variant === "mini" ? 30 : 42, height * 0.34));
   const barcodeX = stubX + (stubWidthInner - barcodeWidth) / 2;
   const barcodeY = y + height * 0.38;
   const debug = DEBUG_POSTER_LAYOUT
-    ? `${rect(mainX, mainY, mainWidth, mainHeight, { stroke: "#ff3b30", dash: "4 4", strokeWidth: 1 })}${rect(stubX, stubY, stubWidthInner, stubHeightInner, { stroke: "#2563eb", dash: "4 4", strokeWidth: 1 })}`
+    ? `${rect(mainX, mainY, mainWidth, mainHeight, { stroke: "#ff3b30", dash: "4 4", strokeWidth: 1 })}${rect(perforationX, y + layout.paddingY, layout.perforationWidth, mainHeight, { stroke: "#f97316", dash: "4 4", strokeWidth: 1 })}${rect(stubX, stubY, stubWidthInner, stubHeightInner, { stroke: "#2563eb", dash: "4 4", strokeWidth: 1 })}`
     : "";
 
   return `
@@ -418,43 +528,43 @@ const renderPosterTicketCard = (event: EventRecord, draw: TicketDrawOptions) => 
       ${rect(x + 7, y + 9, width, height, { fill: palette.shadow, radius: 24, opacity: 0.9 })}
       ${rect(x, y, width, height, { fill: palette.card, stroke: palette.border, radius: 24, strokeWidth: 2 })}
       ${rect(x, y, 8, height, { fill: palette.accent, radius: 24, opacity: 0.94 })}
-      <line x1="${dividerX}" y1="${y + 18}" x2="${dividerX}" y2="${y + height - 18}" stroke="${palette.border}" stroke-width="2.4" stroke-dasharray="7 9"/>
-      ${circle(dividerX, y, 11, palette.background)}
-      ${circle(dividerX, y + height, 11, palette.background)}
+      <line x1="${perforationCenterX}" y1="${y + 18}" x2="${perforationCenterX}" y2="${y + height - 18}" stroke="${palette.border}" stroke-width="2.4" stroke-dasharray="7 9"/>
+      ${circle(perforationCenterX, y, 10, palette.background)}
+      ${circle(perforationCenterX, y + height, 10, palette.background)}
       ${debug}
       <g clip-path="url(#${mainClipId})">
-        ${text(formatPosterDate(event.date), mainX, mainY + (variant === "large" ? 18 : 15), {
-          size: type.date,
+        ${text(formatPosterDate(event.date), mainX, mainY + (variant === "large" ? 15 : 13), {
+          size: layout.dateFontSize,
           weight: 900,
           fill: palette.accent,
           letterSpacing: 1.1,
         })}
         ${renderSvgTextLines(titleLines, mainX, titleY, {
-          size: type.title,
+          size: layout.titleFontSize,
           weight: 950,
           fill: palette.ink,
-          lineHeight,
+          lineHeight: layout.titleLineHeight,
         })}
-        ${text(artist, mainX, artistY, { size: type.meta, weight: 850, fill: palette.accent2 })}
-        ${text(venueLabel, mainX, venueY, { size: type.venue, weight: 780, fill: palette.muted })}
-        ${renderBadgeRow(badges, mainX, badgeY, mainRight - mainX, palette, compact)}
+        ${showArtist ? text(artist, mainX, artistY, { size: layout.metaFontSize, weight: 850, fill: palette.accent2 }) : ""}
+        ${showVenue ? text(venueLabel, mainX, venueY, { size: layout.venueFontSize, weight: 780, fill: palette.muted }) : ""}
+        ${renderBadgeRow(visibleBadges, mainX, badgeY, mainWidth, palette, layout.compact)}
       </g>
       <g clip-path="url(#${stubClipId})">
         ${createPosterBarcode(`${event.id}-${event.title}-${event.date}`, barcodeX, barcodeY, barcodeWidth, barcodeHeight, palette.barcode)}
-        ${text(`${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`, stubX + stubWidthInner / 2, y + height - padding - 20, {
+        ${text(`${String(index + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`, stubCenterX, stubY + 13, {
           size: variant === "large" ? 18 : 14,
           weight: 950,
           fill: palette.accent,
           anchor: "middle",
           family: monoStack,
         })}
-        ${text(code.slice(0, 8), stubX + stubWidthInner / 2, y + height - padding - 5, {
+        ${height >= 95 ? text(code.slice(0, 8), stubCenterX, Math.min(y + height - layout.paddingY - 5, barcodeY + barcodeHeight + 17), {
           size: variant === "large" ? 10 : 8,
           weight: 850,
           fill: palette.muted,
           anchor: "middle",
           family: monoStack,
-        })}
+        }) : ""}
       </g>
     </g>
   `;
@@ -486,8 +596,8 @@ const posterShell = (content: string, palette: PosterThemePalette, titleId: stri
 `;
 
 const attribution = (palette: PosterThemePalette, labels: SharePosterText) => `
-  ${rect(82, 1262, 916, 50, { fill: palette.footerBg, stroke: palette.border, radius: 25, opacity: 0.92 })}
-  ${text(`${labels.generatedBy} / ${STAGELOG_GITHUB_URL.replace("https://", "")}`, 540, 1294, {
+  ${rect(SAFE_MARGIN_X, FOOTER_TOP + 26, POSTER_WIDTH - SAFE_MARGIN_X * 2, FOOTER_BOTTOM - FOOTER_TOP - 50, { fill: palette.footerBg, stroke: palette.border, radius: 25, opacity: 0.92 })}
+  ${text(`${labels.generatedBy} / ${STAGELOG_GITHUB_URL.replace("https://", "")}`, POSTER_WIDTH / 2, FOOTER_TOP + (FOOTER_BOTTOM - FOOTER_TOP) / 2 + 8, {
     size: 18,
     weight: 850,
     fill: palette.muted,
@@ -496,23 +606,43 @@ const attribution = (palette: PosterThemePalette, labels: SharePosterText) => `
 `;
 
 const getSelectedTicketGrid = (count: number) => {
-  if (count <= 1) {
-    return { columns: 1, width: 860, height: 310, gapX: 0, gapY: 0, startX: 110, startY: 390, variant: "large" as const };
-  }
-
-  if (count <= 2) {
-    return { columns: 1, width: 860, height: 245, gapX: 0, gapY: 34, startX: 110, startY: 320, variant: "large" as const };
-  }
+  const width = 900;
+  const startX = (POSTER_WIDTH - width) / 2;
 
   if (count <= 4) {
-    return { columns: 2, width: 420, height: 238, gapX: 28, gapY: 32, startX: 106, startY: 310, variant: "large" as const };
+    return { width, height: 172, gapY: 18, startX, startY: BODY_TOP + 26, variant: "large" as const, maxDisplay: 4 };
   }
 
-  if (count <= 8) {
-    return { columns: 2, width: 420, height: 148, gapX: 28, gapY: 22, startX: 106, startY: 292, variant: "medium" as const };
+  if (count <= 6) {
+    return { width, height: 136, gapY: 15, startX, startY: BODY_TOP + 18, variant: "medium" as const, maxDisplay: 6 };
   }
 
-  return { columns: 2, width: 420, height: 118, gapX: 28, gapY: 16, startX: 106, startY: 286, variant: "compact" as const };
+  return { width, height: 105, gapY: 5, startX, startY: BODY_TOP + 10, variant: "compact" as const, maxDisplay: 10 };
+};
+
+const getSafeDisplayCount = (totalCount: number, layout: ReturnType<typeof getSelectedTicketGrid>) => {
+  const availableWithoutPill = BODY_BOTTOM - layout.startY;
+  const maxWithoutPill = Math.max(1, Math.floor((availableWithoutPill + layout.gapY) / (layout.height + layout.gapY)));
+  const intendedDisplayCount = Math.min(totalCount, layout.maxDisplay);
+  const needsMorePill = totalCount > layout.maxDisplay || intendedDisplayCount > maxWithoutPill;
+  const availableHeight = BODY_BOTTOM - layout.startY - (needsMorePill ? 52 : 0);
+  const maxByHeight = Math.max(1, Math.floor((availableHeight + layout.gapY) / (layout.height + layout.gapY)));
+  return Math.min(totalCount, layout.maxDisplay, maxByHeight);
+};
+
+const renderMoreMemoriesPill = (count: number, palette: PosterThemePalette, labels: SharePosterText, y = BODY_BOTTOM - 34) => {
+  if (count <= 0) {
+    return "";
+  }
+
+  const label = labels.moreMemories(count);
+  const width = Math.max(190, Math.min(420, Array.from(label).length * 13 + 56));
+  const x = (POSTER_WIDTH - width) / 2;
+
+  return `
+    ${rect(x, y, width, 38, { fill: palette.footerBg, stroke: palette.border, radius: 19, opacity: 0.95 })}
+    ${text(label, POSTER_WIDTH / 2, y + 25, { size: 18, weight: 900, fill: palette.accent, anchor: "middle" })}
+  `;
 };
 
 export const generateSelectedEventsPosterSvg = (
@@ -520,22 +650,23 @@ export const generateSelectedEventsPosterSvg = (
   options: SharePosterTemplateOptions,
 ) => {
   const palette = palettes[options.theme];
-  const events = sortPosterEvents(selectedEvents).slice(0, 12);
-  const grid = getSelectedTicketGrid(events.length);
-  const dateRange = getPosterDateRange(events);
-  const countLabel = `${events.length} ${options.text.liveEvents}`;
+  const sortedEvents = sortPosterEvents(selectedEvents);
+  const grid = getSelectedTicketGrid(sortedEvents.length);
+  const displayCount = getSafeDisplayCount(sortedEvents.length, grid);
+  const events = sortedEvents.slice(0, displayCount);
+  const moreCount = Math.max(0, sortedEvents.length - events.length);
+  const dateRange = getPosterDateRange(sortedEvents);
+  const countLabel = `${sortedEvents.length} ${options.text.liveEvents}`;
 
   const tickets = events
     .map((event, index) => {
-      const column = index % grid.columns;
-      const row = Math.floor(index / grid.columns);
       return renderPosterTicketCard(event, {
-        x: grid.startX + column * (grid.width + grid.gapX),
-        y: grid.startY + row * (grid.height + grid.gapY),
+        x: grid.startX,
+        y: grid.startY + index * (grid.height + grid.gapY),
         width: grid.width,
         height: grid.height,
         index,
-        total: events.length,
+        total: sortedEvents.length,
         variant: grid.variant,
         palette,
         templateOptions: options,
@@ -544,19 +675,20 @@ export const generateSelectedEventsPosterSvg = (
     .join("");
 
   const content = `
-    ${text("StageLog JP", 82, 92, { size: 28, weight: 950, fill: palette.accent, letterSpacing: 1.3 })}
-    ${renderSvgTextLines(wrapTextByChars(options.text.selectedHeading, 28, 2), 82, 158, {
+    ${text("StageLog JP", SAFE_MARGIN_X, HEADER_TOP + 28, { size: 28, weight: 950, fill: palette.accent, letterSpacing: 1.3 })}
+    ${renderSvgTextLines(wrapTextByChars(options.text.selectedHeading, 28, 2), SAFE_MARGIN_X, HEADER_TOP + 94, {
       size: 56,
       weight: 950,
       fill: palette.ink,
       lineHeight: 60,
     })}
-    ${text(options.text.selectedSubtitle, 82, 232, { size: 23, weight: 850, fill: palette.muted })}
-    ${rect(724, 84, 276, 112, { fill: palette.card, stroke: palette.border, radius: 36, opacity: 0.94 })}
-    ${text(dateRange || "MEMORIES", 862, 126, { size: 28, weight: 950, fill: palette.accent2, anchor: "middle" })}
-    ${text(countLabel, 862, 164, { size: 18, weight: 850, fill: palette.muted, anchor: "middle" })}
-    ${rect(82, 252, 916, 2, { fill: palette.border, opacity: 0.82 })}
+    ${text(options.text.selectedSubtitle, SAFE_MARGIN_X, HEADER_BOTTOM, { size: 23, weight: 850, fill: palette.muted })}
+    ${rect(724, HEADER_TOP + 20, 276, 112, { fill: palette.card, stroke: palette.border, radius: 36, opacity: 0.94 })}
+    ${text(dateRange || "MEMORIES", 862, HEADER_TOP + 62, { size: 28, weight: 950, fill: palette.accent2, anchor: "middle" })}
+    ${text(countLabel, 862, HEADER_TOP + 100, { size: 18, weight: 850, fill: palette.muted, anchor: "middle" })}
+    ${rect(SAFE_MARGIN_X, HEADER_BOTTOM + 30, POSTER_WIDTH - SAFE_MARGIN_X * 2, 2, { fill: palette.border, opacity: 0.82 })}
     ${tickets}
+    ${renderMoreMemoriesPill(moreCount, palette, options.text)}
     ${options.privacy.showAttribution ? attribution(palette, options.text) : ""}
   `;
 
@@ -589,8 +721,16 @@ export const generateYearlyReportPosterSvg = (
 ) => {
   const palette = palettes[options.theme];
   const sortedEvents = sortPosterEvents(eventsInYear);
-  const visibleEvents = sortedEvents.slice(0, 8);
-  const moreCount = Math.max(0, eventsInYear.length - visibleEvents.length);
+  const ticketBoardTop = 590;
+  const ticketHeight = 112;
+  const ticketGapY = 14;
+  const yearlyMaxTickets = 8;
+  const needsMorePill = sortedEvents.length > yearlyMaxTickets;
+  const ticketBoardHeight = BODY_BOTTOM - ticketBoardTop - (needsMorePill ? 52 : 0);
+  const maxRows = Math.max(0, Math.floor((ticketBoardHeight + ticketGapY) / (ticketHeight + ticketGapY)));
+  const safeTicketCount = Math.min(sortedEvents.length, yearlyMaxTickets, maxRows * 2);
+  const visibleEvents = sortedEvents.slice(0, safeTicketCount);
+  const moreCount = Math.max(0, sortedEvents.length - visibleEvents.length);
   const stats = buildYearlySharePosterStats(eventsInYear, options.ticketApplications, options.year, options.text.noData);
   const compactOptions = { ...options, privacy: { ...options.privacy, showNotes: false, showSeat: false } };
   const dateRange = getPosterDateRange(eventsInYear) || options.year;
@@ -627,11 +767,11 @@ export const generateYearlyReportPosterSvg = (
       const row = Math.floor(index / 2);
       return renderPosterTicketCard(event, {
         x: 106 + column * 448,
-        y: 610 + row * 135,
+        y: ticketBoardTop + row * (ticketHeight + ticketGapY),
         width: 420,
-        height: 118,
+        height: ticketHeight,
         index,
-        total: visibleEvents.length,
+        total: sortedEvents.length,
         variant: "mini",
         palette,
         templateOptions: compactOptions,
@@ -648,7 +788,7 @@ export const generateYearlyReportPosterSvg = (
     ${statCards}
     ${insightCards}
     ${tickets}
-    ${moreCount > 0 ? text(options.text.moreMemories(moreCount), 540, 1188, { size: 24, weight: 950, fill: palette.accent, anchor: "middle" }) : ""}
+    ${renderMoreMemoriesPill(moreCount, palette, options.text)}
     ${options.privacy.showAttribution ? attribution(palette, options.text) : ""}
   `;
 

@@ -82,6 +82,18 @@ Verification date: 2026-06-07
 - Regression scope: no new page, navigation tab, ownerName, selection board template, Supabase SQL, schema change, Backup format change, Ticket V2 change, Analytics change, or Footprint Map change.
 - Manual checks required: desktop 1366x768 modal reachability, mobile-width modal reachability, long JP/CN/EN titles, SVG download, and PNG download.
 
+## Share Poster Layout Safety Fix
+
+- Poster safe areas: SVG templates reserve separate header, body, and footer zones; ticket cards render only inside the body safe area.
+- Footer safety: attribution renders only in the footer safe area and should not cover selected-event or yearly-report content.
+- Selected poster layout: selected-event posters now use full-width horizontal tickets for readability, with large tickets for 1-4 events, medium tickets for 5-6 events, and compact tickets for larger selections.
+- Overflow handling: when selected records exceed the safe display capacity, the poster shows a `+N more memories` / localized more-records pill instead of squeezing cards into the footer area.
+- Ticket boundaries: each ticket uses main / perforation / stub zones; title, artist, venue, and badges stay left of the perforation, while barcode, record code, and index stay in the right stub.
+- Long title safety: Japanese, Chinese, and English titles wrap/clamp from the main-area width estimate and cannot collide with the barcode.
+- Yearly poster safety: yearly report tickets use the same constrained ticket renderer and respect the footer safe area.
+- Regression scope: no new page, navigation tab, Supabase SQL, schema change, Backup format change, Ticket V2 model change, Analytics logic change, Footprint Map logic change, external images, web fonts, or AI image generation.
+- Manual checks required: selected posters with 1-4, 5-6, 7-10, and 12 events; yearly report with many events; SVG download; PNG download; Sakura / Ocean / Night / Classic readability.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.
