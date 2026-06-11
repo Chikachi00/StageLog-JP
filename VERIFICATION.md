@@ -37,6 +37,17 @@ Verification date: 2026-06-07
 - Regression scope: still no Supabase SQL, schema changes, Backup format changes, Ticket V2 model changes, Footprint Map Leaflet logic changes, D3, new UI framework, achievement system, Oshi Profile, or copyrighted assets.
 - Manual checks required: verify long titles clamp correctly, ticket cards do not overflow on mobile, and clicking the ticket or edit icon still opens the existing event edit flow.
 
+## Aesthetic Skin V1
+
+- Scope: visual identity pass only. No new features, pages, Supabase SQL, schema changes, Backup format changes, Ticket V2 model changes, Footprint Map logic changes, Analytics logic changes, animation system, achievement system, Oshi Profile, official images, or copyrighted assets.
+- Global surface: background now uses CSS-only soft stage-light / archive-paper gradients while preserving readable content surfaces.
+- Header and navigation: desktop/mobile header, navigation pills, theme/language/cloud controls should remain clear across Sakura, Ocean, Night, and Classic.
+- EventCard: ticket-style layout should keep barcode, perforation, badge, weather/time, image, edit/delete/weather actions, and long-title wrapping readable.
+- Ticket Wall: ticket stubs should show a clearer main ticket area and stub area, refined barcode, record code, status stamp, and compact edit action without horizontal overflow.
+- Buttons / badges / inputs: primary, secondary, dangerous, weather, view toggle, filters, selects, and badges should look visually consistent while preserving existing interactions.
+- Footprint / Timeline / Statistics / Analytics / Ticket / Venue / Backup surfaces: cards and chips should share the same archive visual language without changing data or behavior.
+- Manual checks required: review Sakura / Ocean / Night / Classic, mobile widths, Ticket Wall edit click, EventCard actions, Header layout, and visual contrast.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.

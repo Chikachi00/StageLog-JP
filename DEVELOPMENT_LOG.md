@@ -830,6 +830,16 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 **Result**：统计页首屏更轻，参战记录页切换控件更像统一 UI，票根墙更接近“票根收藏墙”而不是压缩版普通卡片。所有变化仍然是 derived visualization，不新增数据库字段，也不引入新库或版权素材。
 
+#### 20.11 Aesthetic Skin V1 / StageLog Visual Identity Pass
+
+**Goal**：在功能已经比较完整之后，把 StageLog JP 从普通 SaaS / 管理后台观感调整成更像 Live ticket archive、推し活记录册和个人参战记忆 archive 的产品。这个阶段不新增功能，只改善“第一眼”和长期使用时的视觉气质。
+
+**Design Decision**：只做视觉个性化，不新增 Supabase SQL，不改 schema，不改 Backup、Ticket V2、Footprint Map 或 Analytics 逻辑，也不引入官方图片、动漫素材、新 UI 框架或新图标库。视觉语言基于 CSS：ticket surface、paper-like card、perforation、barcode、stamp badge、soft stage-light background 和 glass header。
+
+**Implementation**：在 `index.css` 中补充 Aesthetic Skin V1 覆盖层和主题变量，为 Sakura / Ocean / Night / Classic 保留可读 fallback。全局背景加入轻量 stage-light / archive paper 质感；Header 改成更精致的 frosted surface 和 pill navigation；Hero 通过 CSS-only ticket / stage-light 装饰强化“把每一次 Live 记成一张票根”的入口气质。EventCard、TicketWallCard、Timeline card、Statistics / Analytics / Ticket / Venue / Backup card 统一使用更柔和的 ticket archive surface、贴纸式 badge、圆角按钮和 subtle hover lift。TicketWallCard 进一步强化横向票根比例、撕票线、副券区、barcode 和 record code，减少“普通卡片压缩版”的感觉。
+
+**Result**：这次让项目整体更接近“日系 Live 票根收藏册 / 推し活数字档案馆”，但没有改变任何数据模型、表单流程、地图逻辑或分析逻辑。所有装饰均由 CSS 完成，没有使用官方素材或版权图片。
+
 ---
 
 ## English Version
@@ -2003,3 +2013,13 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Implementation**: `LiveCalendarHeatmap` is collapsed by default and shows a compact header with title, year selector, active-day count, record count, and an expand button; the full heatmap renders only after expansion. The Detailed Cards / Ticket Wall control was restyled as a segmented control. `TicketWallCard` now uses a horizontal ticket-stub layout: main content on the left, status/barcode/record code/edit button on the stub side, plus a perforation line.
 
 **Result**: The Statistics page is lighter on first view, the event view switcher feels integrated, and Ticket Wall reads more like a ticket collection wall. The polish remains a derived visualization layer with no new schema, new large library, or copyrighted assets.
+
+#### 20.11 Aesthetic Skin V1 / StageLog Visual Identity Pass
+
+**Goal**: After the core product surface had grown to include events, tickets, Timeline, Footprint Map, venues, analytics, Ticket Wall, and Live Calendar, the UI still felt closer to a generic SaaS dashboard than a personal live-event archive. This pass focuses only on visual identity, not new features.
+
+**Design Decision**: Keep the work as aesthetic skinning only. It adds no Supabase SQL, does not change schema, Backup, Ticket V2, Footprint Map, or Analytics logic, and does not introduce official images, anime assets, a new UI framework, or a new icon library. The visual language is built with CSS: ticket surfaces, paper-like cards, perforation, barcode details, stamp-style badges, soft stage-light backgrounds, and a glass header.
+
+**Implementation**: Added an Aesthetic Skin V1 layer in `index.css`, including theme-aware variables for Sakura, Ocean, Night, and Classic. The global background now has subtle stage-light and archive-paper atmosphere. The header uses a more polished frosted surface and pill navigation. The hero receives CSS-only ticket/stage-light decoration to strengthen the "record every Live as a ticket stub" feeling. Event cards, Ticket Wall cards, Timeline cards, Statistics / Analytics / Ticket / Venue / Backup surfaces now share softer ticket-archive cards, sticker-like badges, rounded action buttons, and subtle hover lift. TicketWallCard was further refined with a stronger horizontal ticket ratio, perforation, stub area, barcode, and record code so it reads less like a compressed normal card.
+
+**Result**: StageLog JP now feels closer to a Japanese live ticket archive / oshi activity journal while preserving all existing data models, form workflows, map behavior, and analytics logic. All decoration is CSS-only and uses no official or copyrighted visual assets.
