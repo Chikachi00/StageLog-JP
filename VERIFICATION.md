@@ -48,6 +48,19 @@ Verification date: 2026-06-07
 - Footprint / Timeline / Statistics / Analytics / Ticket / Venue / Backup surfaces: cards and chips should share the same archive visual language without changing data or behavior.
 - Manual checks required: review Sakura / Ocean / Night / Classic, mobile widths, Ticket Wall edit click, EventCard actions, Header layout, and visual contrast.
 
+## Share Poster Studio V1
+
+- Entry point: home Hero includes a Create Share Poster / 生成分享海报 CTA that opens `SharePosterModal`; no new main navigation tab or route is added.
+- Modal modes: Selected Events Poster supports event checkbox selection with a V1 limit of 12 events; Yearly Report Poster derives years from existing event dates.
+- Data source: posters are derived from existing `events` and `ticketApplications`; no records are mutated and no Backup format or schema changes are required.
+- Preview: modal renders a 1080 x 1350 SVG poster preview scaled into a 4:5 frame.
+- Export: SVG download uses an `image/svg+xml` Blob; PNG download converts the SVG string to canvas and downloads a PNG without external image services.
+- Privacy toggles: seat, price/spending, notes, weather, ticket type, and StageLog JP / GitHub attribution can be toggled before export.
+- Attribution: poster footer can include StageLog JP and `github.com/Chikachi00/StageLog-JP`.
+- Empty/error states: no records, no selected events, PNG export failure, and clipboard failure show clear feedback.
+- Regression scope: no Supabase SQL, schema/RLS changes, Backup format changes, Ticket V2 model changes, Analytics logic changes, Footprint Map logic changes, AI image generation, official assets, D3, or large export libraries.
+- Manual checks required: test modal open/close, selected/yearly modes, SVG/PNG download, GitHub link copy, privacy toggles, Sakura/Ocean/Night/Classic readability, and mobile modal overflow.
+
 ## Footprint Map V1
 
 - Page added: `FootprintMapPage` renders a Footprint Map view from existing event records; no database schema or backup format changes are required.

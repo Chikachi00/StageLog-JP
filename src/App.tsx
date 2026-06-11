@@ -9,6 +9,7 @@ import { BackupPanel } from "./components/BackupPanel";
 import { FloatingAddButton } from "./components/FloatingAddButton";
 import { FootprintMapPage } from "./components/FootprintMapPage";
 import { MobileBottomNav } from "./components/MobileBottomNav";
+import { SharePosterModal } from "./components/SharePosterModal";
 import type { AppView } from "./components/Header";
 import { Statistics } from "./components/Statistics";
 import { TicketManager } from "./components/TicketManager";
@@ -547,6 +548,7 @@ function App() {
   const [fetchingWeatherId, setFetchingWeatherId] = useState<string | null>(null);
   const [weatherErrors, setWeatherErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string>("");
+  const [isSharePosterOpen, setIsSharePosterOpen] = useState(false);
 
   const scrollToEventForm = useCallback(() => {
     setEventFormFocusRequestId((current) => current + 1);
@@ -1703,8 +1705,21 @@ function App() {
             <span className="eyebrow">{t("app.heroEyebrow")}</span>
             <h2>{t("app.heroTitle")}</h2>
           </div>
-          <p>{t("app.heroDescription")}</p>
+          <div className="hero-panel__actions">
+            <p>{t("app.heroDescription")}</p>
+            <button className="primary-button share-poster-cta" type="button" onClick={() => setIsSharePosterOpen(true)}>
+              {t("sharePoster.cta")}
+            </button>
+          </div>
         </section>
+
+        <SharePosterModal
+          events={events}
+          isOpen={isSharePosterOpen}
+          theme={theme}
+          ticketApplications={ticketApplications}
+          onClose={() => setIsSharePosterOpen(false)}
+        />
 
         <section className="sync-panel" aria-label={t("auth.cloudSync")}>
           <div>

@@ -44,6 +44,7 @@ StageLog JP 是一个面向日本演出、舞台活动、粉丝活动与票务�
 
 - 创建、编辑、删除和筛选参战记录。
 - 支持“详细卡片”和“票根墙”两种展示方式；票根墙会复用当前筛选结果，以 compact ticket-stub layout 展示参战记忆。
+- 分享海报工作台可从首页弹窗打开，把自选参战记录或年度回顾生成 SVG / PNG 票根风格海报。
 - 记录艺人、活动标题、日期、场馆、座位、票种、备注和图片。
 - 同时支持开场时间和开演时间。
 - Cloud mode 下活动图片上传到 Supabase Storage；本地模式下使用浏览器本地预览。
@@ -298,6 +299,7 @@ The project is designed around the real workflow of Japanese concerts and stage 
 
 - Create, edit, delete, and filter live event records.
 - Switch between detailed event cards and a compact ticket-stub Ticket Wall that reuses the current event filters.
+- Share Poster Studio opens from the home hero and exports SVG / PNG ticket-style posters from selected live records or yearly summaries.
 - Track artist, title, date, venue, seat, ticket type, notes, and images.
 - Store both doors open time and show start time.
 - Upload event images to Supabase Storage in cloud mode; use local image previews in guest mode.

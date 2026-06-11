@@ -840,6 +840,16 @@ VERIFICATION.md 成为回归检查清单，记录哪些能力需要自动或手�
 
 **Result**：这次让项目整体更接近“日系 Live 票根收藏册 / 推し活数字档案馆”，但没有改变任何数据模型、表单流程、地图逻辑或分析逻辑。所有装饰均由 CSS 完成，没有使用官方素材或版权图片。
 
+#### 20.12 Share Poster Studio V1 / 分享海报工作台 V1
+
+**Goal**：在首页提供一个轻量分享工具，把已有参战记录和年度回顾套入固定票根风格 SVG 模板，导出适合社交平台分享的 4:5 海报。这个功能用于项目传播和个人记录展示，但不是 AI 图片生成，也不是新的主页面。
+
+**Design Decision**：入口放在 Hero CTA，点击后打开 modal / drawer，不新增导航 tab、不新增路由、不新增 Supabase SQL，也不修改 events、ticketApplications、customVenues、Backup 或 Ticket V2 数据模型。海报由现有 events / ticketApplications 派生，使用原生 SVG string 实时预览；PNG 导出通过浏览器 canvas 将 SVG 转为 PNG，不调用外部图片 API，也不使用官方图片、logo 或版权素材。
+
+**Implementation**：新增 `SharePosterModal` 和 `SharePosterPreview`，并把 SVG 模板和导出逻辑拆到 `sharePosterUtils`、`posterSvgTemplates`、`svgExportUtils`。Modal 支持自选场次海报和年度回顾海报；自选模式最多选择 12 场，年度模式从 event date 派生年份和年度统计。隐私开关控制座位、票价 / 花费、备注、天气、票种和 StageLog JP / GitHub attribution。海报尺寸固定为 1080 x 1350，底部可显示 `github.com/Chikachi00/StageLog-JP`。
+
+**Result**：Share Poster Studio 把已有参战记录、票务轮次和视觉皮肤连接成可导出的分享图工具，同时保持数据只读和 derived output。它没有改变记录保存逻辑、Cloud / Local mode、Analytics、Footprint Map 或 Backup。
+
 ---
 
 ## English Version
@@ -2023,3 +2033,13 @@ This section records the main iterations added after the first DEVELOPMENT_LOG d
 **Implementation**: Added an Aesthetic Skin V1 layer in `index.css`, including theme-aware variables for Sakura, Ocean, Night, and Classic. The global background now has subtle stage-light and archive-paper atmosphere. The header uses a more polished frosted surface and pill navigation. The hero receives CSS-only ticket/stage-light decoration to strengthen the "record every Live as a ticket stub" feeling. Event cards, Ticket Wall cards, Timeline cards, Statistics / Analytics / Ticket / Venue / Backup surfaces now share softer ticket-archive cards, sticker-like badges, rounded action buttons, and subtle hover lift. TicketWallCard was further refined with a stronger horizontal ticket ratio, perforation, stub area, barcode, and record code so it reads less like a compressed normal card.
 
 **Result**: StageLog JP now feels closer to a Japanese live ticket archive / oshi activity journal while preserving all existing data models, form workflows, map behavior, and analytics logic. All decoration is CSS-only and uses no official or copyrighted visual assets.
+
+#### 20.12 Share Poster Studio V1
+
+**Goal**: Add a lightweight sharing tool on the home hero that turns existing live records and yearly summaries into fixed ticket-style SVG posters suitable for social sharing. This is not AI image generation and not a new main page.
+
+**Design Decision**: Keep the entry point as a Hero CTA that opens a modal / drawer. Do not add a navigation tab, route, Supabase SQL, schema changes, Backup format changes, or Ticket V2 model changes. Posters are derived from existing events and ticketApplications, rendered as native SVG strings, previewed inside the modal, and exported as SVG or PNG. PNG export uses browser canvas from the SVG string, with no external image API, official images, logos, or copyrighted assets.
+
+**Implementation**: Added `SharePosterModal` and `SharePosterPreview`, with SVG generation and export split into `sharePosterUtils`, `posterSvgTemplates`, and `svgExportUtils`. The modal supports Selected Events Poster and Yearly Report Poster modes. Selected mode allows up to 12 events for readable layout; yearly mode derives years and summary stats from event dates and ticket applications. Privacy toggles control seat, price/spending, notes, weather, ticket type, and StageLog JP / GitHub attribution. Posters use a fixed 1080 x 1350 canvas and can include `github.com/Chikachi00/StageLog-JP` at the bottom.
+
+**Result**: Share Poster Studio connects the existing live record archive, ticket data, and visual identity into an exportable sharing artifact while keeping the data model read-only. It does not change record saving, Cloud / Local mode, Analytics, Footprint Map, or Backup.
